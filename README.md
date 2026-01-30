@@ -50,6 +50,31 @@ curl -X POST https://deja.coey.dev/learn \
 | `GET /learning/:id` | No | Get by ID |
 | `DELETE /learning/:id` | Yes | Remove garbage |
 | `GET /stats` | No | Count and avg confidence |
+| `POST /secret` | **Yes** | Store a secret (auth required for read AND write) |
+| `GET /secret/:name` | **Yes** | Retrieve a secret |
+| `DELETE /secret/:name` | **Yes** | Delete a secret |
+
+### Secrets
+
+Secrets are separate from learnings. **Both read and write require authentication.**
+
+```bash
+# Store a secret
+curl -X POST https://deja.coey.dev/secret \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "github", "value": "ghp_xxx"}'
+
+# Retrieve a secret
+curl https://deja.coey.dev/secret/github \
+  -H "Authorization: Bearer $API_KEY"
+
+# Delete a secret
+curl -X DELETE https://deja.coey.dev/secret/github \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+Use this for cross-session credentials (API keys, tokens) that agents need.
 
 ## Tools
 

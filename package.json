@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:init": "wrangler d1 execute deja-db --file=schema.sql --remote"
+    "db:init": "wrangler d1 execute deja-db --file=schema.sql --remote",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": ["ai", "agents", "memory", "cloudflare", "workers"],
   "author": "",

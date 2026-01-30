@@ -29,14 +29,28 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // API Key authentication for write/delete operations (not query/inject)
-    const needsAuth = (path === '/learn' && request.method === 'POST') || request.method === 'DELETE';
-    if (needsAuth && env.API_KEY) {
+    // Check auth helper
+    const checkAuth = (): boolean => {
+      if (!env.API_KEY) return true;
       const authHeader = request.headers.get('Authorization');
       const providedKey = authHeader?.replace('Bearer ', '');
-      if (providedKey !== env.API_KEY) {
+      return providedKey === env.API_KEY;
+    };
+
+    // API Key authentication for write/delete operations (not query/inject)
+    const needsAuth = (path === '/learn' && request.method === 'POST') || request.method === 'DELETE';
+    if (needsAuth && !checkAuth()) {
+      return new Response(
+        JSON.stringify({ error: 'unauthorized - valid API key required for write operations' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // Secrets require auth for ALL operations (read and write)
+    if (path.startsWith('/secret')) {
+      if (!checkAuth()) {
         return new Response(
-          JSON.stringify({ error: 'unauthorized - valid API key required for write operations' }),
+          JSON.stringify({ error: 'unauthorized - API key required for secrets' }),
           { status: 401, headers: corsHeaders }
         );
       }
@@ -58,6 +72,9 @@ export default {
             'POST /query': 'Semantic search for learnings',
             'POST /inject': 'Get learnings formatted for context injection',
             'GET /stats': 'Get memory statistics',
+            'POST /secret': 'Store a secret (auth required for read AND write)',
+            'GET /secret/:name': 'Retrieve a secret (auth required)',
+            'DELETE /secret/:name': 'Delete a secret (auth required)',
           }
         }), { headers: corsHeaders });
       }
@@ -96,6 +113,22 @@ export default {
       // DELETE /learning/:id - delete a learning
       if (learningMatch && request.method === 'DELETE') {
         return await handleDeleteLearning(learningMatch[1], env, corsHeaders);
+      }
+
+      // POST /secret - store a secret (auth required)
+      if (path === '/secret' && request.method === 'POST') {
+        return await handleStoreSecret(request, env, corsHeaders);
+      }
+
+      // GET /secret/:name - retrieve a secret (auth required)
+      const secretMatch = path.match(/^\/secret\/([\w-]+)$/);
+      if (secretMatch && request.method === 'GET') {
+        return await handleGetSecret(secretMatch[1], env, corsHeaders);
+      }
+
+      // DELETE /secret/:name - delete a secret (auth required)
+      if (secretMatch && request.method === 'DELETE') {
+        return await handleDeleteSecret(secretMatch[1], env, corsHeaders);
       }
 
       return new Response(JSON.stringify({ error: 'not found' }), {
@@ -377,6 +410,95 @@ async function handleDeleteLearning(
 
   return new Response(
     JSON.stringify({ status: 'deleted', id }),
+    { headers }
+  );
+}
+
+// --- Secret handlers (authenticated read/write) ---
+
+async function handleStoreSecret(
+  request: Request,
+  env: Env,
+  headers: Record<string, string>
+): Promise<Response> {
+  const body: any = await request.json();
+
+  if (!body.name || !body.value) {
+    return new Response(
+      JSON.stringify({ error: 'name and value are required' }),
+      { status: 400, headers }
+    );
+  }
+
+  // Validate name format (alphanumeric, dashes, underscores)
+  if (!/^[\w-]+$/.test(body.name)) {
+    return new Response(
+      JSON.stringify({ error: 'name must be alphanumeric with dashes/underscores only' }),
+      { status: 400, headers }
+    );
+  }
+
+  const now = new Date().toISOString();
+
+  // Upsert the secret
+  await env.DB.prepare(
+    `INSERT INTO secrets (name, value, created_at, updated_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(name) DO UPDATE SET value = ?, updated_at = ?`
+  )
+    .bind(body.name, body.value, now, now, body.value, now)
+    .run();
+
+  return new Response(
+    JSON.stringify({ name: body.name, status: 'stored' }),
+    { headers }
+  );
+}
+
+async function handleGetSecret(
+  name: string,
+  env: Env,
+  headers: Record<string, string>
+): Promise<Response> {
+  const result = await env.DB.prepare(
+    `SELECT * FROM secrets WHERE name = ?`
+  ).bind(name).first();
+
+  if (!result) {
+    return new Response(
+      JSON.stringify({ error: 'not found' }),
+      { status: 404, headers }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ name: result.name, value: result.value }),
+    { headers }
+  );
+}
+
+async function handleDeleteSecret(
+  name: string,
+  env: Env,
+  headers: Record<string, string>
+): Promise<Response> {
+  const existing = await env.DB.prepare(
+    `SELECT name FROM secrets WHERE name = ?`
+  ).bind(name).first();
+
+  if (!existing) {
+    return new Response(
+      JSON.stringify({ error: 'not found' }),
+      { status: 404, headers }
+    );
+  }
+
+  await env.DB.prepare(
+    `DELETE FROM secrets WHERE name = ?`
+  ).bind(name).run();
+
+  return new Response(
+    JSON.stringify({ status: 'deleted', name }),
     { headers }
   );
 }

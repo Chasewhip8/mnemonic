@@ -13,3 +13,11 @@ CREATE TABLE IF NOT EXISTS learnings (
 CREATE INDEX IF NOT EXISTS idx_learnings_trigger ON learnings(trigger);
 CREATE INDEX IF NOT EXISTS idx_learnings_confidence ON learnings(confidence);
 CREATE INDEX IF NOT EXISTS idx_learnings_created_at ON learnings(created_at);
+
+-- Secrets table (authenticated read/write)
+CREATE TABLE IF NOT EXISTS secrets (
+  name TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
