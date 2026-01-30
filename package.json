@@ -1,0 +1,19 @@
+{
+  "name": "deja",
+  "version": "0.1.0",
+  "description": "Persistent memory for agents",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute deja-db --file=schema.sql --remote"
+  },
+  "keywords": ["ai", "agents", "memory", "cloudflare", "workers"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240405.0",
+    "typescript": "^5.4.0",
+    "wrangler": "^3.50.0"
+  }
+}
