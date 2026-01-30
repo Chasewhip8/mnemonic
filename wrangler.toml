@@ -23,3 +23,6 @@ index_name = "deja-index"
 
 [ai]
 binding = "AI"
+
+[triggers]
+crons = ["0 0 * * *"]
