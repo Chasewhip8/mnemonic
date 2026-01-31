@@ -37,16 +37,19 @@ export default {
       return providedKey === env.API_KEY;
     };
 
-    // API Key authentication for write/delete operations (not query/inject)
-    const needsAuth = (path === '/learn' && request.method === 'POST') || request.method === 'DELETE';
-    if (needsAuth && !checkAuth()) {
+    // API Key authentication for ALL operations except root health check
+    // This protects our memory from public access
+    const publicPaths = ['/', '/inject', '/query'];
+    const isPublicPath = publicPaths.includes(path) && request.method !== 'DELETE';
+    
+    if (!isPublicPath && !checkAuth()) {
       return new Response(
-        JSON.stringify({ error: 'unauthorized - valid API key required for write operations' }),
+        JSON.stringify({ error: 'unauthorized - API key required' }),
         { status: 401, headers: corsHeaders }
       );
     }
 
-    // Secrets require auth for ALL operations (read and write)
+    // Extra check for secrets (belt and suspenders)
     if (path.startsWith('/secret')) {
       if (!checkAuth()) {
         return new Response(
