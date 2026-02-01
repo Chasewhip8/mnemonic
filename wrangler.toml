@@ -12,14 +12,14 @@ account_id = "bfcb6ac5b3ceaf42a09607f6f7925823"
 # For now, deploy to workers.dev
 workers_dev = true
 
-[[d1_databases]]
-binding = "DB"
-database_name = "deja-db"
-database_id = "d255ed1a-8615-4daa-b21a-a04611c8366f"
+[durable_objects]
+bindings = [
+  { name = "DEJA", class_name = "DejaDO" }
+]
 
-[[vectorize]]
-binding = "VECTORIZE"
-index_name = "deja-index"
+[[migrations]]
+taggable = "DEJA"
+new_classes = ["DejaDO"]
 
 [ai]
 binding = "AI"
