@@ -27,9 +27,14 @@ export class DejaDO extends DurableObject<Env> {
   private async initDB() {
     if (this.db) return this.db;
     
-    // @ts-ignore - Cloudflare types
-    this.db = drizzle(this.ctx.storage.sql, { schema });
-    return this.db;
+    try {
+      // @ts-ignore - Cloudflare types
+      this.db = drizzle(this.ctx.storage.sql, { schema });
+      return this.db;
+    } catch (error) {
+      console.error('Database initialization error:', error);
+      throw error;
+    }
   }
 
   /**
@@ -128,39 +133,44 @@ export class DejaDO extends DurableObject<Env> {
    * RPC method: Learn something new
    */
   async learn(scope: string, trigger: string, learning: string, confidence: number = 1.0, reason?: string, source?: string) {
-    const db = await this.initDB();
-    
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
+    try {
+      const db = await this.initDB();
+      
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
 
-    // Create embedding for the learning
-    const fullText = `${trigger} ${learning} ${reason || ''}`;
-    const embedding = await this.createEmbedding(fullText);
-    
-    // Store in SQLite
-    await db.insert(schema.learnings).values({
-      id,
-      trigger,
-      learning,
-      reason: reason ?? null,
-      confidence,
-      source: source ?? null,
-      scope,
-      embedding: JSON.stringify(embedding),
-      createdAt: now,
-    });
-    
-    // Store in Vectorize
-    // @ts-ignore - Cloudflare types
-    await this.env.VECTORIZE.upsert([
-      {
+      // Create embedding for the learning
+      const fullText = `${trigger} ${learning} ${reason || ''}`;
+      const embedding = await this.createEmbedding(fullText);
+      
+      // Store in SQLite
+      await db.insert(schema.learnings).values({
         id,
-        values: embedding,
-        metadata: { scope, trigger, learning }
-      }
-    ]);
+        trigger,
+        learning,
+        reason: reason ?? null,
+        confidence,
+        source: source ?? null,
+        scope,
+        embedding: JSON.stringify(embedding),
+        createdAt: now,
+      });
+      
+      // Store in Vectorize
+      // @ts-ignore - Cloudflare types
+      await this.env.VECTORIZE.upsert([
+        {
+          id,
+          values: embedding,
+          metadata: { scope, trigger, learning }
+        }
+      ]);
 
-    return { id, status: 'stored' };
+      return { id, status: 'stored' };
+    } catch (error) {
+      console.error('Learn method error:', error);
+      throw error;
+    }
   }
 
   /**
