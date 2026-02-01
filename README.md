@@ -1,129 +1,93 @@
 # deja
 
-**Persistent memory for agents.** Agents learn from failures. Deja remembers.
+Persistent memory for agents. Scoped, isolated, bindable.
 
-## The System
+## Architecture
 
-Deja is three things:
+**Durable Object per user** - Each user gets their own DejaDO instance with SQLite storage. Isolation by architecture, not access control.
 
-1. **Memory API** - Store and query learnings across sessions
-2. **preflight** - Query memory before building (prevent reinventing)
-3. **approach-log** - Track attempts within a session (prevent loops)
+**Two interfaces:**
+1. **RPC** (for filepath/internal) - Service binding, direct method calls, no auth needed
+2. **HTTP** (for CLI/standalone) - API key auth, wraps the DO
 
-## Quick Start
-
-```bash
-# Before starting work, run preflight
-node tools/preflight.mjs "what you're about to build"
-
-# This queries deja and shows relevant memory, then asks:
-# - What exactly are you building?
-# - Why is this needed?
-# - How will you test it?
-# - What could go wrong?
-# - Is the answer in memory already?
+```
+filepath (service binding)     CLI/standalone (HTTP)
+         │                              │
+         │ RPC                          │ API key
+         ▼                              ▼
+    ┌─────────────────────────────────────┐
+    │           DejaDO                    │
+    │  ┌─────────────────────────────┐    │
+    │  │  SQLite (learnings, secrets)│    │
+    │  └─────────────────────────────┘    │
+    │              │                      │
+    │              ▼                      │
+    │         Vectorize                   │
+    │    (semantic search)                │
+    └─────────────────────────────────────┘
 ```
 
-## Memory API
+## Scopes
 
-```bash
-# Get context (no auth needed)
-curl -X POST https://deja.coey.dev/inject \
-  -H "Content-Type: application/json" \
-  -d '{"context": "your task", "format": "prompt", "limit": 5}'
+Learnings and secrets are scoped:
+- `shared` - visible to all agents for this user
+- `agent:<id>` - specific to one agent
+- `session:<id>` - specific to one session
 
-# Store a learning (auth required)
-curl -X POST https://deja.coey.dev/learn \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"trigger": "when relevant", "learning": "what you learned", "confidence": 0.9}'
+Callers pass scopes they can access. DejaDO filters accordingly.
+
+## RPC Methods (for service binding)
+
+```typescript
+const deja = env.DEJA.get(env.DEJA.idFromName(userId));
+
+// Memory
+await deja.inject(scopes, context, limit);  // Get relevant memories
+await deja.learn(scope, trigger, learning, confidence, source);
+await deja.query(scopes, text, limit);      // Search without tracking hits
+await deja.getLearnings(filter);            // List/filter
+await deja.deleteLearning(id);
+
+// Secrets  
+await deja.getSecret(scopes, name);         // First match wins
+await deja.setSecret(scope, name, value);
+await deja.deleteSecret(scope, name);
+
+// Stats
+await deja.getStats();
 ```
 
-### Endpoints
+## HTTP Endpoints (for CLI)
 
-| Endpoint | Auth | Description |
-|----------|------|-------------|
-| `POST /inject` | No | Get formatted context for prompt |
-| `POST /query` | No | Semantic search |
-| `POST /learn` | Yes | Store a learning |
-| `GET /learnings` | No | List all (for cleanup) |
-| `GET /learning/:id` | No | Get by ID |
-| `DELETE /learning/:id` | Yes | Remove garbage |
-| `GET /stats` | No | Count and avg confidence |
-| `POST /secret` | **Yes** | Store a secret (auth required for read AND write) |
-| `GET /secret/:name` | **Yes** | Retrieve a secret |
-| `DELETE /secret/:name` | **Yes** | Delete a secret |
-
-### Secrets
-
-Secrets are separate from learnings. **Both read and write require authentication.**
+Same operations, wrapped with API key auth:
 
 ```bash
-# Store a secret
-curl -X POST https://deja.coey.dev/secret \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "github", "value": "ghp_xxx"}'
+# Inject memories into prompt
+curl -X POST /inject -H "Authorization: Bearer $KEY" \
+  -d '{"context": "building auth", "scopes": ["shared"], "limit": 5}'
 
-# Retrieve a secret
-curl https://deja.coey.dev/secret/github \
-  -H "Authorization: Bearer $API_KEY"
+# Learn something
+curl -X POST /learn -H "Authorization: Bearer $KEY" \
+  -d '{"trigger": "when X", "learning": "do Y", "confidence": 0.9}'
 
-# Delete a secret
-curl -X DELETE https://deja.coey.dev/secret/github \
-  -H "Authorization: Bearer $API_KEY"
+# Query
+curl -X POST /query -H "Authorization: Bearer $KEY" \
+  -d '{"text": "search term", "limit": 10}'
 ```
 
-Use this for cross-session credentials (API keys, tokens) that agents need.
-
-## Tools
-
-### preflight
-
-Query memory + force yourself to think before building.
+## Development
 
 ```bash
-node tools/preflight.mjs "building a session state service"
-# Shows relevant memory
-# Asks the 5 questions
-# If memory has the answer, don't build
+bun install
+bun run dev        # Local dev
+bun run test       # Run tests
+bun run deploy     # Deploy to Cloudflare
 ```
 
-### approach-log
+## Stack
 
-Track what you tried within a session. Prevents loops.
-
-```bash
-node tools/approach-log.mjs log "tried X" "result Y" "learned Z"
-node tools/approach-log.mjs show
-node tools/approach-log.mjs check "something similar"
-node tools/approach-log.mjs clear
-```
-
-## Philosophy
-
-- **Memory across sessions**: deja API
-- **Memory within session**: approach-log
-- **Think before building**: preflight
-- **Simpler is better**: No separate service for session-handoff, just use `trigger: "session:current"`
-
-## Blog Series
-
-- [Part 1: deja](https://coey.dev/deja) - Agent memory
-- [Part 2: gate-review](https://coey.dev/gate-review) - Adversarial test review
-- [Part 3: preflight](https://coey.dev/preflight) - Slow down and think
-
-## Self-Hosting
-
-```bash
-npm install
-npx wrangler d1 create deja-db
-npx wrangler vectorize create deja-index --dimensions=768 --metric=cosine
-npx wrangler d1 execute deja-db --file=schema.sql --remote
-npx wrangler secret put API_KEY
-npx wrangler deploy
-```
-
-## License
-
-MIT
+- Cloudflare Workers + Durable Objects
+- SQLite (DO storage)
+- Vectorize (semantic search)
+- Workers AI (embeddings)
+- Hono (HTTP routing)
