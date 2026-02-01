@@ -8,7 +8,7 @@
     "deploy": "wrangler deploy",
     "db:init": "wrangler d1 execute deja-db --file=schema.sql --remote",
     "test": "jest",
-  "test:do": "jest test/deja-do.test.ts",
+    "test:do": "jest test/deja-do.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -30,6 +30,7 @@
     "wrangler": "^3.50.0"
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.1"
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.7"
   }
 }
