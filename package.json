@@ -10,12 +10,21 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["ai", "agents", "memory", "cloudflare", "workers"],
+  "keywords": [
+    "ai",
+    "agents",
+    "memory",
+    "cloudflare",
+    "workers"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240405.0",
     "typescript": "^5.4.0",
     "wrangler": "^3.50.0"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1"
   }
 }
