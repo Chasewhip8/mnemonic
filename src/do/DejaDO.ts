@@ -609,7 +609,8 @@ export class DejaDO extends DurableObject<Env> {
     // Get secret endpoint
     app.get('/secret/:name', async (c) => {
       const name = c.req.param('name');
-      const result = await this.getSecret(['shared'], name);
+      const scopes = c.req.query('scopes')?.split(',') || ['shared'];
+      const result = await this.getSecret(scopes, name);
       if (result === null) {
         return c.json({ error: 'not found' }, 404);
       }
@@ -619,11 +620,32 @@ export class DejaDO extends DurableObject<Env> {
     // Delete secret endpoint
     app.delete('/secret/:name', async (c) => {
       const name = c.req.param('name');
-      const result = await this.deleteSecret('shared', name);
+      const scope = c.req.query('scope') || 'shared';
+      const result = await this.deleteSecret(scope, name);
       if (result.error) {
         return c.json({ error: result.error }, 404);
       }
       return c.json(result);
+    });
+    
+    // Get secrets endpoint
+    app.get('/secrets', async (c) => {
+      const scope = c.req.query('scope');
+      const db = await this.initDB();
+      
+      try {
+        let query: any = db.select().from(schema.secrets);
+        
+        if (scope) {
+          query = query.where(eq(schema.secrets.scope, scope));
+        }
+        
+        const results = await query.orderBy(desc(schema.secrets.updatedAt));
+        return c.json(results);
+      } catch (error) {
+        console.error('Get secrets error:', error);
+        return c.json({ error: 'Failed to get secrets' }, 500);
+      }
     });
     
     // 404 handler

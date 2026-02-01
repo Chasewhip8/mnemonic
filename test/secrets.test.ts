@@ -9,9 +9,10 @@ describe('secrets endpoints', () => {
     const endpoints = [
       'POST /secret',
       'GET /secret/:name',
-      'DELETE /secret/:name'
+      'DELETE /secret/:name',
+      'GET /secrets'
     ];
     
-    expect(endpoints).toHaveLength(3);
+    expect(endpoints).toHaveLength(4);
   });
 });
