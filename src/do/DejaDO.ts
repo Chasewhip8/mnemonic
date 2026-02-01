@@ -7,6 +7,8 @@ import { DurableObject } from 'cloudflare:workers';
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from '../schema';
 import { eq, and, like, desc, sql, inArray } from 'drizzle-orm';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
 interface Env {
   VECTORIZE: VectorizeIndex;
@@ -14,8 +16,46 @@ interface Env {
   API_KEY?: string;
 }
 
+// Types for our methods
+interface Learning {
+  id: string;
+  trigger: string;
+  learning: string;
+  reason?: string;
+  confidence: number;
+  source?: string;
+  scope: string;
+  embedding?: number[];
+  createdAt: string;
+}
+
+interface Secret {
+  name: string;
+  value: string;
+  scope: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Stats {
+  totalLearnings: number;
+  totalSecrets: number;
+  scopes: Record<string, { learnings: number; secrets: number }>;
+}
+
+interface QueryResult {
+  learnings: Learning[];
+  hits: Record<string, number>;
+}
+
+interface InjectResult {
+  prompt: string;
+  learnings: Learning[];
+}
+
 export class DejaDO extends DurableObject<Env> {
   private db: ReturnType<typeof drizzle> | null = null;
+  private app: Hono<{ Bindings: Env }> | null = null;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
@@ -48,418 +88,538 @@ export class DejaDO extends DurableObject<Env> {
       if (response.data && response.data[0]) {
         return response.data[0];
       } else {
-        // For async responses or other formats, return a zero vector
-        return new Array(1024).fill(0);
+        // For async responses, we might need to poll
+        // For now, let's assume it's direct
+        return response;
       }
     } catch (error) {
-      console.error('Error creating embedding:', error);
-      // Return a zero vector of appropriate size if embedding fails
-      return new Array(1024).fill(0);
-    }
-  }
-
-  /**
-   * Filter scopes by priority - first match wins
-   * Order: session:<id>, agent:<id>, shared
-   */
-  private filterByScopePriority(scopes: string[]) {
-    // Sort scopes by priority
-    const priority = ['session:', 'agent:', 'shared'];
-    return scopes.sort((a, b) => {
-      const aPriority = priority.findIndex(p => a.startsWith(p));
-      const bPriority = priority.findIndex(p => b.startsWith(p));
-      return aPriority - bPriority;
-    });
-  }
-
-  /**
-   * RPC method: Inject memories into context
-   */
-  async inject(scopes: string[], context: string, limit: number = 5, format: string = 'structured') {
-    const db = await this.initDB();
-    
-    // Create embedding for the context
-    const contextEmbedding = await this.createEmbedding(context);
-    
-    // Query Vectorize for similar learnings
-    // @ts-ignore - Cloudflare types
-    const vectorResults = await this.env.VECTORIZE.query(contextEmbedding, { topK: limit });
-    
-    // Get the learning IDs from vector results
-    const learningIds = vectorResults.matches.map(match => match.id);
-    let results: typeof schema.learnings.$inferSelect[] = [];
-    
-    if (learningIds.length > 0) {
-      const allResults = await db.select().from(schema.learnings)
-        .where(inArray(schema.learnings.id, learningIds))
-        .orderBy(desc(schema.learnings.createdAt));
-      
-      // Filter by scope
-      results = allResults.filter((l: typeof schema.learnings.$inferSelect) => l.scope === scopes[0]).slice(0, limit);
-    } else {
-      const sortedScopes = this.filterByScopePriority(scopes);
-      results = await db.select().from(schema.learnings)
-        .where(
-          and(
-            eq(schema.learnings.scope, sortedScopes[0])
-          )
-        )
-        .orderBy(desc(schema.learnings.createdAt))
-        .limit(limit);
-    }
-
-    if (format === 'prompt') {
-      const lines = results.map(
-        (l) =>
-          `- ${l.trigger}: ${l.learning}${l.reason ? ` (${l.reason})` : ''}`
-      );
-      const injection = results.length > 0
-        ? `## Relevant learnings from previous work:\n${lines.join('\n')}`
-        : '';
-      return { injection };
-    }
-
-    return {
-      injection: results.map((l) => ({
-        trigger: l.trigger,
-        learning: l.learning,
-        reason: l.reason,
-        confidence: l.confidence,
-      })),
-    };
-  }
-
-  /**
-   * RPC method: Learn something new
-   */
-  async learn(scope: string, trigger: string, learning: string, confidence: number = 1.0, reason?: string, source?: string) {
-    try {
-      const db = await this.initDB();
-      
-      const id = crypto.randomUUID();
-      const now = new Date().toISOString();
-
-      // Create embedding for the learning
-      const fullText = `${trigger} ${learning} ${reason || ''}`;
-      const embedding = await this.createEmbedding(fullText);
-      
-      // Store in SQLite
-      await db.insert(schema.learnings).values({
-        id,
-        trigger,
-        learning,
-        reason: reason ?? null,
-        confidence,
-        source: source ?? null,
-        scope,
-        embedding: JSON.stringify(embedding),
-        createdAt: now,
-      });
-      
-      // Store in Vectorize
-      // @ts-ignore - Cloudflare types
-      await this.env.VECTORIZE.upsert([
-        {
-          id,
-          values: embedding,
-          metadata: { scope, trigger, learning }
-        }
-      ]);
-
-      return { id, status: 'stored' };
-    } catch (error) {
-      console.error('Learn method error:', error);
+      console.error('Embedding creation error:', error);
       throw error;
     }
   }
 
   /**
-   * RPC method: Query memories
+   * Filter scopes by priority - first match wins
+   * Priority order: session:<id>, agent:<id>, shared
    */
-  async query(scopes: string[], text: string, limit: number = 5) {
-    const db = await this.initDB();
+  private filterScopesByPriority(scopes: string[]): string[] {
+    const priority = ['session:', 'agent:', 'shared'];
+    const filtered: string[] = [];
     
-    // Create embedding for the query text
-    const queryEmbedding = await this.createEmbedding(text);
-    
-    // Query Vectorize for similar learnings
-    // @ts-ignore - Cloudflare types
-    const vectorResults = await this.env.VECTORIZE.query(queryEmbedding, { topK: limit });
-    
-    // Get the learning IDs from vector results
-    const learningIds = vectorResults.matches.map(match => match.id);
-    
-    let results: typeof schema.learnings.$inferSelect[] = [];
-    
-    if (learningIds.length > 0) {
-      // Get the full learning details from SQLite
-      const allResults = await db.select().from(schema.learnings)
-        .where(inArray(schema.learnings.id, learningIds))
-        .orderBy(desc(schema.learnings.createdAt));
-      
-      // Filter by scope
-      results = allResults.filter((l: typeof schema.learnings.$inferSelect) => l.scope === scopes[0]).slice(0, limit);
-    } else {
-      // Fallback to simple query if no vector results
-      const sortedScopes = this.filterByScopePriority(scopes);
-      results = await db.select().from(schema.learnings)
-        .where(
-          and(
-            eq(schema.learnings.scope, sortedScopes[0])
-          )
-        )
-        .orderBy(desc(schema.learnings.createdAt))
-        .limit(limit);
+    for (const prefix of priority) {
+      const matches = scopes.filter(scope => scope.startsWith(prefix));
+      if (matches.length > 0) {
+        return matches; // Return first match type
+      }
     }
-
-    return { learnings: results };
+    
+    // If no matches, return shared if in scopes
+    return scopes.includes('shared') ? ['shared'] : [];
   }
 
   /**
-   * RPC method: Get all learnings (with filtering)
+   * RPC METHODS - Direct method calls for service binding
    */
-  async getLearnings(filter?: { scope?: string }) {
-    const db = await this.initDB();
-    
-    let results: typeof schema.learnings.$inferSelect[];
-    
-    if (filter?.scope) {
-      results = await db.select().from(schema.learnings)
-        .where(eq(schema.learnings.scope, filter.scope))
-        .orderBy(desc(schema.learnings.createdAt));
-    } else {
-      results = await db.select().from(schema.learnings)
-        .orderBy(desc(schema.learnings.createdAt));
-    }
-    
-    return { learnings: results };
-  }
 
   /**
-   * RPC method: Delete a learning
+   * Inject relevant memories into a prompt
+   * @param scopes Scopes to search in (shared, agent:<id>, session:<id>)
+   * @param context Context to find relevant memories for
+   * @param limit Maximum number of memories to return
+   * @param format Format of the result (prompt or learnings)
+   * @returns Injected prompt or learnings
    */
-  async deleteLearning(id: string) {
-    const db = await this.initDB();
-    
-    // Check if exists
-    const existing = await db.select().from(schema.learnings)
-      .where(eq(schema.learnings.id, id));
-
-    if (existing.length === 0) {
-      return { error: 'not found' };
-    }
-
-    // Delete from database
-    await db.delete(schema.learnings)
-      .where(eq(schema.learnings.id, id));
-    
-    // Delete from Vectorize
-    // @ts-ignore - Cloudflare types
-    await this.env.VECTORIZE.deleteByIds([id]);
-
-    return { status: 'deleted', id };
-  }
-
-  /**
-   * RPC method: Get a secret
-   */
-  async getSecret(scopes: string[], name: string) {
+  async inject(scopes: string[], context: string, limit: number = 5, format: 'prompt' | 'learnings' = 'prompt'): Promise<InjectResult> {
     const db = await this.initDB();
     
     // Filter scopes by priority
-    const sortedScopes = this.filterByScopePriority(scopes);
+    const filteredScopes = this.filterScopesByPriority(scopes);
+    if (filteredScopes.length === 0) {
+      return { prompt: '', learnings: [] };
+    }
     
-    // Try to find secret in each scope in order
-    for (const scope of sortedScopes) {
-      const results = await db.select().from(schema.secrets)
-        .where(
-          and(
-            eq(schema.secrets.name, name),
-            eq(schema.secrets.scope, scope)
-          )
-        );
+    try {
+      // Create embedding for context
+      const embedding = await this.createEmbedding(context);
       
-      if (results.length > 0) {
-        return { name: results[0].name, value: results[0].value };
+      // Convert embedding to string for query
+      const embeddingStr = JSON.stringify(embedding);
+      
+      // Query Vectorize for similar embeddings
+      const vectorResults = await this.env.VECTORIZE.query(embedding, { 
+        topK: limit * 2, // Get more results to filter by scope
+        returnValues: true 
+      });
+      
+      // Extract IDs from vector results
+      const ids = vectorResults.matches.map(match => match.id);
+      
+      if (ids.length === 0) {
+        return { prompt: '', learnings: [] };
       }
+      
+      // Get learnings from DB, filter by scope and IDs
+      const whereClause = and(
+        inArray(schema.learnings.id, ids),
+        inArray(schema.learnings.scope, filteredScopes)
+      );
+      
+      const dbLearnings = await db.select().from(schema.learnings).where(whereClause).limit(limit);
+      
+      // Update hit counts for returned learnings
+      const hitUpdates = dbLearnings.map(learning => 
+        db.update(schema.learnings)
+          .set({ 
+            confidence: sql`${schema.learnings.confidence} + 0.1` 
+          })
+          .where(eq(schema.learnings.id, learning.id))
+      );
+      
+      await Promise.all(hitUpdates);
+      
+      // Format result based on requested format
+      if (format === 'prompt') {
+        const prompt = dbLearnings.map(l => `When ${l.trigger}, ${l.learning}`).join('\n');
+        return { prompt, learnings: dbLearnings };
+      } else {
+        return { prompt: '', learnings: dbLearnings };
+      }
+    } catch (error) {
+      console.error('Inject error:', error);
+      return { prompt: '', learnings: [] };
     }
-    
-    return null;
   }
 
   /**
-   * RPC method: Set a secret
+   * Learn a new memory
+   * @param scope Scope to store the learning in
+   * @param trigger When to apply this learning
+   * @param learning What to do
+   * @param confidence Confidence level (0-1)
+   * @param reason Reason for the learning
+   * @param source Source of the learning
+   * @returns Created learning
    */
-  async setSecret(scope: string, name: string, value: string) {
+  async learn(scope: string, trigger: string, learning: string, confidence: number = 0.5, reason?: string, source?: string): Promise<Learning> {
     const db = await this.initDB();
     
-    const now = new Date().toISOString();
-
-    // Upsert the secret
-    await db.insert(schema.secrets).values({
-      name,
-      value,
+    // Generate ID
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create embedding
+    const textForEmbedding = `When ${trigger}, ${learning}`;
+    const embedding = await this.createEmbedding(textForEmbedding);
+    
+    // Create learning object
+    const newLearning: Learning = {
+      id,
+      trigger,
+      learning,
+      reason,
+      confidence,
+      source,
       scope,
-      createdAt: now,
-      updatedAt: now,
-    }).onConflictDoUpdate({
-      target: [schema.secrets.name, schema.secrets.scope],
-      set: {
-        value,
-        updatedAt: now,
-      },
-    });
-
-    return { name, status: 'stored' };
-  }
-
-  /**
-   * RPC method: Delete a secret
-   */
-  async deleteSecret(scope: string, name: string) {
-    const db = await this.initDB();
-    
-    const existing = await db.select().from(schema.secrets)
-      .where(
-        and(
-          eq(schema.secrets.name, name),
-          eq(schema.secrets.scope, scope)
-        )
-      );
-
-    if (existing.length === 0) {
-      return { error: 'not found' };
-    }
-
-    await db.delete(schema.secrets)
-      .where(
-        and(
-          eq(schema.secrets.name, name),
-          eq(schema.secrets.scope, scope)
-        )
-      );
-
-    return { status: 'deleted', name };
-  }
-
-  /**
-   * RPC method: Get statistics
-   */
-  async getStats() {
-    const db = await this.initDB();
-    
-    const result: { count: number; avgConfidence: number | null }[] = await db.select({
-      count: sql<number>`COUNT(*)`,
-      avgConfidence: sql<number | null>`AVG(confidence)`
-    }).from(schema.learnings);
-
-    return { 
-      total_learnings: result[0]?.count ?? 0, 
-      avg_confidence: result[0]?.avgConfidence ?? 0 
+      embedding,
+      createdAt: new Date().toISOString()
     };
+    
+    try {
+      // Insert into DB
+      await db.insert(schema.learnings).values({
+        id: newLearning.id,
+        trigger: newLearning.trigger,
+        learning: newLearning.learning,
+        reason: newLearning.reason,
+        confidence: newLearning.confidence,
+        source: newLearning.source,
+        scope: newLearning.scope,
+        embedding: JSON.stringify(newLearning.embedding),
+        createdAt: newLearning.createdAt
+      });
+      
+      // Insert into Vectorize
+      await this.env.VECTORIZE.insert([{
+        id: newLearning.id,
+        values: newLearning.embedding,
+        metadata: {
+          scope: newLearning.scope,
+          trigger: newLearning.trigger,
+          learning: newLearning.learning
+        }
+      }]);
+      
+      return newLearning;
+    } catch (error) {
+      console.error('Learn error:', error);
+      throw error;
+    }
   }
+
   /**
-   * Handle HTTP requests to the Durable Object
+   * Query for learnings by text
+   * @param scopes Scopes to search in
+   * @param text Text to search for
+   * @param limit Maximum number of results
+   * @returns Query results
    */
-
+  async query(scopes: string[], text: string, limit: number = 10): Promise<QueryResult> {
+    const db = await this.initDB();
+    
+    // Filter scopes by priority
+    const filteredScopes = this.filterScopesByPriority(scopes);
+    if (filteredScopes.length === 0) {
+      return { learnings: [], hits: {} };
+    }
+    
+    try {
+      // Create embedding for search text
+      const embedding = await this.createEmbedding(text);
+      
+      // Query Vectorize
+      const vectorResults = await this.env.VECTORIZE.query(embedding, { 
+        topK: limit * 2, 
+        returnValues: true 
+      });
+      
+      // Extract IDs and scores
+      const matches = vectorResults.matches.map(match => ({ id: match.id, score: match.score }));
+      const ids = matches.map(match => match.id);
+      
+      if (ids.length === 0) {
+        return { learnings: [], hits: {} };
+      }
+      
+      // Get learnings from DB, filter by scope and IDs
+      const whereClause = and(
+        inArray(schema.learnings.id, ids),
+        inArray(schema.learnings.scope, filteredScopes)
+      );
+      
+      const dbLearnings = await db.select().from(schema.learnings).where(whereClause).limit(limit);
+      
+      // Sort by vector similarity score
+      const sortedLearnings = dbLearnings.sort((a, b) => {
+        const scoreA = matches.find(m => m.id === a.id)?.score || 0;
+        const scoreB = matches.find(m => m.id === b.id)?.score || 0;
+        return scoreB - scoreA;
+      });
+      
+      // Count hits by scope
+      const hits: Record<string, number> = {};
+      sortedLearnings.forEach(learning => {
+        hits[learning.scope] = (hits[learning.scope] || 0) + 1;
+      });
+      
+      return { learnings: sortedLearnings, hits };
+    } catch (error) {
+      console.error('Query error:', error);
+      return { learnings: [], hits: {} };
+    }
+  }
 
   /**
-   * Handle HTTP requests to the Durable Object
+   * Get learnings with optional filtering
+   * @param filter Filter options
+   * @returns List of learnings
+   */
+  async getLearnings(filter?: { scope?: string; limit?: number }): Promise<Learning[]> {
+    const db = await this.initDB();
+    
+    try {
+      let query = db.select().from(schema.learnings);
+      
+      if (filter?.scope) {
+        query = query.where(eq(schema.learnings.scope, filter.scope));
+      }
+      
+      if (filter?.limit) {
+        query = query.limit(filter.limit);
+      }
+      
+      const results = await query.orderBy(desc(schema.learnings.createdAt));
+      return results;
+    } catch (error) {
+      console.error('Get learnings error:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete a learning by ID
+   * @param id Learning ID
+   * @returns Success status
+   */
+  async deleteLearning(id: string): Promise<{ success: boolean; error?: string }> {
+    const db = await this.initDB();
+    
+    try {
+      // Delete from DB
+      const result = await db.delete(schema.learnings).where(eq(schema.learnings.id, id));
+      
+      // Delete from Vectorize
+      await this.env.VECTORIZE.deleteByIds([id]);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Delete learning error:', error);
+      return { success: false, error: 'Failed to delete learning' };
+    }
+  }
+
+  /**
+   * Get a secret by name, checking scopes in priority order
+   * @param scopes Scopes to search in
+   * @param name Secret name
+   * @returns Secret value or null
+   */
+  async getSecret(scopes: string[], name: string): Promise<string | null> {
+    const db = await this.initDB();
+    
+    // Filter scopes by priority
+    const filteredScopes = this.filterScopesByPriority(scopes);
+    if (filteredScopes.length === 0) {
+      return null;
+    }
+    
+    try {
+      // Query secrets, filter by scope and name
+      const whereClause = and(
+        eq(schema.secrets.name, name),
+        inArray(schema.secrets.scope, filteredScopes)
+      );
+      
+      const results = await db.select().from(schema.secrets).where(whereClause).limit(1);
+      
+      return results.length > 0 ? results[0].value : null;
+    } catch (error) {
+      console.error('Get secret error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set a secret
+   * @param scope Scope to store in
+   * @param name Secret name
+   * @param value Secret value
+   * @returns Success status
+   */
+  async setSecret(scope: string, name: string, value: string): Promise<{ success: boolean; error?: string }> {
+    const db = await this.initDB();
+    
+    try {
+      const now = new Date().toISOString();
+      
+      // Try to update first
+      const result = await db.update(schema.secrets)
+        .set({ 
+          value, 
+          updatedAt: now 
+        })
+        .where(and(
+          eq(schema.secrets.name, name),
+          eq(schema.secrets.scope, scope)
+        ));
+      
+      // If no rows were updated, insert
+      // @ts-ignore - Drizzle result type
+      if (result.rowsAffected === 0) {
+        await db.insert(schema.secrets).values({
+          name,
+          value,
+          scope,
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Set secret error:', error);
+      return { success: false, error: 'Failed to set secret' };
+    }
+  }
+
+  /**
+   * Delete a secret
+   * @param scope Scope to delete from
+   * @param name Secret name
+   * @returns Success status
+   */
+  async deleteSecret(scope: string, name: string): Promise<{ success: boolean; error?: string }> {
+    const db = await this.initDB();
+    
+    try {
+      await db.delete(schema.secrets)
+        .where(and(
+          eq(schema.secrets.name, name),
+          eq(schema.secrets.scope, scope)
+        ));
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Delete secret error:', error);
+      return { success: false, error: 'Failed to delete secret' };
+    }
+  }
+
+  /**
+   * Get statistics about stored learnings and secrets
+   * @returns Statistics
+   */
+  async getStats(): Promise<Stats> {
+    const db = await this.initDB();
+    
+    try {
+      // Get total counts
+      const learningCount = await db.select({ count: sql<number>`count(*)` }).from(schema.learnings);
+      const secretCount = await db.select({ count: sql<number>`count(*)` }).from(schema.secrets);
+      
+      // Get scope breakdown
+      const learningByScope = await db.select({
+        scope: schema.learnings.scope,
+        count: sql<number>`count(*)`
+      }).from(schema.learnings).groupBy(schema.learnings.scope);
+      
+      const secretsByScope = await db.select({
+        scope: schema.secrets.scope,
+        count: sql<number>`count(*)`
+      }).from(schema.secrets).groupBy(schema.secrets.scope);
+      
+      // Build scopes object
+      const scopes: Record<string, { learnings: number; secrets: number }> = {};
+      
+      learningByScope.forEach(row => {
+        if (!scopes[row.scope]) scopes[row.scope] = { learnings: 0, secrets: 0 };
+        scopes[row.scope].learnings = row.count;
+      });
+      
+      secretsByScope.forEach(row => {
+        if (!scopes[row.scope]) scopes[row.scope] = { learnings: 0, secrets: 0 };
+        scopes[row.scope].secrets = row.count;
+      });
+      
+      return {
+        totalLearnings: learningCount[0]?.count || 0,
+        totalSecrets: secretCount[0]?.count || 0,
+        scopes
+      };
+    } catch (error) {
+      console.error('Get stats error:', error);
+      return { totalLearnings: 0, totalSecrets: 0, scopes: {} };
+    }
+  }
+
+  /**
+   * Initialize Hono app for HTTP handling
+   */
+  private initApp(): Hono<{ Bindings: Env }> {
+    if (this.app) return this.app;
+    
+    const app = new Hono<{ Bindings: Env }>();
+    
+    // CORS middleware
+    app.use('*', cors());
+    
+    // Health check
+    app.get('/', (c) => {
+      return c.json({ status: 'ok', service: 'deja' });
+    });
+    
+    // Learn endpoint
+    app.post('/learn', async (c) => {
+      const body: any = await c.req.json();
+      const result = await this.learn(body.scope || 'shared', body.trigger, body.learning, body.confidence, body.reason, body.source);
+      return c.json(result);
+    });
+    
+    // Query endpoint
+    app.post('/query', async (c) => {
+      const body: any = await c.req.json();
+      const result = await this.query(body.scopes || ['shared'], body.text, body.limit);
+      return c.json(result);
+    });
+    
+    // Inject endpoint
+    app.post('/inject', async (c) => {
+      const body: any = await c.req.json();
+      const result = await this.inject(body.scopes || ['shared'], body.context, body.limit, body.format);
+      return c.json(result);
+    });
+    
+    // Stats endpoint
+    app.get('/stats', async (c) => {
+      const result = await this.getStats();
+      return c.json(result);
+    });
+    
+    // Get learnings endpoint
+    app.get('/learnings', async (c) => {
+      const scope = c.req.query('scope');
+      const limit = c.req.query('limit');
+      const result = await this.getLearnings({ 
+        scope, 
+        limit: limit ? parseInt(limit) : undefined 
+      });
+      return c.json(result);
+    });
+    
+    // Delete learning endpoint
+    app.delete('/learning/:id', async (c) => {
+      const id = c.req.param('id');
+      const result = await this.deleteLearning(id);
+      return c.json(result);
+    });
+    
+    // Set secret endpoint
+    app.post('/secret', async (c) => {
+      const body: any = await c.req.json();
+      const result = await this.setSecret(body.scope || 'shared', body.name, body.value);
+      return c.json(result);
+    });
+    
+    // Get secret endpoint
+    app.get('/secret/:name', async (c) => {
+      const name = c.req.param('name');
+      const result = await this.getSecret(['shared'], name);
+      if (result === null) {
+        return c.json({ error: 'not found' }, 404);
+      }
+      return c.json({ value: result });
+    });
+    
+    // Delete secret endpoint
+    app.delete('/secret/:name', async (c) => {
+      const name = c.req.param('name');
+      const result = await this.deleteSecret('shared', name);
+      if (result.error) {
+        return c.json({ error: result.error }, 404);
+      }
+      return c.json(result);
+    });
+    
+    // 404 handler
+    app.notFound((c) => {
+      return c.json({ error: 'not found' }, 404);
+    });
+    
+    // Error handler
+    app.onError((err, c) => {
+      console.error('Hono error:', err);
+      return c.json({ error: err.message }, 500);
+    });
+    
+    this.app = app;
+    return app;
+  }
+
+  /**
+   * HTTP fetch handler using Hono
    */
   async fetch(request: Request) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const method = request.method;
-
     try {
-      if (path === '/learn' && method === 'POST') {
-        const body: any = await request.json();
-        const result = await this.learn(body.scope || 'shared', body.trigger, body.learning, body.confidence, body.reason, body.source);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path === '/query' && method === 'POST') {
-        const body: any = await request.json();
-        const result = await this.query(body.scopes || ['shared'], body.text, body.limit);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path === '/inject' && method === 'POST') {
-        const body: any = await request.json();
-        const result = await this.inject(body.scopes || ['shared'], body.context, body.limit, body.format);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path === '/stats' && method === 'GET') {
-        const result = await this.getStats();
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path === '/learnings' && method === 'GET') {
-        const urlParams = new URLSearchParams(url.search);
-        const scope = urlParams.get('scope') || undefined;
-        const result = await this.getLearnings({ scope });
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path.startsWith('/learning/') && method === 'DELETE') {
-        const id = path.split('/')[2];
-        const result = await this.deleteLearning(id);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path === '/secret' && method === 'POST') {
-        const body: any = await request.json();
-        const result = await this.setSecret(body.scope || 'shared', body.name, body.value);
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path.startsWith('/secret/') && method === 'GET') {
-        const name = path.split('/')[2];
-        const result = await this.getSecret(['shared'], name);
-        if (!result) {
-          return new Response(JSON.stringify({ error: 'not found' }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (path.startsWith('/secret/') && method === 'DELETE') {
-        const name = path.split('/')[2];
-        const result = await this.deleteSecret('shared', name);
-        if (result.error) {
-          return new Response(JSON.stringify({ error: result.error }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-        return new Response(JSON.stringify(result), {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      return new Response(JSON.stringify({ error: 'not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const app = this.initApp();
+      return await app.fetch(request, this.env);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'unknown error';
       return new Response(JSON.stringify({ error: message }), {
