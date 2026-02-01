@@ -11,6 +11,18 @@ interface Env {
   API_KEY?: string;
 }
 
+interface DejaDOStub extends DurableObjectStub {
+  learn(scope: string, trigger: string, learning: string, confidence?: number, reason?: string, source?: string): Promise<{ id: string; status: string }>;
+  query(scopes: string[], text: string, limit?: number): Promise<{ learnings: any[] }>;
+  inject(scopes: string[], context: string, limit?: number, format?: string): Promise<{ injection: string | any[] }>;
+  getStats(): Promise<{ total_learnings: number; avg_confidence: number }>;
+  getLearnings(filter?: { scope?: string }): Promise<{ learnings: any[] }>;
+  deleteLearning(id: string): Promise<{ status: string; id: string } | { error: string }>;
+  getSecret(scopes: string[], name: string): Promise<{ name: string; value: string } | null>;
+  setSecret(scope: string, name: string, value: string): Promise<{ name: string; status: string }>;
+  deleteSecret(scope: string, name: string): Promise<{ status: string; name: string } | { error: string }>;
+}
+
 export { DejaDO };
 
 export default {
@@ -61,7 +73,7 @@ export default {
 
     // Get user ID from API key or use 'anonymous'
     const userId = getUserIdFromApiKey(env.API_KEY, request.headers.get('Authorization'));
-    const stub = env.DEJA.get(env.DEJA.idFromName(userId));
+    const stub = env.DEJA.get(env.DEJA.idFromName(userId)) as DejaDOStub;
 
     try {
       // Gate: api-health - root responds with service info
