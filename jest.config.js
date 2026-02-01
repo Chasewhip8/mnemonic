@@ -7,4 +7,7 @@ module.exports = {
     '^.+\.tsx?$': 'ts-jest',
   },
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  moduleNameMapper: {
+    '^cloudflare:workers$': '<rootDir>/__mocks__/cloudflare-workers.js',
+  },
 };
