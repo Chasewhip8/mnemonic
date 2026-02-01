@@ -2,7 +2,6 @@
  * Tests for DejaDO (Durable Object implementation)
  */
 
-import { describe, test, expect } from 'bun:test';
 import { DejaDO } from '../src/do/DejaDO';
 
 // Mock environment
