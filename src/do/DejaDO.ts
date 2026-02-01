@@ -118,6 +118,23 @@ export class DejaDO extends DurableObject<Env> {
   }
 
   /**
+   * Convert database learning to our Learning interface
+   */
+  private convertDbLearning(dbLearning: any): Learning {
+    return {
+      id: dbLearning.id,
+      trigger: dbLearning.trigger,
+      learning: dbLearning.learning,
+      reason: dbLearning.reason !== null ? dbLearning.reason : undefined,
+      confidence: dbLearning.confidence !== null ? dbLearning.confidence : 0,
+      source: dbLearning.source !== null ? dbLearning.source : undefined,
+      scope: dbLearning.scope,
+      embedding: dbLearning.embedding ? JSON.parse(dbLearning.embedding) : undefined,
+      createdAt: dbLearning.createdAt
+    };
+  }
+
+  /**
    * RPC METHODS - Direct method calls for service binding
    */
 
@@ -142,9 +159,6 @@ export class DejaDO extends DurableObject<Env> {
       // Create embedding for context
       const embedding = await this.createEmbedding(context);
       
-      // Convert embedding to string for query
-      const embeddingStr = JSON.stringify(embedding);
-      
       // Query Vectorize for similar embeddings
       const vectorResults = await this.env.VECTORIZE.query(embedding, { 
         topK: limit * 2, // Get more results to filter by scope
@@ -166,8 +180,11 @@ export class DejaDO extends DurableObject<Env> {
       
       const dbLearnings = await db.select().from(schema.learnings).where(whereClause).limit(limit);
       
+      // Convert to our Learning interface
+      const learnings = dbLearnings.map(this.convertDbLearning);
+      
       // Update hit counts for returned learnings
-      const hitUpdates = dbLearnings.map(learning => 
+      const hitUpdates = learnings.map(learning => 
         db.update(schema.learnings)
           .set({ 
             confidence: sql`${schema.learnings.confidence} + 0.1` 
@@ -179,10 +196,10 @@ export class DejaDO extends DurableObject<Env> {
       
       // Format result based on requested format
       if (format === 'prompt') {
-        const prompt = dbLearnings.map(l => `When ${l.trigger}, ${l.learning}`).join('\n');
-        return { prompt, learnings: dbLearnings };
+        const prompt = learnings.map(l => `When ${l.trigger}, ${l.learning}`).join('\n');
+        return { prompt, learnings };
       } else {
-        return { prompt: '', learnings: dbLearnings };
+        return { prompt: '', learnings };
       }
     } catch (error) {
       console.error('Inject error:', error);
@@ -233,14 +250,14 @@ export class DejaDO extends DurableObject<Env> {
         confidence: newLearning.confidence,
         source: newLearning.source,
         scope: newLearning.scope,
-        embedding: JSON.stringify(newLearning.embedding),
+        embedding: newLearning.embedding ? JSON.stringify(newLearning.embedding) : null,
         createdAt: newLearning.createdAt
       });
       
       // Insert into Vectorize
       await this.env.VECTORIZE.insert([{
         id: newLearning.id,
-        values: newLearning.embedding,
+        values: newLearning.embedding || [],
         metadata: {
           scope: newLearning.scope,
           trigger: newLearning.trigger,
@@ -297,8 +314,11 @@ export class DejaDO extends DurableObject<Env> {
       
       const dbLearnings = await db.select().from(schema.learnings).where(whereClause).limit(limit);
       
+      // Convert to our Learning interface
+      const learnings = dbLearnings.map(this.convertDbLearning);
+      
       // Sort by vector similarity score
-      const sortedLearnings = dbLearnings.sort((a, b) => {
+      const sortedLearnings = learnings.sort((a, b) => {
         const scoreA = matches.find(m => m.id === a.id)?.score || 0;
         const scoreB = matches.find(m => m.id === b.id)?.score || 0;
         return scoreB - scoreA;
@@ -326,7 +346,7 @@ export class DejaDO extends DurableObject<Env> {
     const db = await this.initDB();
     
     try {
-      let query = db.select().from(schema.learnings);
+      let query: any = db.select().from(schema.learnings);
       
       if (filter?.scope) {
         query = query.where(eq(schema.learnings.scope, filter.scope));
@@ -337,7 +357,7 @@ export class DejaDO extends DurableObject<Env> {
       }
       
       const results = await query.orderBy(desc(schema.learnings.createdAt));
-      return results;
+      return results.map(this.convertDbLearning);
     } catch (error) {
       console.error('Get learnings error:', error);
       return [];
@@ -354,7 +374,7 @@ export class DejaDO extends DurableObject<Env> {
     
     try {
       // Delete from DB
-      const result = await db.delete(schema.learnings).where(eq(schema.learnings.id, id));
+      await db.delete(schema.learnings).where(eq(schema.learnings.id, id));
       
       // Delete from Vectorize
       await this.env.VECTORIZE.deleteByIds([id]);
@@ -411,7 +431,7 @@ export class DejaDO extends DurableObject<Env> {
       const now = new Date().toISOString();
       
       // Try to update first
-      const result = await db.update(schema.secrets)
+      const result: any = await db.update(schema.secrets)
         .set({ 
           value, 
           updatedAt: now 
@@ -472,8 +492,11 @@ export class DejaDO extends DurableObject<Env> {
     
     try {
       // Get total counts
-      const learningCount = await db.select({ count: sql<number>`count(*)` }).from(schema.learnings);
-      const secretCount = await db.select({ count: sql<number>`count(*)` }).from(schema.secrets);
+      const learningCountResult = await db.select({ count: sql<number>`count(*)` }).from(schema.learnings);
+      const secretCountResult = await db.select({ count: sql<number>`count(*)` }).from(schema.secrets);
+      
+      const learningCount = learningCountResult[0]?.count || 0;
+      const secretCount = secretCountResult[0]?.count || 0;
       
       // Get scope breakdown
       const learningByScope = await db.select({
@@ -500,8 +523,8 @@ export class DejaDO extends DurableObject<Env> {
       });
       
       return {
-        totalLearnings: learningCount[0]?.count || 0,
-        totalSecrets: secretCount[0]?.count || 0,
+        totalLearnings: learningCount,
+        totalSecrets: secretCount,
         scopes
       };
     } catch (error) {
