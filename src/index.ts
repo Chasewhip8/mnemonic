@@ -17,10 +17,10 @@ interface DejaDOStub extends DurableObjectStub {
   inject(scopes: string[], context: string, limit?: number, format?: string): Promise<{ injection: string | any[] }>;
   getStats(): Promise<{ total_learnings: number; avg_confidence: number }>;
   getLearnings(filter?: { scope?: string }): Promise<{ learnings: any[] }>;
-  deleteLearning(id: string): Promise<{ status: string; id: string } | { error: string }>;
+  deleteLearning(id: string): Promise<{ status: string; id: string; error?: string }>;
   getSecret(scopes: string[], name: string): Promise<{ name: string; value: string } | null>;
   setSecret(scope: string, name: string, value: string): Promise<{ name: string; status: string }>;
-  deleteSecret(scope: string, name: string): Promise<{ status: string; name: string } | { error: string }>;
+  deleteSecret(scope: string, name: string): Promise<{ status: string; name: string; error?: string }>;
 }
 
 export { DejaDO };
