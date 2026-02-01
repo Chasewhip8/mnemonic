@@ -349,3 +349,109 @@ export class DejaDO extends DurableObject<Env> {
     };
   }
 }
+  /**
+   * Handle HTTP requests to the Durable Object
+   */
+  async fetch(request: Request) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const method = request.method;
+
+    try {
+      if (path === '/learn' && method === 'POST') {
+        const body = await request.json();
+        const result = await this.learn(body.scope || 'shared', body.trigger, body.learning, body.confidence, body.reason, body.source);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path === '/query' && method === 'POST') {
+        const body = await request.json();
+        const result = await this.query(body.scopes || ['shared'], body.text, body.limit);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path === '/inject' && method === 'POST') {
+        const body = await request.json();
+        const result = await this.inject(body.scopes || ['shared'], body.context, body.limit, body.format);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path === '/stats' && method === 'GET') {
+        const result = await this.getStats();
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path === '/learnings' && method === 'GET') {
+        const urlParams = new URLSearchParams(url.search);
+        const scope = urlParams.get('scope') || undefined;
+        const result = await this.getLearnings({ scope });
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path.startsWith('/learning/') && method === 'DELETE') {
+        const id = path.split('/')[2];
+        const result = await this.deleteLearning(id);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path === '/secret' && method === 'POST') {
+        const body = await request.json();
+        const result = await this.setSecret(body.scope || 'shared', body.name, body.value);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path.startsWith('/secret/') && method === 'GET') {
+        const name = path.split('/')[2];
+        const result = await this.getSecret(['shared'], name);
+        if (!result) {
+          return new Response(JSON.stringify({ error: 'not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (path.startsWith('/secret/') && method === 'DELETE') {
+        const name = path.split('/')[2];
+        const result = await this.deleteSecret('shared', name);
+        if (result.error) {
+          return new Response(JSON.stringify({ error: result.error }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: 'not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'unknown error';
+      return new Response(JSON.stringify({ error: message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+}
