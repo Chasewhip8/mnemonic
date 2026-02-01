@@ -1,93 +1,163 @@
 # deja
 
-Persistent memory for agents. Scoped, isolated, bindable.
+*What survives a run.*
+
+deja provides durable recall for agent systems.
+
+It extracts structured memory from completed runs and stores it independently of any single execution. Memory in deja is explicit, reviewable, and optional.
+
+Agents may consult deja. They are never required to.
+
+## What deja is
+
+- **Post-run recall** — derived from artifacts and outcomes
+- **Addressable and scoped** — by user, agent, or session
+- **Designed to persist** — longer than any single agent session
+
+## What deja is not
+
+- Conversation history
+- Implicit context
+- Hidden state
+- Live cognition
+
+## Why deja exists
+
+Long-running systems repeat work unless memory is made explicit.
+
+deja captures what mattered after execution, so future runs can begin informed rather than reactive.
+
+## Safety and control
+
+All entries in deja are:
+
+- Traceable to a source run
+- Auditable
+- Removable
+- Scoped by intent
+
+Memory persists by choice, not by accident.
+
+---
 
 ## Architecture
 
-**Durable Object per user** - Each user gets their own DejaDO instance with SQLite storage. Isolation by architecture, not access control.
+**Durable Object per user.** Each user gets isolated storage. Isolation by architecture, not access control.
 
 **Two interfaces:**
-1. **RPC** (for filepath/internal) - Service binding, direct method calls, no auth needed
-2. **HTTP** (for CLI/standalone) - API key auth, wraps the DO
+- **RPC** (service binding) — direct method calls, no auth
+- **HTTP** (CLI/standalone) — API key auth
 
 ```
-filepath (service binding)     CLI/standalone (HTTP)
-         │                              │
-         │ RPC                          │ API key
-         ▼                              ▼
-    ┌─────────────────────────────────────┐
-    │           DejaDO                    │
-    │  ┌─────────────────────────────┐    │
-    │  │  SQLite (learnings, secrets)│    │
-    │  └─────────────────────────────┘    │
-    │              │                      │
-    │              ▼                      │
-    │         Vectorize                   │
-    │    (semantic search)                │
-    └─────────────────────────────────────┘
+service binding          HTTP + API key
+      │                        │
+      ▼                        ▼
+┌──────────────────────────────────┐
+│            DejaDO                │
+│  ┌────────────────────────────┐  │
+│  │  SQLite (entries, secrets) │  │
+│  └────────────────────────────┘  │
+│              │                   │
+│              ▼                   │
+│         Vectorize                │
+│    (semantic retrieval)          │
+└──────────────────────────────────┘
 ```
 
 ## Scopes
 
-Learnings and secrets are scoped:
-- `shared` - visible to all agents for this user
-- `agent:<id>` - specific to one agent
-- `session:<id>` - specific to one session
+Entries are scoped:
 
-Callers pass scopes they can access. DejaDO filters accordingly.
+| Scope | Visibility |
+|-------|------------|
+| `shared` | All agents for this user |
+| `agent:<id>` | Specific agent |
+| `session:<id>` | Specific session |
 
-## RPC Methods (for service binding)
+Callers declare which scopes they can access. deja filters accordingly.
+
+---
+
+## API
+
+### Store an entry
+
+```bash
+curl -X POST https://deja.coey.dev/learn \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "trigger": "when this is relevant",
+    "learning": "what to recall",
+    "confidence": 0.9,
+    "scope": "shared"
+  }'
+```
+
+### Retrieve relevant entries
+
+```bash
+curl -X POST https://deja.coey.dev/inject \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": "describe the task",
+    "scopes": ["shared", "agent:ralph"],
+    "limit": 5,
+    "format": "prompt"
+  }'
+```
+
+### Query without tracking
+
+```bash
+curl -X POST https://deja.coey.dev/query \
+  -H "Authorization: Bearer $KEY" \
+  -d '{"text": "search term", "limit": 10}'
+```
+
+### Delete an entry
+
+```bash
+curl -X DELETE https://deja.coey.dev/learning/<id> \
+  -H "Authorization: Bearer $KEY"
+```
+
+---
+
+## RPC (service binding)
+
+For internal callers (filepath, orchestrators):
 
 ```typescript
 const deja = env.DEJA.get(env.DEJA.idFromName(userId));
 
-// Memory
-await deja.inject(scopes, context, limit);  // Get relevant memories
+await deja.inject(scopes, context, limit);
 await deja.learn(scope, trigger, learning, confidence, source);
-await deja.query(scopes, text, limit);      // Search without tracking hits
-await deja.getLearnings(filter);            // List/filter
+await deja.query(scopes, text, limit);
+await deja.getLearnings(filter);
 await deja.deleteLearning(id);
-
-// Secrets  
-await deja.getSecret(scopes, name);         // First match wins
-await deja.setSecret(scope, name, value);
-await deja.deleteSecret(scope, name);
-
-// Stats
 await deja.getStats();
 ```
 
-## HTTP Endpoints (for CLI)
-
-Same operations, wrapped with API key auth:
-
-```bash
-# Inject memories into prompt
-curl -X POST /inject -H "Authorization: Bearer $KEY" \
-  -d '{"context": "building auth", "scopes": ["shared"], "limit": 5}'
-
-# Learn something
-curl -X POST /learn -H "Authorization: Bearer $KEY" \
-  -d '{"trigger": "when X", "learning": "do Y", "confidence": 0.9}'
-
-# Query
-curl -X POST /query -H "Authorization: Bearer $KEY" \
-  -d '{"text": "search term", "limit": 10}'
-```
+---
 
 ## Development
 
 ```bash
 bun install
-bun run dev        # Local dev
-bun run test       # Run tests
-bun run deploy     # Deploy to Cloudflare
+bun run dev        # local
+bun run test       # tests
+bun run deploy     # deploy to Cloudflare
 ```
 
 ## Stack
 
 - Cloudflare Workers + Durable Objects
 - SQLite (DO storage)
-- Vectorize (semantic search)
+- Vectorize (semantic retrieval)
 - Workers AI (embeddings)
 - Hono (HTTP routing)
+
+---
+
+*Recall, by design.*
