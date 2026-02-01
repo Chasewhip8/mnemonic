@@ -35,25 +35,6 @@ describe('DejaDO', () => {
     // Create new instance
     // @ts-ignore - ignoring type issues for mocks
     dejaDO = new DejaDO(mockState, mockEnv);
-    
-    // Mock database initialization
-    (dejaDO as any).initDB = jest.fn().mockResolvedValue({
-      select: jest.fn().mockReturnThis(),
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      desc: jest.fn(),
-      insert: jest.fn().mockReturnThis(),
-      values: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      set: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn(),
-      and: jest.fn(),
-      inArray: jest.fn(),
-      groupBy: jest.fn().mockReturnThis()
-    });
   });
 
   test('should create DejaDO class', () => {
@@ -101,6 +82,26 @@ describe('DejaDO', () => {
     // Mock AI response
     mockEnv.AI.run.mockResolvedValue([0.1, 0.2, 0.3]);
     
+    // Mock database initialization
+    (dejaDO as any).initDB = jest.fn().mockResolvedValue({
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      desc: jest.fn(),
+      insert: jest.fn().mockReturnThis(),
+      values: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn(),
+      and: jest.fn(),
+      inArray: jest.fn(),
+      groupBy: jest.fn().mockReturnThis(),
+      sql: jest.fn()
+    });
+    
     const embedding = await (dejaDO as any).createEmbedding('test text');
     expect(embedding).toEqual([0.1, 0.2, 0.3]);
     expect(mockEnv.AI.run).toHaveBeenCalledWith('@cf/baai/bge-large-en-v1.5', { text: 'test text' });
@@ -110,6 +111,12 @@ describe('DejaDO', () => {
     // Mock dependencies
     mockEnv.AI.run.mockResolvedValue([0.1, 0.2, 0.3]);
     mockEnv.VECTORIZE.insert.mockResolvedValue(undefined);
+    
+    // Mock database initialization
+    (dejaDO as any).initDB = jest.fn().mockResolvedValue({
+      insert: jest.fn().mockReturnThis(),
+      values: jest.fn().mockReturnThis()
+    });
     
     const result = await dejaDO.learn('shared', 'testing', 'do this', 0.8, 'test reason', 'test source');
     
@@ -134,17 +141,19 @@ describe('DejaDO', () => {
       ]
     });
     
-    // Mock database response
-    const mockDb = {
+    // Mock database initialization
+    (dejaDO as any).initDB = jest.fn().mockResolvedValue({
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([
         { id: '1', trigger: 'test', learning: 'do this', scope: 'shared', confidence: 0.9, createdAt: '2023-01-01' },
         { id: '2', trigger: 'test2', learning: 'do that', scope: 'shared', confidence: 0.8, createdAt: '2023-01-02' }
-      ])
-    };
-    (dejaDO as any).initDB.mockResolvedValue(mockDb);
+      ]),
+      eq: jest.fn(),
+      and: jest.fn(),
+      inArray: jest.fn()
+    });
     
     const result = await dejaDO.query(['shared'], 'test query', 5);
     
@@ -162,8 +171,8 @@ describe('DejaDO', () => {
       ]
     });
     
-    // Mock database response
-    const mockDb = {
+    // Mock database initialization
+    (dejaDO as any).initDB = jest.fn().mockResolvedValue({
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
@@ -172,9 +181,11 @@ describe('DejaDO', () => {
       ]),
       update: jest.fn().mockReturnThis(),
       set: jest.fn().mockReturnThis(),
-      eq: jest.fn()
-    };
-    (dejaDO as any).initDB.mockResolvedValue(mockDb);
+      eq: jest.fn(),
+      and: jest.fn(),
+      inArray: jest.fn(),
+      sql: jest.fn()
+    });
     
     const result = await dejaDO.inject(['shared'], 'test context', 5, 'prompt');
     
@@ -183,8 +194,8 @@ describe('DejaDO', () => {
   });
 
   test('should handle secrets', async () => {
-    // Mock database response for getSecret
-    const mockDb = {
+    // Mock database initialization
+    (dejaDO as any).initDB = jest.fn().mockResolvedValue({
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
@@ -197,9 +208,9 @@ describe('DejaDO', () => {
       set: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn(),
-      and: jest.fn()
-    };
-    (dejaDO as any).initDB.mockResolvedValue(mockDb);
+      and: jest.fn(),
+      sql: jest.fn()
+    });
     
     // Test setSecret
     const setResult = await dejaDO.setSecret('shared', 'test-secret', 'secret-value');
@@ -215,8 +226,8 @@ describe('DejaDO', () => {
   });
 
   test('should get stats', async () => {
-    // Mock database responses
-    const mockDb = {
+    // Mock database initialization
+    (dejaDO as any).initDB = jest.fn().mockResolvedValue({
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
@@ -225,16 +236,15 @@ describe('DejaDO', () => {
       eq: jest.fn(),
       and: jest.fn(),
       sql: jest.fn()
-    };
+    });
     
     // Mock count queries to return proper results
+    const mockDb = (dejaDO as any).initDB();
     mockDb.select.mockImplementation(() => ({
       from: () => [{
         count: 5
       }]
     }));
-    
-    (dejaDO as any).initDB.mockResolvedValue(mockDb);
     
     const result = await dejaDO.getStats();
     
