@@ -5,14 +5,14 @@
 import { DejaDO } from '../src/do/DejaDO';
 
 // Mock environment
-const mockEnv = {
+const mockEnv: any = {
   VECTORIZE: {},
   AI: {},
   API_KEY: 'test-key',
 };
 
 // Mock DurableObjectState
-const mockState = {
+const mockState: any = {
   storage: {
     sql: {},
   },
@@ -22,7 +22,7 @@ const mockState = {
 
 describe('DejaDO', () => {
   test('should create DejaDO instance', () => {
-    const dejaDO = new DejaDO(mockState as any, mockEnv as any);
+    const dejaDO = new DejaDO(mockState, mockEnv);
     expect(dejaDO).toBeInstanceOf(DejaDO);
   });
 

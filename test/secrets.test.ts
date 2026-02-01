@@ -1,7 +1,7 @@
 /**
  * Secrets endpoint tests
  * Run against local dev: npx wrangler dev
- * Then: bun test test/secrets.test.ts
+ * Then: npm test
  */
 
 const BASE_URL = process.env.DEJA_URL || 'http://localhost:8787';
