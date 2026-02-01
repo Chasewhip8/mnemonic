@@ -186,7 +186,7 @@ async function handleLearn(
   const embeddingResult = await env.AI.run('@cf/baai/bge-base-en-v1.5', {
     text: textToEmbed,
   });
-  const embedding = embeddingResult.data[0];
+  const embedding = (embeddingResult as { data: number[][] }).data[0];
 
   await env.DB.prepare(
     `INSERT INTO learnings (id, trigger, learning, reason, confidence, source, created_at)
@@ -233,7 +233,7 @@ async function handleQuery(
   const embeddingResult = await env.AI.run('@cf/baai/bge-base-en-v1.5', {
     text: body.context,
   });
-  const embedding = embeddingResult.data[0];
+  const embedding = (embeddingResult as { data: number[][] }).data[0];
 
   const matches = await env.VECTORIZE.query(embedding, {
     topK: limit,
@@ -280,7 +280,7 @@ async function handleInject(
   const embeddingResult = await env.AI.run('@cf/baai/bge-base-en-v1.5', {
     text: body.context,
   });
-  const embedding = embeddingResult.data[0];
+  const embedding = (embeddingResult as { data: number[][] }).data[0];
 
   const matches = await env.VECTORIZE.query(embedding, {
     topK: limit,
@@ -532,7 +532,7 @@ async function handleEvaluate(
   const embeddingResult = await env.AI.run('@cf/baai/bge-base-en-v1.5', {
     text: action,
   });
-  const embedding = embeddingResult.data[0];
+  const embedding = (embeddingResult as { data: number[][] }).data[0];
 
   const matches = await env.VECTORIZE.query(embedding, {
     topK: 5,
@@ -581,7 +581,7 @@ CAUTION = some risk, proceed carefully
 PROCEED = no obvious risks detected`;
 
   try {
-    const aiResult = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+    const aiResult = await env.AI.run('@cf/meta/llama-2-7b-chat-int8', {
       prompt,
       max_tokens: 300,
     });
