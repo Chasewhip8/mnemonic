@@ -14,7 +14,7 @@ interface Env {
   API_KEY?: string;
 }
 
-export class DejaDO extends DurableObject {
+export class DejaDO extends DurableObject<Env> {
   private db: ReturnType<typeof drizzle> | null = null;
 
   constructor(state: DurableObjectState, env: Env) {
@@ -30,6 +30,27 @@ export class DejaDO extends DurableObject {
     // @ts-ignore - Cloudflare types
     this.db = drizzle(this.ctx.storage.sql, { schema });
     return this.db;
+  }
+
+  /**
+   * Create embedding for text using Workers AI
+   */
+  private async createEmbedding(text: string): Promise<number[]> {
+    try {
+      // @ts-ignore - Cloudflare types
+      const response: any = await this.env.AI.run('@cf/baai/bge-large-en-v1.5', { text });
+      // Check if it's a direct response or async response
+      if (response.data && response.data[0]) {
+        return response.data[0];
+      } else {
+        // For async responses or other formats, return a zero vector
+        return new Array(1024).fill(0);
+      }
+    } catch (error) {
+      console.error('Error creating embedding:', error);
+      // Return a zero vector of appropriate size if embedding fails
+      return new Array(1024).fill(0);
+    }
   }
 
   /**
@@ -52,19 +73,40 @@ export class DejaDO extends DurableObject {
   async inject(scopes: string[], context: string, limit: number = 5, format: string = 'structured') {
     const db = await this.initDB();
     
-    // Filter scopes by priority
-    const sortedScopes = this.filterByScopePriority(scopes);
+    // Create embedding for the context
+    const contextEmbedding = await this.createEmbedding(context);
     
-    // For now, we'll implement a simple query without Vectorize
-    // In a full implementation, we would use the AI embedding and Vectorize
-    const results = await db.select().from(schema.learnings)
-      .where(
-        and(
-          eq(schema.learnings.scope, sortedScopes[0])
+    // Query Vectorize for similar learnings
+    // @ts-ignore - Cloudflare types
+    const vectorResults = await this.env.VECTORIZE.query(contextEmbedding, { topK: limit });
+    
+    // Get the learning IDs from vector results
+    const learningIds = vectorResults.matches.map(match => match.id);
+    
+    let results: typeof schema.learnings.$inferSelect[] = [];
+    
+    if (learningIds.length > 0) {
+      // Get the full learning details from SQLite
+      // For now, we'll fetch all learnings with matching IDs and filter by scope
+      const placeholders = learningIds.map(() => '?').join(',');
+      const allResults = await db.select().from(schema.learnings)
+        .where(sql`id IN (${placeholders})`, ...learningIds)
+        .orderBy(desc(schema.learnings.createdAt));
+      
+      // Filter by scope
+      results = allResults.filter(l => l.scope === scopes[0]).slice(0, limit);
+    } else {
+      // Fallback to simple query if no vector results
+      const sortedScopes = this.filterByScopePriority(scopes);
+      results = await db.select().from(schema.learnings)
+        .where(
+          and(
+            eq(schema.learnings.scope, sortedScopes[0])
+          )
         )
-      )
-      .orderBy(desc(schema.learnings.createdAt))
-      .limit(limit);
+        .orderBy(desc(schema.learnings.createdAt))
+        .limit(limit);
+    }
 
     if (format === 'prompt') {
       const lines = results.map(
@@ -96,8 +138,11 @@ export class DejaDO extends DurableObject {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    // For now, we'll skip the Vectorize part and just store in SQLite
-    // In a full implementation, we would also create an embedding
+    // Create embedding for the learning
+    const fullText = `${trigger} ${learning} ${reason || ''}`;
+    const embedding = await this.createEmbedding(fullText);
+    
+    // Store in SQLite
     await db.insert(schema.learnings).values({
       id,
       trigger,
@@ -106,8 +151,19 @@ export class DejaDO extends DurableObject {
       confidence,
       source: source ?? null,
       scope,
+      embedding: JSON.stringify(embedding),
       createdAt: now,
     });
+    
+    // Store in Vectorize
+    // @ts-ignore - Cloudflare types
+    await this.env.VECTORIZE.upsert([
+      {
+        id,
+        values: embedding,
+        metadata: { scope, trigger, learning }
+      }
+    ]);
 
     return { id, status: 'stored' };
   }
@@ -118,19 +174,40 @@ export class DejaDO extends DurableObject {
   async query(scopes: string[], text: string, limit: number = 5) {
     const db = await this.initDB();
     
-    // Filter scopes by priority
-    const sortedScopes = this.filterByScopePriority(scopes);
+    // Create embedding for the query text
+    const queryEmbedding = await this.createEmbedding(text);
     
-    // For now, we'll implement a simple query without Vectorize
-    // In a full implementation, we would use the AI embedding and Vectorize
-    const results = await db.select().from(schema.learnings)
-      .where(
-        and(
-          eq(schema.learnings.scope, sortedScopes[0])
+    // Query Vectorize for similar learnings
+    // @ts-ignore - Cloudflare types
+    const vectorResults = await this.env.VECTORIZE.query(queryEmbedding, { topK: limit });
+    
+    // Get the learning IDs from vector results
+    const learningIds = vectorResults.matches.map(match => match.id);
+    
+    let results: typeof schema.learnings.$inferSelect[] = [];
+    
+    if (learningIds.length > 0) {
+      // Get the full learning details from SQLite
+      // For now, we'll fetch all learnings with matching IDs and filter by scope
+      const placeholders = learningIds.map(() => '?').join(',');
+      const allResults = await db.select().from(schema.learnings)
+        .where(sql`id IN (${placeholders})`, ...learningIds)
+        .orderBy(desc(schema.learnings.createdAt));
+      
+      // Filter by scope
+      results = allResults.filter(l => l.scope === scopes[0]).slice(0, limit);
+    } else {
+      // Fallback to simple query if no vector results
+      const sortedScopes = this.filterByScopePriority(scopes);
+      results = await db.select().from(schema.learnings)
+        .where(
+          and(
+            eq(schema.learnings.scope, sortedScopes[0])
+          )
         )
-      )
-      .orderBy(desc(schema.learnings.createdAt))
-      .limit(limit);
+        .orderBy(desc(schema.learnings.createdAt))
+        .limit(limit);
+    }
 
     return { learnings: results };
   }
@@ -172,6 +249,10 @@ export class DejaDO extends DurableObject {
     // Delete from database
     await db.delete(schema.learnings)
       .where(eq(schema.learnings.id, id));
+    
+    // Delete from Vectorize
+    // @ts-ignore - Cloudflare types
+    await this.env.VECTORIZE.deleteByIds([id]);
 
     return { status: 'deleted', id };
   }
