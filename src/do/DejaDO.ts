@@ -141,13 +141,16 @@ export class DejaDO extends DurableObject {
   async getLearnings(filter?: { scope?: string }) {
     const db = await this.initDB();
     
-    let query = db.select().from(schema.learnings);
+    let results: typeof schema.learnings.$inferSelect[];
     
     if (filter?.scope) {
-      query = query.where(eq(schema.learnings.scope, filter.scope));
+      results = await db.select().from(schema.learnings)
+        .where(eq(schema.learnings.scope, filter.scope))
+        .orderBy(desc(schema.learnings.createdAt));
+    } else {
+      results = await db.select().from(schema.learnings)
+        .orderBy(desc(schema.learnings.createdAt));
     }
-    
-    const results = await query.orderBy(desc(schema.learnings.createdAt));
     
     return { learnings: results };
   }
