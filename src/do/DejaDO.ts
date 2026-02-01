@@ -148,15 +148,15 @@ export class DejaDO extends DurableObject<Env> {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       
       // First get the entries to delete (we need their IDs for Vectorize)
-      const staleEntries = await db.select().from(schema.learnings)
+      const staleSessionEntries = await db.select().from(schema.learnings)
         .where(and(
           like(schema.learnings.scope, 'session:%'),
           sql`${schema.learnings.createdAt} < ${weekAgo}`
         ));
       
-      if (staleEntries.length > 0) {
-        deleted += staleEntries.length;
-        reasons.push(`${staleEntries.length} stale session entries`);
+      if (staleSessionEntries.length > 0) {
+        deleted += staleSessionEntries.length;
+        reasons.push(`${staleSessionEntries.length} stale session entries`);
         
         // Delete from DB
         await db.delete(schema.learnings)
@@ -166,11 +166,37 @@ export class DejaDO extends DurableObject<Env> {
           ));
         
         // Also delete from vectorize
-        const ids = staleEntries.map(entry => entry.id);
+        const ids = staleSessionEntries.map(entry => entry.id);
         await this.env.VECTORIZE.deleteByIds(ids);
       }
 
-      // 2. Delete low confidence (< 0.3) entries
+      // 2. Delete agent:* entries older than 30 days
+      const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      
+      // First get the entries to delete (we need their IDs for Vectorize)
+      const staleAgentEntries = await db.select().from(schema.learnings)
+        .where(and(
+          like(schema.learnings.scope, 'agent:%'),
+          sql`${schema.learnings.createdAt} < ${monthAgo}`
+        ));
+      
+      if (staleAgentEntries.length > 0) {
+        deleted += staleAgentEntries.length;
+        reasons.push(`${staleAgentEntries.length} stale agent entries`);
+        
+        // Delete from DB
+        await db.delete(schema.learnings)
+          .where(and(
+            like(schema.learnings.scope, 'agent:%'),
+            sql`${schema.learnings.createdAt} < ${monthAgo}`
+          ));
+        
+        // Also delete from vectorize
+        const ids = staleAgentEntries.map(entry => entry.id);
+        await this.env.VECTORIZE.deleteByIds(ids);
+      }
+
+      // 3. Delete low confidence (< 0.3) entries
       const lowConfEntries = await db.select().from(schema.learnings)
         .where(sql`${schema.learnings.confidence} < 0.3`);
       
