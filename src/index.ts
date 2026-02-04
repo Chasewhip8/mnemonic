@@ -72,7 +72,7 @@ export default {
     }
 
     // Static marketing routes served from assets
-    const staticRoutes = ['/', '/docs', '/llms.txt'];
+    const staticRoutes = ['/', '/docs', '/patterns', '/llms.txt'];
     const isStaticAsset = path.startsWith('/_astro/') ||
                           path.endsWith('.jpg') ||
                           path.endsWith('.png') ||

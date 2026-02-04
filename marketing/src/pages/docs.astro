@@ -33,6 +33,57 @@ wrangler secret put API_KEY
 
 # Deploy
 wrangler deploy`;
+
+const skillExample = `---
+description: Use deja to store and recall learnings across sessions
+triggers:
+  - remember this
+  - what do you know about
+  - recall
+  - inject memories
+  - learn from this
+---
+
+# deja - Persistent Memory
+
+You have access to deja, a persistent memory system at \`\${DEJA_URL}\`.
+
+## When to use
+
+- **After completing tasks**: Store what worked or failed
+- **Before starting tasks**: Inject relevant learnings
+- **When asked to remember**: Explicitly store context
+
+## API
+
+### Store a learning
+\`\`\`bash
+curl -X POST \${DEJA_URL}/learn \\
+  -H "Authorization: Bearer \${DEJA_API_KEY}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"trigger": "context", "learning": "insight", "confidence": 0.8}'
+\`\`\`
+
+### Get relevant memories
+\`\`\`bash
+curl -X POST \${DEJA_URL}/inject \\
+  -H "Content-Type: application/json" \\
+  -d '{"context": "what you are about to do"}'
+\`\`\`
+
+## Confidence scores
+
+- **0.9-1.0**: Verified, critical learnings
+- **0.7-0.9**: High confidence, worked well
+- **0.5-0.7**: Moderate confidence, may need verification
+- **0.3-0.5**: Low confidence, experimental
+- **< 0.3**: Auto-cleaned after 7 days
+
+## Scopes
+
+- \`shared\` — All agents can access
+- \`agent:name\` — Only this agent
+- \`session:id\` — Temporary, auto-expires`;
 ---
 
 <Base title="Documentation — deja">
@@ -165,14 +216,52 @@ wrangler deploy`;
     </div>
   </section>
 
-  <section class="mt-12 mb-8">
+  <section class="mt-12">
     <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
       <span class="text-brass">#</span> For AI Agents
     </h2>
     <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
-      <p class="font-serif font-light text-chrome-dark m-0 mb-4">
+      <p class="font-serif font-light text-chrome-dark m-0">
         A machine-readable summary is available at <a href="/llms.txt" class="text-brass hover:text-brass-light underline">/llms.txt</a> for AI agents to quickly understand deja's API.
       </p>
+    </div>
+  </section>
+
+  <section class="mt-12 mb-8">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> Claude Code Skill
+    </h2>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">
+        Create a skill file to teach Claude Code how to use deja automatically. Skills are markdown files that get injected into Claude's context when triggered.
+      </p>
+
+      <div class="mb-6">
+        <h3 class="font-mono text-sm text-brass mb-3">1. Create the skill file</h3>
+        <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">.claude/skills/deja.md</pre>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="font-mono text-sm text-brass mb-3">2. Add the skill content</h3>
+        <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code whitespace-pre-wrap">{skillExample}</pre>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="font-mono text-sm text-brass mb-3">3. Set environment variables</h3>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-3">Add to your shell profile or <code class="text-brass">.claude/.env</code>:</p>
+        <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">DEJA_URL=https://deja.your-subdomain.workers.dev
+DEJA_API_KEY=your-api-key</pre>
+      </div>
+
+      <div>
+        <h3 class="font-mono text-sm text-brass mb-3">How it works</h3>
+        <ul class="font-serif font-light text-chrome-dark pl-4 space-y-2">
+          <li>The <code class="text-brass">triggers</code> in frontmatter tell Claude when to load this skill</li>
+          <li>When you say "remember this for next time", Claude matches against triggers</li>
+          <li>The skill content gets injected, teaching Claude the API</li>
+          <li>Claude makes the curl calls directly using Bash</li>
+        </ul>
+      </div>
     </div>
   </section>
 </Base>

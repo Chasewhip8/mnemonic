@@ -1,0 +1,104 @@
+---
+import Base from '../layouts/Base.astro';
+
+const patterns = [
+  {
+    category: "Recall",
+    items: [
+      { prompt: "what was the last thing we worked on?", desc: "Agent queries recent memories to restore context." },
+      { prompt: "what do you know about deployments?", desc: "Semantic search across all learnings for a topic." },
+      { prompt: "anything relevant before I start this?", desc: "Pre-task injection of related memories." },
+    ]
+  },
+  {
+    category: "Learning",
+    items: [
+      { prompt: "remember this for next time", desc: "Explicit signal to store current context as a learning." },
+      { prompt: "that worked — save it", desc: "Positive reinforcement, high confidence learning." },
+      { prompt: "don't do that again", desc: "Negative learning from failure, stored for avoidance." },
+    ]
+  },
+  {
+    category: "Organization",
+    items: [
+      { prompt: "organize your memory how you see fit", desc: "Agent autonomously categorizes and scopes learnings." },
+      { prompt: "clean up low-confidence memories", desc: "Prune uncertain learnings to reduce noise." },
+      { prompt: "what scopes are you using?", desc: "Introspect memory organization structure." },
+    ]
+  },
+  {
+    category: "Maintenance",
+    items: [
+      { prompt: "any outdated memories?", desc: "Find learnings that may no longer be accurate." },
+      { prompt: "delete memories about [old project]", desc: "Targeted cleanup of stale context." },
+      { prompt: "consolidate duplicate learnings", desc: "Merge similar memories to reduce redundancy." },
+    ]
+  },
+  {
+    category: "Scoping",
+    items: [
+      { prompt: "this is session-only, don't persist", desc: "Temporary memory that auto-expires." },
+      { prompt: "share this with all agents", desc: "Store in shared scope for cross-agent access." },
+      { prompt: "keep this private to us", desc: "Agent-scoped memory, isolated from others." },
+    ]
+  },
+  {
+    category: "Debugging",
+    items: [
+      { prompt: "show me your recent learnings", desc: "List what's been stored in current session." },
+      { prompt: "why did you recall that?", desc: "Explain semantic match reasoning." },
+      { prompt: "what confidence do you have?", desc: "Surface confidence scores on memories." },
+    ]
+  },
+];
+---
+
+<Base title="Patterns — deja">
+  <section class="pt-16 pb-8">
+    <div class="font-mono text-[11px] font-bold tracking-widest uppercase text-brass mb-4">Patterns</div>
+    <h1 class="font-serif-sc text-4xl md:text-5xl font-bold tracking-tight m-0 mb-4">
+      How to talk to an agent with deja
+    </h1>
+    <p class="font-serif font-light text-lg text-chrome-dark max-w-3xl">
+      These prompts work when your agent has deja in its system prompt. Speak naturally — the agent handles the API.
+    </p>
+  </section>
+
+  {patterns.map(({ category, items }) => (
+    <section class="mt-12">
+      <h2 class="font-mono text-xs font-bold uppercase tracking-[0.2em] text-brass mb-4">{category}</h2>
+      <div class="grid gap-3">
+        {items.map(({ prompt, desc }) => (
+          <div class="bg-steel border border-brass/10 rounded-sm p-5 relative shadow-card group hover:border-brass/30 transition-colors">
+            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-0 group-hover:opacity-30 transition-opacity"></div>
+            <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <code class="font-mono text-sm text-chrome shrink-0">"{prompt}"</code>
+              <span class="font-serif text-sm text-chrome-dark">{desc}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  ))}
+
+  <section class="mt-16 mb-8">
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+      <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Adding deja to your agent's system prompt</h3>
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">
+        Include something like this in your agent's instructions:
+      </p>
+      <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code">You have access to persistent memory via deja.
+
+<span class="flag">To learn:</span> Call mem.learn(trigger, learning) after completing tasks.
+<span class="flag">To recall:</span> Call mem.inject(context) before starting tasks.
+
+Store learnings with appropriate scope:
+- "shared" for knowledge useful to all agents
+- "agent:name" for agent-specific patterns
+- "session:id" for temporary context
+
+Proactively organize and maintain your memories.</div>
+    </div>
+  </section>
+</Base>

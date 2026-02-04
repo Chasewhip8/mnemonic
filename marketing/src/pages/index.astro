@@ -12,10 +12,23 @@ import Base from '../layouts/Base.astro';
         <h1 class="font-serif-sc text-5xl md:text-7xl font-bold tracking-tight m-0 mb-3">
           deja, the <span class="text-brass">durable recall</span> layer for Cloudflare Workers.
         </h1>
-        <p class="font-serif font-light text-lg text-chrome-dark max-w-[640px] mb-8">
-          Open source memory that outlives a single run. Deja captures what mattered, stores it in your Cloudflare
-          account, and feeds it back when agents level up. Precision you can audit. Progress you can feel.
+        <p class="font-serif font-light text-lg text-chrome-dark max-w-[640px] mb-6">
+          Open source memory that outlives a single run.
         </p>
+
+        <!-- The killer snippet -->
+        <div class="bg-void-deep/80 border border-brass/20 rounded-sm p-5 mb-8 max-w-[480px] backdrop-blur-sm">
+          <div class="font-mono text-[13px] leading-relaxed">
+            <div class="text-chrome-dark/60 mb-2">npm i deja-client</div>
+            <div class="mb-3">
+              <span class="text-brass">await</span> <span class="text-chrome">mem.learn</span>(<span class="text-chrome-dark">"deploy failed"</span>, <span class="text-chrome-dark">"check wrangler.toml"</span>)
+            </div>
+            <div>
+              <span class="text-brass">await</span> <span class="text-chrome">mem.inject</span>(<span class="text-chrome-dark">"deploying"</span>) <span class="text-chrome-dark/60">// → "check wrangler.toml"</span>
+            </div>
+          </div>
+        </div>
+
         <div class="flex flex-wrap gap-4 items-center max-md:flex-col max-md:items-start">
           <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/deja" target="_blank" rel="noreferrer"
             class="font-mono px-6 py-3.5 rounded-sm font-semibold text-xs tracking-[0.1em] uppercase border border-brass-dark bg-gradient-to-b from-steel-light to-steel shadow-btn hover:-translate-y-px active:translate-y-px transition-transform">
@@ -37,31 +50,37 @@ import Base from '../layouts/Base.astro';
       <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
         <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
         <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">"Hey agent — install deja. What do you think?"</h3>
-        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Agents want frictionless memory. Deja gives you a single endpoint to learn, inject, and query.</p>
-        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="cmd">curl</span> <span class="flag">-X</span> POST <span class="var">$DEJA_URL</span>/learn \
-  <span class="flag">-H</span> <span class="string">"Authorization: Bearer $API_KEY"</span> \
-  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
-  <span class="flag">-d</span> <span class="string">'&#123;"trigger":"deploying","learning":"run wrangler deploy --dry-run","confidence":0.9&#125;'</span></div>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Two functions. That's the whole API.</p>
+        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="flag">import</span> <span class="var">deja</span> <span class="flag">from</span> <span class="string">'deja-client'</span>
+
+<span class="flag">const</span> <span class="var">mem</span> = deja(process.env.<span class="var">DEJA_URL</span>)
+
+<span class="comment">// after a run</span>
+<span class="flag">await</span> mem.<span class="cmd">learn</span>(<span class="string">"migration failed"</span>, <span class="string">"check foreign keys"</span>)
+
+<span class="comment">// before next run</span>
+<span class="flag">await</span> mem.<span class="cmd">inject</span>(<span class="string">"running migration"</span>)
+<span class="comment">// → ["check foreign keys"]</span></div>
         <ul class="font-serif font-light pl-4 m-0 mt-4 text-chrome-dark space-y-1">
-          <li>Post-run recall only — no hidden context.</li>
-          <li>Scoped memories by agent, session, or shared.</li>
-          <li>Vector search tuned for relevance, not noise.</li>
+          <li>Recall on-demand — no context bloat.</li>
+          <li>Scoped by agent, session, or shared.</li>
+          <li>Semantic search, not keyword matching.</li>
         </ul>
       </div>
 
       <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
         <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">"I'm a human. I want deja on my Cloudflare account."</h3>
-        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Humans need ownership. Deja deploys into your account with clear rails and auditable storage.</p>
-        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="cmd">npm</span> install -g wrangler
-<span class="cmd">wrangler</span> login
-<span class="cmd">wrangler</span> vectorize create deja-embeddings <span class="flag">--dimensions</span> 384 <span class="flag">--metric</span> cosine
-<span class="cmd">wrangler</span> secret put API_KEY
-<span class="cmd">wrangler</span> deploy</div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">"I'm a human. I want this on my infra."</h3>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">One click to your Cloudflare account. You own the data.</p>
+        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="comment"># clone and deploy</span>
+<span class="cmd">npx</span> wrangler deploy
+
+<span class="comment"># or one-click deploy</span>
+<span class="cmd">→</span> deploy.workers.cloudflare.com</div>
         <ul class="font-serif font-light pl-4 m-0 mt-4 text-chrome-dark space-y-1">
-          <li>Cloudflare Worker + Durable Objects + Vectorize.</li>
-          <li>One worker per user, isolation by architecture.</li>
-          <li>Bring your own secrets, revoke at will.</li>
+          <li>Cloudflare Workers + Durable Objects + Vectorize.</li>
+          <li>Your account, your data, your secrets.</li>
+          <li>Fork it. Extend it. It's MIT.</li>
         </ul>
       </div>
     </div>
@@ -104,55 +123,74 @@ import Base from '../layouts/Base.astro';
     </div>
   </section>
 
-  <!-- How it works -->
+  <!-- How it works - Flow Visualization -->
   <section class="mt-18">
-    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">How it works</div>
-    <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">Your context window is precious</div>
+    <div class="bg-steel border border-brass/10 rounded-sm p-8 md:p-12 relative shadow-card overflow-hidden">
       <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
-      <div class="grid gap-3">
-        <div class="flex items-center gap-4 py-3.5 px-5 rounded-sm bg-steel border border-brass/10 relative shadow-level">
-          <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-brass glow-brass"></div>
-          <span class="font-mono font-bold text-[11px] tracking-[0.1em] text-brass-light">/learn</span>
-          <span class="font-serif">Post-run, agents capture what worked — and what didn't.</span>
+
+      <!-- Flow visualization -->
+      <div class="flow-container">
+        <!-- The wire connecting all nodes -->
+        <div class="flow-wire"></div>
+
+        <!-- Node 1: Learn -->
+        <div class="flow-node">
+          <div class="flow-node-ring">
+            <span class="flow-node-icon">.learn()</span>
+          </div>
+          <span class="flow-node-label">Post-run</span>
+          <span class="flow-node-desc">Capture what worked and what didn't.</span>
         </div>
-        <div class="flex items-center gap-4 py-3.5 px-5 rounded-sm bg-steel border border-brass/10 relative shadow-level">
-          <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-brass glow-brass"></div>
-          <span class="font-mono font-bold text-[11px] tracking-[0.1em] text-brass-light">vectorize</span>
-          <span class="font-serif">Semantic embeddings index memories for relevance, not keyword matching.</span>
+
+        <!-- Node 2: Store -->
+        <div class="flow-node">
+          <div class="flow-node-ring">
+            <span class="flow-node-icon">vector</span>
+          </div>
+          <span class="flow-node-label">Semantic</span>
+          <span class="flow-node-desc">Indexed by meaning, not keywords.</span>
         </div>
-        <div class="flex items-center gap-4 py-3.5 px-5 rounded-sm bg-steel border border-brass/10 relative shadow-level">
-          <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-brass glow-brass"></div>
-          <span class="font-mono font-bold text-[11px] tracking-[0.1em] text-brass-light">/inject</span>
-          <span class="font-serif">On-demand recall — only relevant context, no prompt pollution.</span>
+
+        <!-- Node 3: Inject -->
+        <div class="flow-node">
+          <div class="flow-node-ring">
+            <span class="flow-node-icon">.inject()</span>
+          </div>
+          <span class="flow-node-label">On-demand</span>
+          <span class="flow-node-desc">Recall what's relevant right now.</span>
         </div>
       </div>
-      <div class="progress-bar relative h-0.5 bg-steel rounded-none overflow-hidden mt-[18px]"></div>
+
+      <!-- Tagline -->
+      <p class="text-center text-chrome-dark font-serif mt-8 text-sm">
+        Don't carry everything. Ask for what's relevant <em>right now</em>.
+      </p>
     </div>
   </section>
 
   <!-- Stack -->
   <section class="mt-18">
-    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">Stack + deployment story</div>
-    <div class="grid gap-6 grid-cols-1 md:grid-cols-2">
-      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Built for Cloudflare</h3>
-        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Workers for latency, Durable Objects for isolation, Vectorize + Workers AI for recall.</p>
-        <ul class="font-serif font-light pl-4 m-0 text-chrome-dark space-y-1">
-          <li>Hono for routing.</li>
-          <li>Drizzle + SQLite for auditability.</li>
-          <li>Runs entirely inside your account.</li>
-        </ul>
-      </div>
-      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Deploy like it's 2026</h3>
-        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Use Wrangler for control, or ship it with Alchemy when you want a modern workflow.</p>
-        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="cmd">npm</span> install -g wrangler
-<span class="cmd">wrangler</span> deploy
-<span class="comment"># or push with Alchemy</span>
-<span class="cmd">alchemy</span> deploy</div>
-        <p class="font-serif font-light text-chrome-dark m-0 mt-3 text-sm">Completion should feel like unlocking something, not finishing a task.</p>
+    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">Under the hood</div>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+      <div class="grid gap-6 grid-cols-2 md:grid-cols-4 text-center">
+        <div>
+          <div class="font-mono text-xs text-brass mb-2">compute</div>
+          <div class="font-serif text-chrome-dark text-sm">Cloudflare Workers</div>
+        </div>
+        <div>
+          <div class="font-mono text-xs text-brass mb-2">isolation</div>
+          <div class="font-serif text-chrome-dark text-sm">Durable Objects</div>
+        </div>
+        <div>
+          <div class="font-mono text-xs text-brass mb-2">vectors</div>
+          <div class="font-serif text-chrome-dark text-sm">Vectorize + Workers AI</div>
+        </div>
+        <div>
+          <div class="font-mono text-xs text-brass mb-2">storage</div>
+          <div class="font-serif text-chrome-dark text-sm">SQLite + Drizzle</div>
+        </div>
       </div>
     </div>
   </section>
