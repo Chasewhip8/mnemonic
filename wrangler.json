@@ -20,5 +20,9 @@
   },
   "triggers": {
     "crons": ["0 0 * * *"]
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
   }
 }
