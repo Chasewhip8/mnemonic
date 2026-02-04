@@ -8,6 +8,9 @@ export const marketingPage = `<!DOCTYPE html>
       name="description"
       content="deja is an open source Cloudflare Worker that gives agents durable recall. Store, query, and inject learnings with precision."
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Spectral+SC:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
     <style>
       :root {
         color-scheme: dark;
@@ -32,11 +35,9 @@ export const marketingPage = `<!DOCTYPE html>
         box-sizing: border-box;
       }
 
-      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Playfair+Display:wght@400;700;900&display=swap');
-
       body {
         margin: 0;
-        font-family: "Playfair Display", Georgia, serif;
+        font-family: "Spectral SC", Georgia, serif;
         background: radial-gradient(1200px 600px at 20% 10%, rgba(248, 74, 167, 0.15), transparent 60%),
           radial-gradient(900px 500px at 90% 0%, rgba(167, 68, 130, 0.1), transparent 70%),
           var(--bg);
@@ -117,7 +118,7 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .title {
-        font-family: "Playfair Display", serif;
+        font-family: "Spectral SC", serif;
         font-size: clamp(40px, 5vw, 72px);
         font-weight: 700;
         letter-spacing: -0.02em;
@@ -195,8 +196,8 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .card h3 {
-        font-family: "Playfair Display", serif;
-        font-weight: 700;
+        font-family: "Spectral SC", serif;
+        font-weight: 600;
         margin: 0 0 12px;
         font-size: 20px;
       }
@@ -282,7 +283,7 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .title-moment h2 {
-        font-family: "Playfair Display", serif;
+        font-family: "Spectral SC", serif;
         font-weight: 700;
         margin: 0 0 12px;
         font-size: clamp(32px, 4vw, 52px);
