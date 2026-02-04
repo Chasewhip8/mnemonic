@@ -10,25 +10,28 @@ export const marketingPage = `<!DOCTYPE html>
     />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Spectral+SC:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Spectral+SC:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
     <style>
       :root {
         color-scheme: dark;
-        --space-indigo: #1b1b3a;
-        --velvet-purple: #693668;
-        --berry-blush: #a74482;
-        --deep-pink: #f84aa7;
-        --hot-fuchsia: #ff3562;
+        --void: #0a0a0a;
+        --void-deep: #050505;
+        --steel: #1a1a1a;
+        --steel-light: #2a2a2a;
+        --chrome: #e8e8e8;
+        --chrome-dark: #b8b8b8;
+        --brass: #c9a961;
+        --brass-dark: #9b7e3c;
+        --brass-light: #d4bc87;
         
-        --bg: #1b1b3a;
-        --bg-elevated: rgba(105, 54, 104, 0.2);
-        --bg-glass: rgba(105, 54, 104, 0.3);
-        --text: #ffffff;
-        --muted: #e5c9e4;
-        --accent: #f84aa7;
-        --accent-strong: #ff3562;
-        --border: rgba(248, 74, 167, 0.15);
-        --glow: rgba(248, 74, 167, 0.4);
+        --bg: #0a0a0a;
+        --bg-elevated: #1a1a1a;
+        --text: #e8e8e8;
+        --muted: #b8b8b8;
+        --accent: #c9a961;
+        --accent-strong: #d4bc87;
+        --border: rgba(201, 169, 97, 0.2);
+        --hairline: rgba(201, 169, 97, 0.1);
       }
 
       * {
@@ -37,13 +40,25 @@ export const marketingPage = `<!DOCTYPE html>
 
       body {
         margin: 0;
-        font-family: "Spectral SC", Georgia, serif;
-        background: radial-gradient(1200px 600px at 20% 10%, rgba(248, 74, 167, 0.15), transparent 60%),
-          radial-gradient(900px 500px at 90% 0%, rgba(167, 68, 130, 0.1), transparent 70%),
-          var(--bg);
+        font-family: "Spectral", Georgia, serif;
+        font-weight: 400;
+        background: var(--void);
         color: var(--text);
         line-height: 1.6;
         letter-spacing: 0.01em;
+        position: relative;
+      }
+      
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: 
+          repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px),
+          radial-gradient(circle at 30% 20%, rgba(201, 169, 97, 0.03), transparent 50%),
+          radial-gradient(circle at 70% 80%, rgba(232, 232, 232, 0.02), transparent 50%);
+        pointer-events: none;
+        z-index: 0;
       }
 
       a {
@@ -61,9 +76,10 @@ export const marketingPage = `<!DOCTYPE html>
         position: sticky;
         top: 0;
         z-index: 10;
-        backdrop-filter: blur(14px);
-        background: rgba(27, 27, 58, 0.86);
-        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(14px) saturate(0.8);
+        background: rgba(10, 10, 10, 0.92);
+        border-bottom: 1px solid var(--hairline);
+        box-shadow: 0 1px 0 rgba(201, 169, 97, 0.1);
       }
 
       .nav {
@@ -75,10 +91,10 @@ export const marketingPage = `<!DOCTYPE html>
 
       .logo {
         font-family: "JetBrains Mono", monospace;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.32em;
-        font-size: 12px;
+        font-size: 11px;
       }
 
       .nav-links {
@@ -95,10 +111,13 @@ export const marketingPage = `<!DOCTYPE html>
 
       .title-card {
         border: 1px solid var(--border);
-        background: linear-gradient(135deg, rgba(105, 54, 104, 0.4), rgba(27, 27, 58, 0.95));
-        border-radius: 24px;
+        background: linear-gradient(135deg, var(--steel-light), var(--steel));
+        border-radius: 2px;
         padding: 48px;
-        box-shadow: 0 40px 120px rgba(248, 74, 167, 0.2);
+        box-shadow: 
+          inset 0 1px 0 rgba(201, 169, 97, 0.15),
+          0 2px 0 var(--void-deep),
+          0 20px 60px rgba(0, 0, 0, 0.8);
         position: relative;
         overflow: hidden;
       }
@@ -107,9 +126,11 @@ export const marketingPage = `<!DOCTYPE html>
         content: "";
         position: absolute;
         inset: 0;
-        background: radial-gradient(500px 200px at 20% 0%, rgba(248, 74, 167, 0.3), transparent 70%),
-          radial-gradient(600px 400px at 80% 30%, rgba(167, 68, 130, 0.2), transparent 70%);
-        opacity: 0.6;
+        background: 
+          linear-gradient(90deg, transparent, rgba(201, 169, 97, 0.03) 50%, transparent),
+          repeating-linear-gradient(90deg, transparent, transparent 100px, rgba(201, 169, 97, 0.02) 100px, rgba(201, 169, 97, 0.02) 101px);
+        opacity: 1;
+        pointer-events: none;
       }
 
       .title-card-inner {
@@ -130,6 +151,8 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .subtitle {
+        font-family: "Spectral", serif;
+        font-weight: 300;
         font-size: 18px;
         color: var(--muted);
         max-width: 640px;
@@ -145,19 +168,48 @@ export const marketingPage = `<!DOCTYPE html>
 
       .button {
         font-family: "JetBrains Mono", monospace;
-        padding: 12px 20px;
-        border-radius: 999px;
+        padding: 14px 24px;
+        border-radius: 1px;
         font-weight: 600;
-        border: 1px solid var(--accent);
-        background: linear-gradient(120deg, rgba(248, 74, 167, 0.4), rgba(248, 74, 167, 0.1));
-        box-shadow: 0 0 30px var(--glow);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border: 1px solid var(--brass-dark);
+        background: linear-gradient(180deg, var(--steel-light), var(--steel));
+        box-shadow: 
+          inset 0 1px 0 rgba(201, 169, 97, 0.3),
+          0 2px 0 var(--void-deep),
+          0 4px 16px rgba(0, 0, 0, 0.6);
+        position: relative;
+        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .button:hover {
+        transform: translateY(-1px);
+        box-shadow: 
+          inset 0 1px 0 rgba(201, 169, 97, 0.4),
+          0 3px 0 var(--void-deep),
+          0 6px 20px rgba(0, 0, 0, 0.7);
+      }
+      
+      .button:active {
+        transform: translateY(1px);
+        box-shadow: 
+          inset 0 1px 0 rgba(201, 169, 97, 0.2),
+          0 1px 0 var(--void-deep),
+          0 2px 8px rgba(0, 0, 0, 0.5);
       }
 
       .button.secondary {
-        border-color: var(--border);
-        background: rgba(17, 22, 35, 0.6);
-        color: var(--muted);
-        box-shadow: none;
+        border-color: var(--hairline);
+        background: transparent;
+        color: var(--chrome-dark);
+        box-shadow: inset 0 0 0 1px var(--hairline);
+      }
+      
+      .button.secondary:hover {
+        background: rgba(201, 169, 97, 0.05);
+        color: var(--brass);
       }
 
       section {
@@ -166,11 +218,11 @@ export const marketingPage = `<!DOCTYPE html>
 
       .section-title {
         font-family: "JetBrains Mono", monospace;
-        font-size: 20px;
-        font-weight: 600;
+        font-size: 11px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.28em;
-        color: var(--muted);
+        letter-spacing: 0.3em;
+        color: var(--brass);
         margin-bottom: 24px;
       }
 
@@ -189,40 +241,63 @@ export const marketingPage = `<!DOCTYPE html>
 
       .card {
         background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        border-radius: 20px;
+        border: 1px solid var(--hairline);
+        border-radius: 1px;
         padding: 24px;
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        box-shadow: 
+          inset 0 1px 0 rgba(201, 169, 97, 0.08),
+          0 2px 0 var(--void-deep),
+          0 8px 24px rgba(0, 0, 0, 0.6);
+        position: relative;
+      }
+      
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--brass) 50%, transparent);
+        opacity: 0.3;
       }
 
       .card h3 {
-        font-family: "Spectral SC", serif;
+        font-family: "Spectral", serif;
         font-weight: 600;
         margin: 0 0 12px;
         font-size: 20px;
+        letter-spacing: 0.01em;
       }
 
       .card p {
+        font-family: "Spectral", serif;
+        font-weight: 300;
         color: var(--muted);
         margin: 0 0 16px;
       }
 
       .card ul {
+        font-family: "Spectral", serif;
+        font-weight: 300;
         padding-left: 16px;
         margin: 0;
         color: var(--muted);
       }
 
       .code-block {
-        background: #070a13;
-        border: 1px solid var(--border);
-        border-radius: 16px;
+        background: var(--void-deep);
+        border: 1px solid var(--hairline);
+        border-radius: 1px;
         padding: 16px;
         font-family: "JetBrains Mono", monospace;
         font-size: 13px;
-        color: #d8e0ff;
+        color: var(--chrome-dark);
         overflow-x: auto;
         white-space: pre-wrap;
+        box-shadow: 
+          inset 0 1px 3px rgba(0, 0, 0, 0.8),
+          inset 0 0 0 1px rgba(201, 169, 97, 0.05);
       }
 
       .progress {
@@ -234,24 +309,43 @@ export const marketingPage = `<!DOCTYPE html>
         display: flex;
         align-items: center;
         gap: 16px;
-        padding: 12px 18px;
-        border-radius: 14px;
-        background: rgba(248, 74, 167, 0.08);
-        border: 1px solid rgba(248, 74, 167, 0.2);
+        padding: 14px 20px;
+        border-radius: 1px;
+        background: var(--steel);
+        border: 1px solid var(--hairline);
+        box-shadow: 
+          inset 0 1px 0 rgba(201, 169, 97, 0.1),
+          0 1px 0 var(--void-deep);
+        position: relative;
+      }
+      
+      .level::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--brass);
+        box-shadow: 0 0 8px var(--brass);
       }
 
       .level span {
-        font-weight: 600;
-        color: var(--accent-strong);
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: var(--brass-light);
       }
 
       .progress-bar {
         position: relative;
-        height: 4px;
-        background: rgba(248, 74, 167, 0.15);
-        border-radius: 999px;
+        height: 2px;
+        background: var(--steel);
+        border-radius: 0;
         overflow: hidden;
         margin-top: 18px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
       }
 
       .progress-bar::after {
@@ -259,8 +353,9 @@ export const marketingPage = `<!DOCTYPE html>
         position: absolute;
         inset: 0;
         width: 45%;
-        background: linear-gradient(90deg, rgba(248, 74, 167, 0.3), rgba(255, 53, 98, 0.9));
-        animation: glide 6s ease-in-out infinite;
+        background: linear-gradient(90deg, transparent, var(--brass), var(--brass-light));
+        box-shadow: 0 0 12px var(--brass);
+        animation: glide 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       }
 
       @keyframes glide {
@@ -276,10 +371,25 @@ export const marketingPage = `<!DOCTYPE html>
       .title-moment {
         text-align: center;
         padding: 64px 24px;
-        border-radius: 26px;
-        background: linear-gradient(160deg, rgba(248, 74, 167, 0.2), rgba(27, 27, 58, 0.96));
+        border-radius: 1px;
+        background: linear-gradient(180deg, var(--steel-light), var(--steel));
         border: 1px solid var(--border);
-        box-shadow: 0 30px 90px rgba(248, 74, 167, 0.3);
+        box-shadow: 
+          inset 0 1px 0 rgba(201, 169, 97, 0.2),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+          0 4px 0 var(--void-deep),
+          0 20px 60px rgba(0, 0, 0, 0.8);
+        position: relative;
+      }
+      
+      .title-moment::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 1px solid transparent;
+        border-image: linear-gradient(180deg, var(--brass) 0%, transparent 50%, var(--brass) 100%) 1;
+        opacity: 0.3;
+        pointer-events: none;
       }
 
       .title-moment h2 {
@@ -300,9 +410,12 @@ export const marketingPage = `<!DOCTYPE html>
       footer {
         margin-top: 80px;
         padding-top: 32px;
-        border-top: 1px solid var(--border);
-        color: var(--muted);
-        font-size: 14px;
+        border-top: 1px solid var(--hairline);
+        color: var(--chrome-dark);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
         display: flex;
         flex-wrap: wrap;
         gap: 12px 24px;
@@ -337,7 +450,7 @@ export const marketingPage = `<!DOCTYPE html>
       <section class="hero">
         <div class="title-card">
           <div class="title-card-inner">
-            <div class="logo">Persistent memory for agents</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brass); margin-bottom: 16px;">Persistent memory for agents</div>
             <h1 class="title">deja, the <span>durable recall</span> layer for Cloudflare Workers.</h1>
             <p class="subtitle">
               Open source memory that outlives a single run. Deja captures what mattered, stores it in your Cloudflare
