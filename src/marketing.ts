@@ -32,11 +32,12 @@ export const marketingPage = `<!DOCTYPE html>
         box-sizing: border-box;
       }
 
-      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Lora:wght@400;600&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+      @import url('https://api.fontshare.com/v2/css?f[]=gambetta@400,700&display=swap');
 
       body {
         margin: 0;
-        font-family: "Lora", Georgia, serif;
+        font-family: "Gambetta", Georgia, serif;
         background: radial-gradient(1200px 600px at 20% 10%, rgba(248, 74, 167, 0.15), transparent 60%),
           radial-gradient(900px 500px at 90% 0%, rgba(167, 68, 130, 0.1), transparent 70%),
           var(--bg);
@@ -73,7 +74,7 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .logo {
-        font-family: "Poppins", sans-serif;
+        font-family: "JetBrains Mono", monospace;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.32em;
@@ -117,7 +118,7 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .title {
-        font-family: "Poppins", sans-serif;
+        font-family: "Gambetta", serif;
         font-size: clamp(40px, 5vw, 72px);
         font-weight: 700;
         letter-spacing: -0.02em;
@@ -143,7 +144,7 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .button {
-        font-family: "Poppins", sans-serif;
+        font-family: "JetBrains Mono", monospace;
         padding: 12px 20px;
         border-radius: 999px;
         font-weight: 600;
@@ -164,7 +165,7 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .section-title {
-        font-family: "Poppins", sans-serif;
+        font-family: "JetBrains Mono", monospace;
         font-size: 20px;
         font-weight: 600;
         text-transform: uppercase;
@@ -195,8 +196,8 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .card h3 {
-        font-family: "Poppins", sans-serif;
-        font-weight: 600;
+        font-family: "Gambetta", serif;
+        font-weight: 700;
         margin: 0 0 12px;
         font-size: 20px;
       }
@@ -217,7 +218,7 @@ export const marketingPage = `<!DOCTYPE html>
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 16px;
-        font-family: "SFMono-Regular", ui-monospace, "JetBrains Mono", monospace;
+        font-family: "JetBrains Mono", monospace;
         font-size: 13px;
         color: #d8e0ff;
         overflow-x: auto;
@@ -282,7 +283,7 @@ export const marketingPage = `<!DOCTYPE html>
       }
 
       .title-moment h2 {
-        font-family: "Poppins", sans-serif;
+        font-family: "Gambetta", serif;
         font-weight: 700;
         margin: 0 0 12px;
         font-size: clamp(32px, 4vw, 52px);
