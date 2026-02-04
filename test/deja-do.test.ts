@@ -60,6 +60,15 @@ describe('DejaDO', () => {
     });
   });
 
+  test('should serve marketing page HTML on root', async () => {
+    const response = await dejaDO.fetch(
+      new Request('http://localhost/', { headers: { Accept: 'text/html' } })
+    );
+    const body = await response.text();
+    expect(response.headers.get('content-type')).toContain('text/html');
+    expect(body).toContain('deja, the <span>durable recall</span> layer');
+  });
+
   test('should filter scopes by priority', () => {
     // Test session scope priority
     const sessionScopes = (dejaDO as any).filterScopesByPriority(['shared', 'agent:123', 'session:456']);
