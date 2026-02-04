@@ -1,0 +1,180 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="deja — persistent memory for agents">
+  <!-- Hero -->
+  <section class="pt-24 pb-18">
+    <div class="border border-brass/20 rounded-sm p-12 relative overflow-hidden bg-cover bg-center bg-no-repeat shadow-hero" style="background-image: url('/brain.jpg');">
+      <div class="absolute inset-0 bg-gradient-to-b from-void/70 via-void/85 to-void/95"></div>
+      <div class="relative z-[1]">
+        <div class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-brass mb-4">Persistent memory for agents</div>
+        <h1 class="font-serif-sc text-5xl md:text-7xl font-bold tracking-tight m-0 mb-3">
+          deja, the <span class="text-brass">durable recall</span> layer for Cloudflare Workers.
+        </h1>
+        <p class="font-serif font-light text-lg text-chrome-dark max-w-[640px] mb-8">
+          Open source memory that outlives a single run. Deja captures what mattered, stores it in your Cloudflare
+          account, and feeds it back when agents level up. Precision you can audit. Progress you can feel.
+        </p>
+        <div class="flex flex-wrap gap-4 items-center max-md:flex-col max-md:items-start">
+          <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/deja" target="_blank" rel="noreferrer"
+            class="font-mono px-6 py-3.5 rounded-sm font-semibold text-xs tracking-[0.1em] uppercase border border-brass-dark bg-gradient-to-b from-steel-light to-steel shadow-btn hover:-translate-y-px active:translate-y-px transition-transform">
+            Deploy to Cloudflare
+          </a>
+          <a href="/docs"
+            class="font-mono px-6 py-3.5 rounded-sm font-semibold text-xs tracking-[0.1em] uppercase border border-brass/10 bg-transparent text-chrome-dark hover:bg-brass/5 hover:text-brass transition-colors">
+            Read the Docs
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Two Perspectives -->
+  <section class="mt-18">
+    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">Two perspectives</div>
+    <div class="grid gap-6 grid-cols-1 md:grid-cols-2">
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">"Hey agent — install deja. What do you think?"</h3>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Agents want frictionless memory. Deja gives you a single endpoint to learn, inject, and query.</p>
+        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="cmd">curl</span> <span class="flag">-X</span> POST <span class="var">$DEJA_URL</span>/learn \
+  <span class="flag">-H</span> <span class="string">"Authorization: Bearer $API_KEY"</span> \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'&#123;"trigger":"deploying","learning":"run wrangler deploy --dry-run","confidence":0.9&#125;'</span></div>
+        <ul class="font-serif font-light pl-4 m-0 mt-4 text-chrome-dark space-y-1">
+          <li>Post-run recall only — no hidden context.</li>
+          <li>Scoped memories by agent, session, or shared.</li>
+          <li>Vector search tuned for relevance, not noise.</li>
+        </ul>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">"I'm a human. I want deja on my Cloudflare account."</h3>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Humans need ownership. Deja deploys into your account with clear rails and auditable storage.</p>
+        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="cmd">npm</span> install -g wrangler
+<span class="cmd">wrangler</span> login
+<span class="cmd">wrangler</span> vectorize create deja-embeddings <span class="flag">--dimensions</span> 384 <span class="flag">--metric</span> cosine
+<span class="cmd">wrangler</span> secret put API_KEY
+<span class="cmd">wrangler</span> deploy</div>
+        <ul class="font-serif font-light pl-4 m-0 mt-4 text-chrome-dark space-y-1">
+          <li>Cloudflare Worker + Durable Objects + Vectorize.</li>
+          <li>One worker per user, isolation by architecture.</li>
+          <li>Bring your own secrets, revoke at will.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases -->
+  <section class="mt-18">
+    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">Use cases</div>
+    <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Incident response</h3>
+        <p class="font-serif font-light text-chrome-dark m-0">Capture the postmortem as learnings, inject them before the next on-call handoff.</p>
+      </div>
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Agent onboarding</h3>
+        <p class="font-serif font-light text-chrome-dark m-0">Give fresh agents the muscle memory of your best runs without flooding them with logs.</p>
+      </div>
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Long-running workflows</h3>
+        <p class="font-serif font-light text-chrome-dark m-0">Stitch multi-day work into a single arc. Deja remembers outcomes, not noise.</p>
+      </div>
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Tool reliability</h3>
+        <p class="font-serif font-light text-chrome-dark m-0">Teach agents the traps: flaky endpoints, brittle migrations, and safe retries.</p>
+      </div>
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Ops playbooks</h3>
+        <p class="font-serif font-light text-chrome-dark m-0">Store the short form. Inject it when the runbook needs to be alive.</p>
+      </div>
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Product memory</h3>
+        <p class="font-serif font-light text-chrome-dark m-0">Let agents remember the why, not just the what. Keep decisions tethered.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="mt-18">
+    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">How it works</div>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+      <div class="grid gap-3">
+        <div class="flex items-center gap-4 py-3.5 px-5 rounded-sm bg-steel border border-brass/10 relative shadow-level">
+          <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-brass glow-brass"></div>
+          <span class="font-mono font-bold text-[11px] tracking-[0.1em] text-brass-light">/learn</span>
+          <span class="font-serif">Post-run, agents capture what worked — and what didn't.</span>
+        </div>
+        <div class="flex items-center gap-4 py-3.5 px-5 rounded-sm bg-steel border border-brass/10 relative shadow-level">
+          <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-brass glow-brass"></div>
+          <span class="font-mono font-bold text-[11px] tracking-[0.1em] text-brass-light">vectorize</span>
+          <span class="font-serif">Semantic embeddings index memories for relevance, not keyword matching.</span>
+        </div>
+        <div class="flex items-center gap-4 py-3.5 px-5 rounded-sm bg-steel border border-brass/10 relative shadow-level">
+          <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-brass glow-brass"></div>
+          <span class="font-mono font-bold text-[11px] tracking-[0.1em] text-brass-light">/inject</span>
+          <span class="font-serif">On-demand recall — only relevant context, no prompt pollution.</span>
+        </div>
+      </div>
+      <div class="progress-bar relative h-0.5 bg-steel rounded-none overflow-hidden mt-[18px]"></div>
+    </div>
+  </section>
+
+  <!-- Stack -->
+  <section class="mt-18">
+    <div class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6">Stack + deployment story</div>
+    <div class="grid gap-6 grid-cols-1 md:grid-cols-2">
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Built for Cloudflare</h3>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Workers for latency, Durable Objects for isolation, Vectorize + Workers AI for recall.</p>
+        <ul class="font-serif font-light pl-4 m-0 text-chrome-dark space-y-1">
+          <li>Hono for routing.</li>
+          <li>Drizzle + SQLite for auditability.</li>
+          <li>Runs entirely inside your account.</li>
+        </ul>
+      </div>
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card">
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">Deploy like it's 2026</h3>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Use Wrangler for control, or ship it with Alchemy when you want a modern workflow.</p>
+        <div class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"><span class="cmd">npm</span> install -g wrangler
+<span class="cmd">wrangler</span> deploy
+<span class="comment"># or push with Alchemy</span>
+<span class="cmd">alchemy</span> deploy</div>
+        <p class="font-serif font-light text-chrome-dark m-0 mt-3 text-sm">Completion should feel like unlocking something, not finishing a task.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="relative mt-20">
+    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat -z-10" style="background-image: url('/orb.jpg');"></div>
+    <section class="text-center py-16 px-6 rounded-sm bg-gradient-to-b from-steel-light to-steel border border-brass/20 relative z-10 shadow-cta">
+      <div class="absolute inset-0 bg-gradient-to-r from-transparent via-brass/5 to-transparent pointer-events-none"></div>
+      <h2 class="font-serif-sc font-bold text-4xl md:text-5xl m-0 mb-3 relative text-balance">Agents need durable recall.</h2>
+      <p class="font-serif font-light text-lg text-chrome-dark max-w-[640px] mx-auto mb-8 relative text-balance">
+        The peak moment is a title card: a new run begins, and everything it needs is already waiting.
+      </p>
+      <div class="flex flex-wrap gap-4 justify-center relative">
+        <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/deja" target="_blank" rel="noreferrer"
+          class="font-mono px-6 py-3.5 rounded-sm font-semibold text-xs tracking-[0.1em] uppercase border border-brass-dark bg-gradient-to-b from-steel-light to-steel shadow-btn hover:-translate-y-px active:translate-y-px transition-transform">
+          Level up with deja
+        </a>
+      </div>
+      <footer class="mt-8 pt-8 border-t border-brass/10 text-chrome-dark font-mono text-[11px] font-medium tracking-[0.05em]">
+        Open source. MIT licensed. Built for Cloudflare Workers.
+      </footer>
+    </section>
+  </div>
+</Base>

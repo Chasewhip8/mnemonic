@@ -1,0 +1,178 @@
+---
+import Base from '../layouts/Base.astro';
+
+const learnExample = `{
+  "trigger": "deploying to production",
+  "learning": "always run wrangler deploy --dry-run first",
+  "confidence": 0.9,
+  "scope": "shared",
+  "reason": "caught a typo in wrangler.toml",
+  "source": "deploy-agent"
+}`;
+
+const injectExample = `{
+  "context": "about to deploy the worker",
+  "scopes": ["shared", "agent:deploy-bot"],
+  "limit": 5
+}`;
+
+const queryExample = `{
+  "query": "deployment issues",
+  "scopes": ["shared"],
+  "limit": 10
+}`;
+
+const quickStartCode = `# Install wrangler
+npm install -g wrangler
+
+# Create vectorize index
+wrangler vectorize create deja-embeddings --dimensions 384 --metric cosine
+
+# Set your API key
+wrangler secret put API_KEY
+
+# Deploy
+wrangler deploy`;
+---
+
+<Base title="Documentation — deja">
+  <section class="pt-16 pb-8">
+    <div class="font-mono text-[11px] font-bold tracking-widest uppercase text-brass mb-4">Documentation</div>
+    <h1 class="font-serif-sc text-4xl md:text-5xl font-bold tracking-tight m-0 mb-4">
+      API Reference
+    </h1>
+    <p class="font-serif font-light text-lg text-chrome-dark max-w-3xl">
+      Everything you need to give your agents durable memory.
+    </p>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> Quick Start
+    </h2>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">Deploy deja to your Cloudflare account:</p>
+      <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">{quickStartCode}</pre>
+    </div>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> Authentication
+    </h2>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">All mutating endpoints require a Bearer token:</p>
+      <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">Authorization: Bearer YOUR_API_KEY</pre>
+      <p class="font-serif font-light text-chrome-dark m-0 mt-4 text-sm">
+        Public endpoints (<code class="text-brass">/</code>, <code class="text-brass">/inject</code>, <code class="text-brass">/query</code>) work without auth for read operations.
+      </p>
+    </div>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> Endpoints
+    </h2>
+
+    <div class="space-y-6">
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-brass/20 text-brass rounded">POST</span>
+          <code class="font-mono text-sm text-chrome">/learn</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Store a new learning with semantic embedding.</p>
+        <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">{learnExample}</pre>
+        <div class="mt-4 text-sm">
+          <p class="font-mono text-brass mb-2">Parameters:</p>
+          <ul class="font-serif font-light text-chrome-dark pl-4 space-y-1">
+            <li><code class="text-brass">trigger</code> (required) — What triggers this memory</li>
+            <li><code class="text-brass">learning</code> (required) — What was learned</li>
+            <li><code class="text-brass">confidence</code> (required) — 0.0 to 1.0, memories below 0.3 are auto-cleaned</li>
+            <li><code class="text-brass">scope</code> — "shared", "agent:id", or "session:id" (default: "shared")</li>
+            <li><code class="text-brass">reason</code> — Optional context</li>
+            <li><code class="text-brass">source</code> — Optional source identifier</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-brass/20 text-brass rounded">POST</span>
+          <code class="font-mono text-sm text-chrome">/inject</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Get relevant memories formatted for prompt injection.</p>
+        <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">{injectExample}</pre>
+        <p class="font-serif font-light text-chrome-dark m-0 mt-4 text-sm">
+          Returns a formatted string ready to inject into your agent's system prompt.
+        </p>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-brass/20 text-brass rounded">POST</span>
+          <code class="font-mono text-sm text-chrome">/query</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Semantic search over stored memories.</p>
+        <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">{queryExample}</pre>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-void-deep text-chrome-dark border border-brass/20 rounded">GET</span>
+          <code class="font-mono text-sm text-chrome">/stats</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0">Returns counts of learnings and secrets by scope.</p>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-void-deep text-chrome-dark border border-brass/20 rounded">GET</span>
+          <code class="font-mono text-sm text-chrome">/learnings?scope=shared</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0">List all learnings, optionally filtered by scope.</p>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-red-500/20 text-red-400 rounded">DELETE</span>
+          <code class="font-mono text-sm text-chrome">/learning/:id</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0">Delete a specific learning by ID. Requires authentication.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> Scopes
+    </h2>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">Memories are organized by scope for isolation and relevance:</p>
+      <div class="space-y-4">
+        <div class="flex items-start gap-4">
+          <code class="font-mono text-sm text-brass whitespace-nowrap">shared</code>
+          <p class="font-serif font-light text-chrome-dark m-0">Global memories accessible by all agents. Auto-cleaned after 30 days with low confidence.</p>
+        </div>
+        <div class="flex items-start gap-4">
+          <code class="font-mono text-sm text-brass whitespace-nowrap">agent:&lt;id&gt;</code>
+          <p class="font-serif font-light text-chrome-dark m-0">Agent-specific memories. Use for learnings unique to a particular agent's behavior.</p>
+        </div>
+        <div class="flex items-start gap-4">
+          <code class="font-mono text-sm text-brass whitespace-nowrap">session:&lt;id&gt;</code>
+          <p class="font-serif font-light text-chrome-dark m-0">Temporary session memories. Auto-cleaned after 7 days — use for ephemeral context.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-12 mb-8">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> For AI Agents
+    </h2>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">
+        A machine-readable summary is available at <a href="/llms.txt" class="text-brass hover:text-brass-light underline">/llms.txt</a> for AI agents to quickly understand deja's API.
+      </p>
+    </div>
+  </section>
+</Base>

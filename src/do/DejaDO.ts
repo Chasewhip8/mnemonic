@@ -9,7 +9,6 @@ import * as schema from '../schema';
 import { eq, and, like, desc, sql, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { marketingPage } from '../marketing';
 
 interface Env {
   VECTORIZE: VectorizeIndex;
@@ -638,10 +637,6 @@ export class DejaDO extends DurableObject<Env> {
     
     // Health check
     app.get('/', (c) => {
-      const accept = c.req.header('Accept') ?? '';
-      if (accept.includes('text/html')) {
-        return c.html(marketingPage);
-      }
       return c.json({ status: 'ok', service: 'deja' });
     });
     

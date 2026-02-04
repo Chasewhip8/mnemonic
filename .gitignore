@@ -2,3 +2,15 @@ node_modules/
 dist/
 .wrangler/
 .dev.vars
+
+# Built marketing assets (regenerated on deploy)
+public/index.html
+public/_astro/
+public/docs/
+public/llms.txt
+public/content-assets.mjs
+public/content-modules.mjs
+
+# IDE/temp files
+public/data-store.json
+public/settings.json

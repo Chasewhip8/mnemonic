@@ -12,6 +12,7 @@ interface Env {
   API_KEY?: string;
   VECTORIZE: VectorizeIndex;
   AI: any;
+  ASSETS: Fetcher;
 }
 
 export { DejaDO };
@@ -48,10 +49,10 @@ export default {
       return providedKey === env.API_KEY;
     };
 
-    // API Key authentication for ALL operations except root health check
+    // API Key authentication for ALL operations except public API endpoints
     // This protects our memory from public access
-    const publicPaths = ['/', '/inject', '/query'];
-    const isPublicPath = publicPaths.includes(path) && request.method !== 'DELETE';
+    const publicApiPaths = ['/inject', '/query'];
+    const isPublicPath = publicApiPaths.includes(path) && request.method !== 'DELETE';
     
     if (!isPublicPath && !checkAuth()) {
       return new Response(
@@ -68,6 +69,20 @@ export default {
           { status: 401, headers: corsHeaders }
         );
       }
+    }
+
+    // Static marketing routes served from assets
+    const staticRoutes = ['/', '/docs', '/llms.txt'];
+    const isStaticAsset = path.startsWith('/_astro/') ||
+                          path.endsWith('.jpg') ||
+                          path.endsWith('.png') ||
+                          path.endsWith('.css') ||
+                          path.endsWith('.js');
+
+    if (staticRoutes.includes(path) || isStaticAsset) {
+      // For / route, serve index.html
+      const assetPath = path === '/' ? '/index.html' : path;
+      return env.ASSETS.fetch(new Request(new URL(assetPath, request.url), request));
     }
 
     // Get user ID from API key or use 'anonymous'
