@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import SEO from '../components/SEO.astro';
 
 const learnExample = `{
   "trigger": "deploying to production",
@@ -35,66 +36,71 @@ wrangler secret put API_KEY
 wrangler deploy`;
 
 const skillExample = `---
-description: Use deja to store and recall learnings across sessions
+description: Persistent memory via deja MCP server
 triggers:
   - remember this
   - what do you know about
-  - recall
-  - inject memories
+  - recall memories
+  - inject context
   - learn from this
 ---
 
-# deja - Persistent Memory
+# deja - Persistent Memory (MCP)
 
-You have access to deja, a persistent memory system at \`\${DEJA_URL}\`.
+You have access to deja via MCP at \`\${DEJA_URL}/mcp\`.
+
+## MCP Tools
+
+Use these tools directly:
+
+- **learn** — Store a memory: \`{trigger, learning, confidence?, scope?}\`
+- **inject** — Get relevant memories: \`{context, scopes?, limit?}\`
+- **query** — Search memories: \`{query, scopes?, limit?}\`
+- **forget** — Delete a memory: \`{id}\`
+- **list** — List memories: \`{scope?, limit?}\`
+- **stats** — Get statistics
 
 ## When to use
 
-- **After completing tasks**: Store what worked or failed
-- **Before starting tasks**: Inject relevant learnings
-- **When asked to remember**: Explicitly store context
-
-## API
-
-### Store a learning
-\`\`\`bash
-curl -X POST \${DEJA_URL}/learn \\
-  -H "Authorization: Bearer \${DEJA_API_KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"trigger": "context", "learning": "insight", "confidence": 0.8}'
-\`\`\`
-
-### Get relevant memories
-\`\`\`bash
-curl -X POST \${DEJA_URL}/inject \\
-  -H "Content-Type: application/json" \\
-  -d '{"context": "what you are about to do"}'
-\`\`\`
-
-## Confidence scores
-
-- **0.9-1.0**: Verified, critical learnings
-- **0.7-0.9**: High confidence, worked well
-- **0.5-0.7**: Moderate confidence, may need verification
-- **0.3-0.5**: Low confidence, experimental
-- **< 0.3**: Auto-cleaned after 7 days
+- **After tasks**: Call \`learn\` with what worked or failed
+- **Before tasks**: Call \`inject\` with current context
+- **On request**: When user says "remember this"
 
 ## Scopes
 
-- \`shared\` — All agents can access
-- \`agent:name\` — Only this agent
-- \`session:id\` — Temporary, auto-expires`;
+- \`shared\` — All agents (default)
+- \`agent:<name>\` — Agent-specific
+- \`session:<id>\` — Temporary (7 day TTL)
+
+## Confidence
+
+- 0.9+ = Critical, verified
+- 0.7-0.9 = High confidence
+- 0.5-0.7 = Moderate
+- <0.3 = Auto-cleaned`;
 ---
 
 <Base title="Documentation — deja">
+  <SEO
+    slot="head"
+    title="Documentation — deja"
+    description="API reference and integration guides for deja. Learn how to use the REST API, MCP protocol, and client library for persistent agent memory."
+    keywords="deja api, mcp server, agent memory api, cloudflare workers api, vectorize, semantic search api"
+    path="/docs"
+    type="article"
+    section="Documentation"
+    breadcrumbs={[{ name: 'Docs', path: '/docs' }]}
+  />
   <section class="pt-16 pb-8">
-    <div class="font-mono text-[11px] font-bold tracking-widest uppercase text-brass mb-4">Documentation</div>
-    <h1 class="font-serif-sc text-4xl md:text-5xl font-bold tracking-tight m-0 mb-4">
-      API Reference
-    </h1>
-    <p class="font-serif font-light text-lg text-chrome-dark max-w-3xl">
-      Everything you need to give your agents durable memory.
-    </p>
+    <div class="bg-void/90 backdrop-blur-sm border border-brass/10 rounded-sm p-8 md:p-10 shadow-hero">
+      <div class="font-mono text-[11px] font-bold tracking-widest uppercase text-brass mb-4">Documentation</div>
+      <h1 class="font-serif-sc text-4xl md:text-5xl font-bold tracking-tight m-0 mb-4">
+        API Reference
+      </h1>
+      <p class="font-serif font-light text-lg text-chrome-dark max-w-3xl m-0">
+        Everything you need to give your agents durable memory.
+      </p>
+    </div>
   </section>
 
   <section class="mt-12">
@@ -122,7 +128,66 @@ curl -X POST \${DEJA_URL}/inject \\
 
   <section class="mt-12">
     <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
-      <span class="text-brass">#</span> Endpoints
+      <span class="text-brass">#</span> MCP Integration
+    </h2>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">
+        deja speaks <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer" class="text-brass hover:text-brass-light underline">Model Context Protocol</a> natively. Connect Claude Desktop, Cursor, or any MCP client directly.
+      </p>
+
+      <div class="mb-6">
+        <h3 class="font-mono text-sm text-brass mb-3">Claude Desktop config</h3>
+        <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code whitespace-pre-wrap">{`// ~/Library/Application Support/Claude/claude_desktop_config.json
+{
+  "mcpServers": {
+    "deja": {
+      "url": "https://deja.your-subdomain.workers.dev/mcp",
+      "transport": "http"
+    }
+  }
+}`}</pre>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="font-mono text-sm text-brass mb-3">Available MCP Tools</h3>
+        <div class="space-y-3">
+          <div class="flex items-start gap-3">
+            <code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">learn</code>
+            <span class="font-serif text-sm text-chrome-dark">Store a memory for future recall</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">inject</code>
+            <span class="font-serif text-sm text-chrome-dark">Get relevant memories for current context</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">query</code>
+            <span class="font-serif text-sm text-chrome-dark">Search memories semantically</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">forget</code>
+            <span class="font-serif text-sm text-chrome-dark">Delete a specific memory</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">list</code>
+            <span class="font-serif text-sm text-chrome-dark">List memories by scope</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">stats</code>
+            <span class="font-serif text-sm text-chrome-dark">Get memory statistics</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="font-serif font-light text-chrome-dark m-0 text-sm">
+        Once connected, just say <code class="text-brass">"remember this for next time"</code> — the agent handles the rest.
+      </p>
+    </div>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> REST Endpoints
     </h2>
 
     <div class="space-y-6">

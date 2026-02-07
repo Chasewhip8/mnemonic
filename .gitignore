@@ -2,6 +2,7 @@ node_modules/
 dist/
 .wrangler/
 .dev.vars
+marketing/.astro/
 
 # Built marketing assets (regenerated on deploy)
 public/index.html

@@ -24,5 +24,8 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"
+  },
+  "vars": {
+    "PUBLIC_ROUTES": "/learn,/inject,/query"
   }
 }

@@ -3,45 +3,52 @@ import type { APIRoute } from 'astro';
 export const GET: APIRoute = () => {
   const content = `# deja
 
-> Persistent memory for agents. Open source Cloudflare Worker.
+> Persistent memory for agents. MCP-native. Open source Cloudflare Worker.
 
-## Overview
+## TL;DR for Agents
 
-deja is a durable recall layer for AI agents running on Cloudflare Workers. It captures learnings from agent runs, stores them with semantic embeddings, and injects relevant memories into future sessions.
+Connect via MCP at \`/mcp\` endpoint. You get these tools:
+- \`learn\` — Store a memory (trigger + learning)
+- \`inject\` — Get relevant memories for current context
+- \`query\` — Search memories semantically
+- \`forget\` — Delete a memory
+- \`list\` — List memories by scope
+- \`stats\` — Get memory statistics
 
-## Core Concepts
+## MCP Connection
 
-- **Learnings**: Structured memories with trigger, learning, confidence, and scope
-- **Scopes**: session:<id> (temporary), agent:<id> (agent-specific), shared (global)
-- **Vector Search**: Semantic similarity via Cloudflare Vectorize + Workers AI
+deja speaks Model Context Protocol (MCP) natively. Connect any MCP client:
 
-## API Endpoints
+Endpoint: \`https://your-deja-instance.workers.dev/mcp\`
+Transport: HTTP (JSON-RPC 2.0)
 
-### POST /learn
-Store a new learning.
+### MCP Tool Schemas
+
+#### learn
+Store a learning for future recall.
 \`\`\`json
 {
-  "trigger": "what triggers this memory",
-  "learning": "what the agent learned",
-  "confidence": 0.9,
+  "trigger": "when this applies",
+  "learning": "what was learned",
+  "confidence": 0.8,
   "scope": "shared",
-  "reason": "optional context",
-  "source": "optional source identifier"
+  "reason": "optional why",
+  "source": "optional source"
 }
 \`\`\`
 
-### POST /inject
-Get relevant memories for a context. Returns formatted prompt injection.
+#### inject
+Get relevant memories for current context.
 \`\`\`json
 {
-  "context": "current task or situation",
-  "scopes": ["shared", "agent:my-agent"],
+  "context": "what you're about to do",
+  "scopes": ["shared"],
   "limit": 5
 }
 \`\`\`
 
-### POST /query
-Semantic search over memories.
+#### query
+Search memories semantically.
 \`\`\`json
 {
   "query": "search text",
@@ -50,31 +57,70 @@ Semantic search over memories.
 }
 \`\`\`
 
+#### forget
+Delete a specific learning.
+\`\`\`json
+{
+  "id": "learning-id"
+}
+\`\`\`
+
+#### list
+List memories by scope.
+\`\`\`json
+{
+  "scope": "shared",
+  "limit": 20
+}
+\`\`\`
+
+## Core Concepts
+
+- **Learnings**: Structured memories with trigger, learning, confidence, and scope
+- **Scopes**: session:<id> (expires 7d), agent:<id> (expires 30d), shared (persistent)
+- **Vector Search**: Semantic similarity via Cloudflare Vectorize
+- **Auto-cleanup**: Low confidence (<0.3) memories are auto-deleted
+
+## REST API (Alternative)
+
+If MCP isn't available, use REST:
+
+### POST /learn
+Store a new learning.
+
+### POST /inject
+Get relevant memories for context injection.
+
+### POST /query
+Semantic search over memories.
+
 ### GET /stats
-Returns counts of learnings and secrets by scope.
+Memory statistics by scope.
 
 ### GET /learnings?scope=shared
-List learnings, optionally filtered by scope.
+List learnings, optionally filtered.
 
 ### DELETE /learning/:id
-Delete a specific learning by ID.
+Delete a specific learning.
 
 ## Authentication
 
-All mutating endpoints require Bearer token authentication:
-\`Authorization: Bearer YOUR_API_KEY\`
+Mutating endpoints require: \`Authorization: Bearer YOUR_API_KEY\`
 
 ## Deployment
 
-Deploy to your own Cloudflare account:
-1. \`wrangler vectorize create deja-embeddings --dimensions 384 --metric cosine\`
-2. \`wrangler secret put API_KEY\`
-3. \`wrangler deploy\`
+Deploy your own instance:
+\`\`\`bash
+wrangler vectorize create deja-embeddings --dimensions 384 --metric cosine
+wrangler secret put API_KEY
+wrangler deploy
+\`\`\`
 
 ## Links
 
 - GitHub: https://github.com/acoyfellow/deja
 - Deploy: https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/deja
+- Docs: https://deja.coey.dev/docs
 `;
 
   return new Response(content, {
