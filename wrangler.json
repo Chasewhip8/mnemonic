@@ -26,6 +26,6 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "PUBLIC_ROUTES": "/learn,/inject,/query"
+    "PUBLIC_ROUTES": "/inject,/query"
   }
 }
