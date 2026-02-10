@@ -3,12 +3,24 @@ dist/
 .wrangler/
 .dev.vars
 marketing/.astro/
+marketing/package-lock.json
 
 # Built marketing assets (regenerated on deploy)
 public/index.html
 public/_astro/
 public/docs/
+public/guides/
+public/integrations/
+public/patterns/index.html
+public/patterns/*/
+public/patterns/llms.txt
+public/prompts/
+public/use-cases/
+public/collections/
 public/llms.txt
+public/robots.txt
+public/sitemap-*.xml
+public/sitemap-index.xml
 public/content-assets.mjs
 public/content-modules.mjs
 
