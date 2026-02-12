@@ -87,6 +87,33 @@ export class DejaDO extends DurableObject<Env> {
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
+    state.blockConcurrencyWhile(async () => {
+      this.ctx.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS learnings (
+          id TEXT PRIMARY KEY,
+          trigger TEXT NOT NULL,
+          learning TEXT NOT NULL,
+          reason TEXT,
+          confidence REAL DEFAULT 1.0,
+          source TEXT,
+          scope TEXT NOT NULL,
+          embedding TEXT,
+          created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_learnings_trigger ON learnings(trigger);
+        CREATE INDEX IF NOT EXISTS idx_learnings_confidence ON learnings(confidence);
+        CREATE INDEX IF NOT EXISTS idx_learnings_created_at ON learnings(created_at);
+        CREATE INDEX IF NOT EXISTS idx_learnings_scope ON learnings(scope);
+        CREATE TABLE IF NOT EXISTS secrets (
+          name TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_secrets_scope ON secrets(scope);
+      `);
+    });
   }
 
   /**
