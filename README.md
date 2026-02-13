@@ -218,6 +218,21 @@ curl -X POST $DEJA_URL/inject \
   }'
 ```
 
+Inject also supports optional live working-state context:
+
+```bash
+curl -X POST $DEJA_URL/inject \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": "handoff update",
+    "scopes": ["shared"],
+    "includeState": true,
+    "runId": "run_123",
+    "limit": 5
+  }'
+```
+
 ### POST /query
 
 Search entries without tracking hits.
@@ -254,6 +269,75 @@ Get memory statistics.
 ```bash
 curl $DEJA_URL/stats \
   -H "Authorization: Bearer $API_KEY"
+```
+
+---
+
+## Working State API
+
+Live, explicit state for active runs/sessions. This complements durable learnings.
+
+### GET /state/:runId
+
+```bash
+curl $DEJA_URL/state/run_123 \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+### PUT /state/:runId
+
+```bash
+curl -X PUT $DEJA_URL/state/run_123 \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "goal": "Ship onboarding PR",
+    "assumptions": ["Mike is handoff owner"],
+    "decisions": [{"text": "Link PR in update", "status": "accepted"}],
+    "open_questions": ["Need extra env docs?"],
+    "next_actions": ["Open PR", "Share link"],
+    "confidence": 0.84,
+    "updatedBy": "agent:main"
+  }'
+```
+
+### PATCH /state/:runId
+
+```bash
+curl -X PATCH $DEJA_URL/state/run_123 \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "next_actions": ["Send Ali message with PR link"],
+    "updatedBy": "agent:main"
+  }'
+```
+
+### POST /state/:runId/events
+
+```bash
+curl -X POST $DEJA_URL/state/run_123/events \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventType": "note",
+    "payload": {"text": "ali requested no meeting mention"},
+    "createdBy": "agent:main"
+  }'
+```
+
+### POST /state/:runId/resolve
+
+```bash
+curl -X POST $DEJA_URL/state/run_123/resolve \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "persistToLearn": true,
+    "scope": "shared",
+    "summaryStyle": "compact",
+    "updatedBy": "agent:main"
+  }'
 ```
 
 ---
@@ -337,4 +421,10 @@ bun run deploy     # deploy to Cloudflare
 
 ---
 
-*Recall, by design.*
+*Recall, by design.
+
+## API Contracts
+
+Working-state endpoint contracts are documented in:
+
+- `docs/openapi-working-state.yaml`*
