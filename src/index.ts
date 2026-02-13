@@ -44,6 +44,8 @@ const MCP_TOOLS = [
         context: { type: 'string', description: 'Current context to find relevant memories for' },
         scopes: { type: 'array', items: { type: 'string' }, description: 'Scopes to search', default: ['shared'] },
         limit: { type: 'number', description: 'Max memories to return', default: 5 },
+        includeState: { type: 'boolean', description: 'Include live working state in prompt', default: false },
+        runId: { type: 'string', description: 'Run/session ID when includeState is true' },
       },
       required: ['context'],
     },
@@ -91,6 +93,61 @@ const MCP_TOOLS = [
       properties: {},
     },
   },
+  {
+    name: 'state_put',
+    description: 'Upsert live working state for a run/session.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string' },
+        goal: { type: 'string' },
+        assumptions: { type: 'array', items: { type: 'string' } },
+        decisions: { type: 'array', items: { type: 'object' } },
+        open_questions: { type: 'array', items: { type: 'string' } },
+        next_actions: { type: 'array', items: { type: 'string' } },
+        confidence: { type: 'number' },
+        updatedBy: { type: 'string' },
+      },
+      required: ['runId'],
+    },
+  },
+  {
+    name: 'state_get',
+    description: 'Fetch live working state for a run/session.',
+    inputSchema: {
+      type: 'object',
+      properties: { runId: { type: 'string' } },
+      required: ['runId'],
+    },
+  },
+  {
+    name: 'state_patch',
+    description: 'Patch live working state for a run/session.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string' },
+        patch: { type: 'object' },
+        updatedBy: { type: 'string' },
+      },
+      required: ['runId', 'patch'],
+    },
+  },
+  {
+    name: 'state_resolve',
+    description: 'Resolve a run/session state and optionally persist compact learnings.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string' },
+        persistToLearn: { type: 'boolean', default: false },
+        scope: { type: 'string', default: 'shared' },
+        summaryStyle: { type: 'string', enum: ['compact', 'full'], default: 'compact' },
+        updatedBy: { type: 'string' },
+      },
+      required: ['runId'],
+    },
+  },
 ];
 
 // Handle MCP tool calls
@@ -119,6 +176,8 @@ async function handleMcpToolCall(stub: DurableObjectStub, toolName: string, args
           context: args.context,
           scopes: args.scopes ?? ['shared'],
           limit: args.limit ?? 5,
+          includeState: args.includeState ?? false,
+          runId: args.runId,
         }),
       }));
       return response.json();
@@ -150,6 +209,40 @@ async function handleMcpToolCall(stub: DurableObjectStub, toolName: string, args
     }
     case 'stats': {
       const response = await stub.fetch(new Request('http://internal/stats'));
+      return response.json();
+    }
+    case 'state_get': {
+      const response = await stub.fetch(new Request(`http://internal/state/${args.runId}`));
+      return response.json();
+    }
+    case 'state_put': {
+      const { runId, ...payload } = args;
+      const response = await stub.fetch(new Request(`http://internal/state/${runId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }));
+      return response.json();
+    }
+    case 'state_patch': {
+      const response = await stub.fetch(new Request(`http://internal/state/${args.runId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...(args.patch || {}), updatedBy: args.updatedBy }),
+      }));
+      return response.json();
+    }
+    case 'state_resolve': {
+      const response = await stub.fetch(new Request(`http://internal/state/${args.runId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          persistToLearn: args.persistToLearn ?? false,
+          scope: args.scope ?? 'shared',
+          summaryStyle: args.summaryStyle ?? 'compact',
+          updatedBy: args.updatedBy,
+        }),
+      }));
       return response.json();
     }
     default:

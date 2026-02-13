@@ -19,3 +19,36 @@ export const secrets = sqliteTable('secrets', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+// Live working state for active runs/sessions
+export const stateRuns = sqliteTable('state_runs', {
+  runId: text('run_id').primaryKey(),
+  revision: integer('revision').notNull().default(0),
+  stateJson: text('state_json').notNull(),
+  status: text('status').notNull().default('active'),
+  updatedBy: text('updated_by'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  resolvedAt: text('resolved_at'),
+});
+
+// Immutable revision history of state changes
+export const stateRevisions = sqliteTable('state_revisions', {
+  id: text('id').primaryKey(),
+  runId: text('run_id').notNull(),
+  revision: integer('revision').notNull(),
+  stateJson: text('state_json').notNull(),
+  changeSummary: text('change_summary'),
+  updatedBy: text('updated_by'),
+  createdAt: text('created_at').notNull(),
+});
+
+// Immutable event stream attached to runs
+export const stateEvents = sqliteTable('state_events', {
+  id: text('id').primaryKey(),
+  runId: text('run_id').notNull(),
+  eventType: text('event_type').notNull(),
+  payloadJson: text('payload_json').notNull(),
+  createdBy: text('created_by'),
+  createdAt: text('created_at').notNull(),
+});

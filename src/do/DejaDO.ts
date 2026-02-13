@@ -51,6 +51,34 @@ interface QueryResult {
 interface InjectResult {
   prompt: string;
   learnings: Learning[];
+  state?: WorkingStateResponse;
+}
+
+interface WorkingStatePayload {
+  goal?: string;
+  assumptions?: string[];
+  decisions?: Array<{ id?: string; text: string; status?: string }>;
+  open_questions?: string[];
+  next_actions?: string[];
+  confidence?: number;
+}
+
+interface WorkingStateResponse {
+  runId: string;
+  revision: number;
+  status: string;
+  state: WorkingStatePayload;
+  updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+}
+
+interface ResolveStateOptions {
+  persistToLearn?: boolean;
+  scope?: string;
+  summaryStyle?: 'compact' | 'full';
+  updatedBy?: string;
 }
 
 export class DejaDO extends DurableObject<Env> {
@@ -625,6 +653,217 @@ export class DejaDO extends DurableObject<Env> {
     }
   }
 
+  private normalizeWorkingStatePayload(payload: any): WorkingStatePayload {
+    const asStringArray = (value: any): string[] | undefined => {
+      if (!Array.isArray(value)) return undefined;
+      return value
+        .map((v) => (typeof v === 'string' ? v.trim() : String(v ?? '').trim()))
+        .filter(Boolean);
+    };
+
+    const decisions = Array.isArray(payload?.decisions)
+      ? payload.decisions
+          .map((d: any) => ({
+            id: typeof d?.id === 'string' ? d.id : undefined,
+            text: typeof d?.text === 'string' ? d.text.trim() : String(d?.text ?? '').trim(),
+            status: typeof d?.status === 'string' ? d.status : undefined,
+          }))
+          .filter((d: any) => d.text)
+      : undefined;
+
+    return {
+      goal: typeof payload?.goal === 'string' ? payload.goal.trim() : undefined,
+      assumptions: asStringArray(payload?.assumptions),
+      decisions,
+      open_questions: asStringArray(payload?.open_questions),
+      next_actions: asStringArray(payload?.next_actions),
+      confidence:
+        typeof payload?.confidence === 'number' && Number.isFinite(payload.confidence)
+          ? payload.confidence
+          : undefined,
+    };
+  }
+
+  private formatStatePrompt(state: WorkingStateResponse): string {
+    const lines: string[] = [];
+    lines.push('Working state (live):');
+    if (state.state.goal) lines.push(`Goal: ${state.state.goal}`);
+    if (state.state.assumptions?.length) {
+      lines.push('Assumptions:');
+      state.state.assumptions.forEach((a) => lines.push(`- ${a}`));
+    }
+    if (state.state.decisions?.length) {
+      lines.push('Decisions:');
+      state.state.decisions.forEach((d) =>
+        lines.push(`- ${d.text}${d.status ? ` (${d.status})` : ''}`),
+      );
+    }
+    if (state.state.open_questions?.length) {
+      lines.push('Open questions:');
+      state.state.open_questions.forEach((q) => lines.push(`- ${q}`));
+    }
+    if (state.state.next_actions?.length) {
+      lines.push('Next actions:');
+      state.state.next_actions.forEach((a) => lines.push(`- ${a}`));
+    }
+    if (typeof state.state.confidence === 'number') {
+      lines.push(`Confidence: ${state.state.confidence}`);
+    }
+    return lines.join('\n');
+  }
+
+  async getState(runId: string): Promise<WorkingStateResponse | null> {
+    const db = await this.initDB();
+    const row = await db
+      .select()
+      .from(schema.stateRuns)
+      .where(eq(schema.stateRuns.runId, runId))
+      .limit(1);
+    if (!row.length) return null;
+    const current = row[0] as any;
+    return {
+      runId: current.runId,
+      revision: current.revision,
+      status: current.status,
+      state: JSON.parse(current.stateJson || '{}'),
+      updatedBy: current.updatedBy ?? undefined,
+      createdAt: current.createdAt,
+      updatedAt: current.updatedAt,
+      resolvedAt: current.resolvedAt ?? undefined,
+    };
+  }
+
+  async upsertState(
+    runId: string,
+    payload: WorkingStatePayload,
+    updatedBy?: string,
+    changeSummary: string = 'state upsert',
+  ): Promise<WorkingStateResponse> {
+    const db = await this.initDB();
+    const now = new Date().toISOString();
+    const normalized = this.normalizeWorkingStatePayload(payload);
+
+    const existing = await this.getState(runId);
+    const nextRevision = (existing?.revision ?? 0) + 1;
+    const stateJson = JSON.stringify(normalized);
+
+    if (existing) {
+      await db
+        .update(schema.stateRuns)
+        .set({
+          revision: nextRevision,
+          stateJson,
+          status: existing.status,
+          updatedBy,
+          updatedAt: now,
+        })
+        .where(eq(schema.stateRuns.runId, runId));
+    } else {
+      await db.insert(schema.stateRuns).values({
+        runId,
+        revision: nextRevision,
+        stateJson,
+        status: 'active',
+        updatedBy,
+        createdAt: now,
+        updatedAt: now,
+        resolvedAt: null,
+      } as any);
+    }
+
+    await db.insert(schema.stateRevisions).values({
+      id: crypto.randomUUID(),
+      runId,
+      revision: nextRevision,
+      stateJson,
+      changeSummary,
+      updatedBy,
+      createdAt: now,
+    } as any);
+
+    return (await this.getState(runId)) as WorkingStateResponse;
+  }
+
+  async patchState(runId: string, patch: any, updatedBy?: string): Promise<WorkingStateResponse> {
+    const current = (await this.getState(runId)) ?? {
+      runId,
+      revision: 0,
+      status: 'active',
+      state: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const next = {
+      ...current.state,
+      ...this.normalizeWorkingStatePayload({ ...current.state, ...patch }),
+    };
+    return this.upsertState(runId, next, updatedBy, 'state patch');
+  }
+
+  async addStateEvent(
+    runId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+    createdBy?: string,
+  ): Promise<{ success: true; id: string }> {
+    const db = await this.initDB();
+    const now = new Date().toISOString();
+    const id = crypto.randomUUID();
+    await db.insert(schema.stateEvents).values({
+      id,
+      runId,
+      eventType,
+      payloadJson: JSON.stringify(payload ?? {}),
+      createdBy,
+      createdAt: now,
+    } as any);
+    return { success: true, id };
+  }
+
+  async resolveState(runId: string, opts: ResolveStateOptions = {}): Promise<WorkingStateResponse | null> {
+    const db = await this.initDB();
+    const current = await this.getState(runId);
+    if (!current) return null;
+
+    const now = new Date().toISOString();
+    await db
+      .update(schema.stateRuns)
+      .set({
+        status: 'resolved',
+        updatedBy: opts.updatedBy,
+        updatedAt: now,
+        resolvedAt: now,
+      })
+      .where(eq(schema.stateRuns.runId, runId));
+
+    if (opts.persistToLearn) {
+      const compact = [
+        current.state.goal ? `Goal: ${current.state.goal}` : '',
+        current.state.decisions?.length
+          ? `Decisions: ${current.state.decisions.map((d) => d.text).join('; ')}`
+          : '',
+        current.state.next_actions?.length
+          ? `Next actions: ${current.state.next_actions.join('; ')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
+      if (compact) {
+        await this.learn(
+          opts.scope || 'shared',
+          `run:${runId} resolved`,
+          compact,
+          typeof current.state.confidence === 'number' ? current.state.confidence : 0.8,
+          'Derived from working state resolve',
+          `state:${runId}`,
+        );
+      }
+    }
+
+    return this.getState(runId);
+  }
+
   /**
    * Initialize Hono app for HTTP handling
    */
@@ -659,12 +898,68 @@ export class DejaDO extends DurableObject<Env> {
     app.post('/inject', async (c) => {
       const body: any = await c.req.json();
       const result = await this.inject(body.scopes || ['shared'], body.context, body.limit, body.format);
+
+      if (body.includeState && typeof body.runId === 'string' && body.runId.trim()) {
+        const state = await this.getState(body.runId.trim());
+        if (state) {
+          const statePrompt = this.formatStatePrompt(state);
+          if (result.prompt) {
+            result.prompt = `${statePrompt}\n\n${result.prompt}`;
+          } else if ((body.format || 'prompt') === 'prompt') {
+            result.prompt = statePrompt;
+          }
+          result.state = state;
+        }
+      }
+
       return c.json(result);
     });
     
     // Stats endpoint
     app.get('/stats', async (c) => {
       const result = await this.getStats();
+      return c.json(result);
+    });
+
+    // Working state endpoints
+    app.get('/state/:runId', async (c) => {
+      const runId = c.req.param('runId');
+      const state = await this.getState(runId);
+      if (!state) return c.json({ error: 'not found' }, 404);
+      return c.json(state);
+    });
+
+    app.put('/state/:runId', async (c) => {
+      const runId = c.req.param('runId');
+      const body: any = await c.req.json();
+      const state = await this.upsertState(runId, body, body.updatedBy, body.changeSummary || 'state put');
+      return c.json(state);
+    });
+
+    app.patch('/state/:runId', async (c) => {
+      const runId = c.req.param('runId');
+      const body: any = await c.req.json();
+      const state = await this.patchState(runId, body, body.updatedBy);
+      return c.json(state);
+    });
+
+    app.post('/state/:runId/events', async (c) => {
+      const runId = c.req.param('runId');
+      const body: any = await c.req.json();
+      const result = await this.addStateEvent(runId, body.eventType || 'note', body.payload || body, body.createdBy);
+      return c.json(result);
+    });
+
+    app.post('/state/:runId/resolve', async (c) => {
+      const runId = c.req.param('runId');
+      const body: any = await c.req.json();
+      const result = await this.resolveState(runId, {
+        persistToLearn: Boolean(body.persistToLearn),
+        scope: body.scope,
+        summaryStyle: body.summaryStyle,
+        updatedBy: body.updatedBy,
+      });
+      if (!result) return c.json({ error: 'not found' }, 404);
       return c.json(result);
     });
     
