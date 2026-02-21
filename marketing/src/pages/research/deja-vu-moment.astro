@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('deja-vu-moment')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('deja-vu-moment')!;
   <div slot="demo">
     <div class="demo-deja-vu-wrapper bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Header bar -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10">
         <div class="flex items-center gap-3">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/60">Push Recall Simulator</span>
         </div>
@@ -131,6 +132,7 @@ const concept = getConceptBySlug('deja-vu-moment')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#critical-question" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Critical question</a>
   </Fragment>
@@ -176,6 +178,23 @@ const concept = getConceptBySlug('deja-vu-moment')!;
   <p>
     The confidence threshold becomes a critical UX control. In the demo above, the slider filters which memories surface. Set it high (0.8+) and you only see strong, well-confirmed memories. Set it low (0.3) and you see every faint association. The right default depends on the user: someone new to a codebase might want low thresholds to surface everything the agent knows. An experienced developer might only want high-confidence interruptions.
   </p>
+
+  <DoItWithDeja
+    blurb="On context change (e.g. current file, command), POST /inject with that context. If results exist, show overlay."
+    snippets={[
+      {
+        label: 'Inject on context change',
+        code: `const ctx = getCurrentContext(); // e.g. file path + selection
+const res = await fetch('https://deja.your-subdomain.workers.dev/inject', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer YOUR_API_KEY', 'Content-Type': 'application/json' },
+  body: JSON.stringify({ context: ctx })
+});
+const { learnings } = await res.json();
+if (learnings?.length) showOverlay(learnings[0]);`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
   <p>

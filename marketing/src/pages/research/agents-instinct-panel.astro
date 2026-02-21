@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('agents-instinct-panel')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('agents-instinct-panel')!;
   <div slot="demo">
     <div class="demo-container bg-void-deep border border-brass/10 rounded-sm overflow-hidden">
       <!-- Header bar -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-brass/10 bg-steel/30">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-brass/10 bg-steel/30">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-brass/60 instinct-status-dot"></div>
           <span class="font-mono text-[11px] text-chrome-dark/70">deploy-bot run #247 -- live</span>
@@ -103,6 +104,7 @@ const concept = getConceptBySlug('agents-instinct-panel')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
   </Fragment>
 
@@ -145,6 +147,18 @@ const concept = getConceptBySlug('agents-instinct-panel')!;
   <p>One implementation detail worth noting: the instinct panel is most natural as a <strong>post-run replay</strong> rather than a true real-time view. Real-time observation of inject calls introduces latency concerns and requires either WebSocket infrastructure or aggressive polling. A replay mode -- where the entire run's memory interactions are recorded and played back with timing information -- provides the same insight without the infrastructure cost. The demo above simulates this replay approach: the animation plays through a recorded sequence of events, showing exactly what the agent remembered and when.</p>
 
   <p>The transition from replay to real-time is a matter of infrastructure, not concept. If the deja server supports WebSocket subscriptions for run events, the instinct panel becomes live. If not, replay is a fully functional alternative that captures the same information with a slight delay.</p>
+
+  <DoItWithDeja
+    blurb="Poll /state for working state. Show memories from /inject calls (log during run or replay)."
+    snippets={[
+      {
+        label: 'Poll state and inject results',
+        code: `// During run: log inject results; poll /state
+const state = await fetch('/state?run_id=...').then(r => r.json());
+// Active memories come from your inject logs or run trace`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 
@@ -254,15 +268,18 @@ const concept = getConceptBySlug('agents-instinct-panel')!;
 </style>
 
 <script>
-  const outputEl = document.getElementById('instinct-output');
-  const replayBtn = document.getElementById('instinct-replay');
-  const memory1 = document.getElementById('memory-1');
-  const memory2 = document.getElementById('memory-2');
-  const memory3 = document.getElementById('memory-3');
-  const stateGoal = document.getElementById('state-goal');
-  const stateQuestion = document.getElementById('state-question');
-  const stateDecision = document.getElementById('state-decision');
-  const confidenceAvg = document.getElementById('instinct-confidence-avg');
+  function initInstinctPanel() {
+    const outputEl = document.getElementById('instinct-output');
+    const replayBtn = document.getElementById('instinct-replay');
+    const memory1 = document.getElementById('memory-1');
+    const memory2 = document.getElementById('memory-2');
+    const memory3 = document.getElementById('memory-3');
+    const stateGoal = document.getElementById('state-goal');
+    const stateQuestion = document.getElementById('state-question');
+    const stateDecision = document.getElementById('state-decision');
+    const confidenceAvg = document.getElementById('instinct-confidence-avg');
+
+    if (!outputEl || !replayBtn) return;
 
   const outputText = [
     { text: 'Analyzing deployment configuration...', delay: 0 },
@@ -384,4 +401,11 @@ const concept = getConceptBySlug('agents-instinct-panel')!;
 
   // Auto-start after a brief delay
   setTimeout(runDemo, 600);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInstinctPanel);
+  } else {
+    initInstinctPanel();
+  }
 </script>

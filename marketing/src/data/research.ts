@@ -233,3 +233,68 @@ export function getAdjacentConcepts(slug: string): { prev: ResearchConcept | nul
 export function getConceptsByLayer(layer: 'a' | 'b' | 'c'): ResearchConcept[] {
   return concepts.filter(c => c.layer === layer);
 }
+
+// Failure modes: scenario-driven, minimal-interface research
+export interface FailureMode {
+  number: number;
+  slug: string;
+  title: string;
+  tagline: string;
+  description: string;
+  keywords: string;
+}
+
+export const failureModes: FailureMode[] = [
+  {
+    number: 1,
+    slug: 'wrong-thing-recalled',
+    title: 'Wrong thing recalled',
+    tagline: 'Why did the agent use that memory?',
+    description: 'Agent used an outdated or irrelevant memory; the task failed. The minimal interface: last inject for this run — context sent, top-k returned, which one was used.',
+    keywords: 'debugging recall, inject trace, wrong memory, stale recall',
+  },
+  {
+    number: 2,
+    slug: 'stale-memory-wont-die',
+    title: 'Stale memory won\'t die',
+    tagline: 'Find and kill one belief',
+    description: 'A deprecated or wrong memory keeps getting suggested. The minimal interface: search/filter shared learnings, one row per memory, delete or lower confidence.',
+    keywords: 'stale memory, delete memory, confidence, filing cabinet',
+  },
+  {
+    number: 3,
+    slug: 'two-memories-conflict',
+    title: 'Two memories conflict',
+    tagline: 'One rule, not two',
+    description: 'Contradictory memories were both injected; agent behavior was inconsistent. The minimal interface: contradiction pairs for shared scope, merge or keep one or scope to context.',
+    keywords: 'contradiction, conflict resolution, merge memories',
+  },
+  {
+    number: 4,
+    slug: 'new-agent-no-context',
+    title: 'New agent has no context',
+    tagline: 'What did the previous run know?',
+    description: 'Second agent or new run did the wrong thing. The minimal interface: handoff summary for last run — goal, learnings, open questions — and "load into this run."',
+    keywords: 'handoff, context transfer, multi-agent, continuity',
+  },
+  {
+    number: 5,
+    slug: 'what-does-it-know',
+    title: 'What does it know?',
+    tagline: 'Audit shared memory by topic',
+    description: 'Before trusting the agent in prod: what does it believe about deploys, security, our stack? The minimal interface: topic-clustered list with confidence and last-used.',
+    keywords: 'audit, topic clustering, knowledge summary, confidence',
+  },
+];
+
+export function getFailureModeBySlug(slug: string): FailureMode | undefined {
+  return failureModes.find(f => f.slug === slug);
+}
+
+export function getAdjacentFailureModes(slug: string): { prev: FailureMode | null; next: FailureMode | null } {
+  const idx = failureModes.findIndex(f => f.slug === slug);
+  return {
+    prev: idx > 0 ? failureModes[idx - 1] : null,
+    next: idx < failureModes.length - 1 ? failureModes[idx + 1] : null,
+  };
+}

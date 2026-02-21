@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('learning-proposal-flow')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('learning-proposal-flow')!;
   <div slot="demo">
     <div class="demo-container bg-void-deep border border-brass/10 rounded-sm">
       <!-- Notification banner -->
-      <div class="proposal-banner px-5 py-3 border-b border-brass/10 bg-brass/5 flex items-center justify-between">
+      <div class="proposal-banner px-5 py-3 border-b border-brass/10 bg-brass/5 flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-3">
           <div class="w-5 h-5 rounded-full border border-brass/40 flex items-center justify-center">
             <span class="font-mono text-[10px] text-brass font-bold" id="proposal-count">4</span>
@@ -19,7 +20,7 @@ const concept = getConceptBySlug('learning-proposal-flow')!;
       </div>
 
       <!-- Progress -->
-      <div class="px-5 py-3 border-b border-brass/5 flex items-center justify-between">
+      <div class="px-5 py-3 border-b border-brass/5 flex flex-wrap items-center justify-between gap-2">
         <div class="font-mono text-[10px] text-chrome-dark/50">
           <span id="progress-text">0 of 4 reviewed</span>
         </div>
@@ -306,6 +307,7 @@ const concept = getConceptBySlug('learning-proposal-flow')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
   </Fragment>
 
@@ -357,6 +359,19 @@ const concept = getConceptBySlug('learning-proposal-flow')!;
   <p>Third, a <strong><code>/proposals</code> endpoint</strong> that returns all memories with status <code>proposed</code>, grouped by run or agent. This is what the UI calls to populate the review queue. The endpoint would support filtering by agent, scope, and confidence range, as well as batch operations for approve-all or reject-all workflows. Each proposal would include context about the run that generated it -- what the agent was doing, what prompted the learning, and what memories were active at the time.</p>
 
   <p>The data model change is small. The API surface grows by one endpoint. The inject query adds a <code>WHERE status = 'active'</code> clause. The conceptual shift, though, is significant: deja moves from being a memory store to being a memory store with governance. The distinction matters at organizational scale.</p>
+
+  <DoItWithDeja
+    blurb="Proposal flow needs status field and /proposals. Today: POST /learn creates immediately; list learnings and filter client-side for draft/proposal workflow."
+    snippets={[
+      {
+        label: 'List learnings (proposals when endpoint exists)',
+        code: `# When /proposals exists: GET /proposals?status=proposed
+# Today: GET /learnings and filter by metadata or store drafts client-side
+curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 

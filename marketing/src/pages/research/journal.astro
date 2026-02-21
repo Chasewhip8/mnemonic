@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('journal')!;
 ---
@@ -9,7 +10,7 @@ const concept = getConceptBySlug('journal')!;
   <div slot="demo">
     <div class="journal-demo bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10 bg-steel/50">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10 bg-steel/50">
         <div class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/60">Activity Timeline</div>
         <div class="font-mono text-[10px] text-chrome-dark/30">Feb 14 -- Feb 18, 2025</div>
       </div>
@@ -279,6 +280,7 @@ const concept = getConceptBySlug('journal')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#the-event-stream" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The event stream</a>
   </Fragment>
@@ -313,6 +315,17 @@ const concept = getConceptBySlug('journal')!;
   <p>The recall events are slightly more complex. Today, deja does not explicitly log when a memory is recalled during <code>/inject</code>. The inject endpoint returns matching memories, but it does not persist the fact that a recall occurred. To build a proper journal, deja would need a lightweight recall log -- perhaps a <code>recall_events</code> table that records which memories were injected, with what similarity score, at what time. This is a small schema addition with large interface implications.</p>
 
   <p>The summary counters per day are pure aggregation: <code>COUNT(*) GROUP BY event_type, DATE(created_at)</code>. This query is fast even at scale, and it provides the data for a sparkline or activity chart that could sit above the timeline as a navigational aid.</p>
+
+  <DoItWithDeja
+    blurb="GET /learnings ordered by created_at, group by day client-side. Interleave with state_revisions for full event stream."
+    snippets={[
+      {
+        label: 'List learnings by date',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared&limit=100&sort=created_at_desc" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 

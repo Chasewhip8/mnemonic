@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('scope-telescope')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('scope-telescope')!;
   <div slot="demo">
     <div class="telescope-container border border-brass/20 rounded-sm bg-void-deep overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10 bg-steel/30">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10 bg-steel/30">
         <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass">Scope Telescope</span>
         <span class="font-mono text-[10px] text-chrome-dark/30" id="current-scope-label">session:run-2024-02-18</span>
       </div>
@@ -145,6 +146,7 @@ const concept = getConceptBySlug('scope-telescope')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
   </Fragment>
 
@@ -192,6 +194,20 @@ const concept = getConceptBySlug('scope-telescope')!;
   <p>
     The <code>state_resolve</code> mechanism already returns memories from all applicable scopes. The telescope would enhance this by making the scope hierarchy navigable in the UI -- letting humans see what the agent sees at each level and understand why certain memories were recalled. A new <code>GET /learnings?scope=agent&include_origins=true</code> parameter could return agent-level learnings with links to the session memories that generated them, making the abstraction chain auditable.
   </p>
+
+  <DoItWithDeja
+    blurb="Call /learnings with scope=session, scope=agent, scope=shared. Render three panes. Compare what exists at each level."
+    snippets={[
+      {
+        label: 'List by scope (three calls)',
+        code: `const [session, agent, shared] = await Promise.all([
+  fetch('/learnings?scope=session').then(r => r.json()),
+  fetch('/learnings?scope=agent:deploy-bot').then(r => r.json()),
+  fetch('/learnings?scope=shared').then(r => r.json()),
+]);`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 
@@ -426,16 +442,17 @@ const concept = getConceptBySlug('scope-telescope')!;
 </style>
 
 <script>
-  const slider = document.getElementById('zoom-slider') as HTMLInputElement;
-  const viewSession = document.getElementById('view-session');
-  const viewAgent = document.getElementById('view-agent');
-  const viewShared = document.getElementById('view-shared');
-  const annotation1 = document.getElementById('annotation-1');
-  const annotation2 = document.getElementById('annotation-2');
-  const scopeLabel = document.getElementById('current-scope-label');
-  const sessionLabel = document.querySelector('.session-label') as HTMLElement;
-  const sharedLabel = document.querySelector('.shared-label') as HTMLElement;
-  const svg = document.getElementById('connection-svg');
+  function initScopeTelescope() {
+    const slider = document.getElementById('zoom-slider') as HTMLInputElement | null;
+    const viewSession = document.getElementById('view-session');
+    const viewAgent = document.getElementById('view-agent');
+    const viewShared = document.getElementById('view-shared');
+    const annotation1 = document.getElementById('annotation-1');
+    const annotation2 = document.getElementById('annotation-2');
+    const scopeLabel = document.getElementById('current-scope-label');
+    const sessionLabel = document.querySelector('.session-label') as HTMLElement | null;
+    const sharedLabel = document.querySelector('.shared-label') as HTMLElement | null;
+    const svg = document.getElementById('connection-svg');
 
   function lerp(a: number, b: number, t: number): number {
     return a + (b - a) * t;
@@ -539,4 +556,11 @@ const concept = getConceptBySlug('scope-telescope')!;
   window.addEventListener('resize', () => {
     updateView(parseInt(slider?.value || '0'));
   });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScopeTelescope);
+  } else {
+    initScopeTelescope();
+  }
 </script>

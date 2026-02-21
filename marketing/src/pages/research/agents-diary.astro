@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('agents-diary')!;
 ---
@@ -212,6 +213,7 @@ const concept = getConceptBySlug('agents-diary')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#why-it-matters" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Why it matters</a>
   </Fragment>
@@ -263,6 +265,17 @@ const concept = getConceptBySlug('agents-diary')!;
   <p>
     The Challenge mechanism would require a new field on learnings -- something like <code>challenged: boolean</code> or <code>challengedAt: timestamp</code>. When the agent's next <code>/inject</code> call returns challenged memories, the injection layer can add a qualifier: "Note: this memory has been challenged by a human reviewer."
   </p>
+
+  <DoItWithDeja
+    blurb="List learnings by scope=agent:AGENT_ID. Group by topic (embedding clusters) or date. Pass to LLM for narrative synthesis."
+    snippets={[
+      {
+        label: 'List agent memories',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=agent:deploy-bot" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
   <p>

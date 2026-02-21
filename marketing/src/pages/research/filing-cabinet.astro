@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('filing-cabinet')!;
 ---
@@ -9,7 +10,7 @@ const concept = getConceptBySlug('filing-cabinet')!;
   <div slot="demo">
     <div class="filing-cabinet-demo bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Toolbar -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-brass/10 bg-steel/50">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-brass/10 bg-steel/50">
         <div class="flex items-center gap-3">
           <input
             type="text"
@@ -67,6 +68,7 @@ const concept = getConceptBySlug('filing-cabinet')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#technical-implementation" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Technical implementation</a>
   </Fragment>
@@ -101,6 +103,22 @@ const concept = getConceptBySlug('filing-cabinet')!;
   <p>Search is where it gets slightly more interesting. A naive implementation does substring matching against trigger and learning text. But deja also exposes <code>/inject</code>, which performs semantic search against the vector embeddings. The filing cabinet could offer both: a fast text filter for exact matches and a "semantic search" toggle that queries the embedding space. The latter is more powerful but also more opaque -- you might not understand why a particular result appeared.</p>
 
   <p>Bulk operations require multiple API calls. Deleting ten memories means ten <code>DELETE /learnings/:id</code> requests. There is no batch endpoint today. This is a design choice worth revisiting if the filing cabinet becomes a primary interface, because bulk operations are exactly what tables are good for.</p>
+
+  <DoItWithDeja
+    blurb="List learnings with GET /learnings, render a sortable table. Use scope and limit. Delete with DELETE /learnings/:id."
+    snippets={[
+      {
+        label: 'List shared memories',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared&limit=100" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`,
+      },
+      {
+        label: 'Delete a memory',
+        code: `curl -X DELETE "https://deja.your-subdomain.workers.dev/learnings/MEMORY_ID" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 
@@ -349,66 +367,70 @@ const concept = getConceptBySlug('filing-cabinet')!;
     });
   }
 
-  // Search
-  document.getElementById('fc-search')!.addEventListener('input', () => {
-    selectedIds.clear();
-    render();
-  });
-
-  // Scope tabs
-  document.querySelectorAll('.fc-scope-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.fc-scope-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentScope = (tab as HTMLElement).dataset.scope!;
+  function initFilingCabinet() {
+    // Search
+    const fcSearch = document.getElementById('fc-search');
+    if (fcSearch) fcSearch.addEventListener('input', () => {
       selectedIds.clear();
       render();
     });
-  });
 
-  // Sortable columns
-  document.querySelectorAll('.fc-sortable').forEach(th => {
-    th.addEventListener('click', () => {
-      const col = (th as HTMLElement).dataset.sort!;
-      if (currentSort.column === col) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSort.column = col;
-        currentSort.direction = 'asc';
-      }
-
-      // Update arrows
-      document.querySelectorAll('.fc-sort-arrow').forEach(a => {
-        a.className = 'fc-sort-arrow';
+    document.querySelectorAll('.fc-scope-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.fc-scope-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentScope = (tab as HTMLElement).dataset.scope!;
+        selectedIds.clear();
+        render();
       });
-      const arrow = th.querySelector('.fc-sort-arrow')!;
-      arrow.className = `fc-sort-arrow ${currentSort.direction}`;
+    });
 
+    document.querySelectorAll('.fc-sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = (th as HTMLElement).dataset.sort!;
+        if (currentSort.column === col) {
+          currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          currentSort.column = col;
+          currentSort.direction = 'asc';
+        }
+        document.querySelectorAll('.fc-sort-arrow').forEach(a => {
+          a.className = 'fc-sort-arrow';
+        });
+        const arrow = th.querySelector('.fc-sort-arrow');
+        if (arrow) arrow.className = `fc-sort-arrow ${currentSort.direction}`;
+        render();
+      });
+    });
+
+    const fcSelectAll = document.getElementById('fc-select-all');
+    if (fcSelectAll) fcSelectAll.addEventListener('change', (e) => {
+      const checked = (e.target as HTMLInputElement).checked;
+      const filtered = getFilteredSorted();
+      if (checked) {
+        filtered.forEach((_, i) => selectedIds.add(i));
+      } else {
+        selectedIds.clear();
+      }
       render();
     });
-  });
 
-  // Select all
-  document.getElementById('fc-select-all')!.addEventListener('change', (e) => {
-    const checked = (e.target as HTMLInputElement).checked;
-    const filtered = getFilteredSorted();
-    if (checked) {
-      filtered.forEach((_, i) => selectedIds.add(i));
-    } else {
+    const fcDeleteBtn = document.getElementById('fc-delete-btn');
+    if (fcDeleteBtn) fcDeleteBtn.addEventListener('click', () => {
+      if (selectedIds.size === 0) return;
+      const indices = Array.from(selectedIds) as number[];
+      indices.sort((a, b) => b - a);
+      indices.forEach(i => memories.splice(i, 1));
       selectedIds.clear();
-    }
-    render();
-  });
+      render();
+    });
 
-  // Delete button
-  document.getElementById('fc-delete-btn')!.addEventListener('click', () => {
-    if (selectedIds.size === 0) return;
-    const indices = Array.from(selectedIds).sort((a, b) => b - a);
-    indices.forEach(i => memories.splice(i, 1));
-    selectedIds.clear();
     render();
-  });
+  }
 
-  // Initial render
-  render();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFilingCabinet);
+  } else {
+    initFilingCabinet();
+  }
 </script>

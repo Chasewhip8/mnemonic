@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('memory-debugger')!;
 ---
@@ -265,6 +266,7 @@ const concept = getConceptBySlug('memory-debugger')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#why-essential" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Why essential</a>
   </Fragment>
@@ -332,6 +334,23 @@ const concept = getConceptBySlug('memory-debugger')!;
   <p>
     The embedding visualization is a simplification. Showing 10 bars for a 1536-dimensional vector requires dimensionality reduction -- PCA or t-SNE projected down to a handful of components. This is imprecise but useful: it gives the viewer a sense of the vector's "shape" without requiring them to understand high-dimensional geometry.
   </p>
+
+  <DoItWithDeja
+    blurb="Today: log POST /inject and POST /learn request/response in your worker or agent. Render locally as a Run timeline. Trace endpoint coming later."
+    snippets={[
+      {
+        label: 'Log inject response for local debugger',
+        code: `// In your agent worker, wrap inject call:
+const injectRes = await deja.inject({ context });
+console.log(JSON.stringify({
+  type: 'inject_trace',
+  context: context.slice(0, 50),
+  count: injectRes.learnings?.length ?? 0,
+  ids: injectRes.learnings?.map(l => l.id) ?? []
+}));`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
   <p>

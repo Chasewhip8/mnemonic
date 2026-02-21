@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import SEO from '../../components/SEO.astro';
-import { concepts, layers } from '../../data/research';
+import { concepts, layers, failureModes } from '../../data/research';
 
 const grouped = {
   a: concepts.filter(c => c.layer === 'a'),
@@ -50,6 +50,31 @@ const layerColors = {
         <a href="#layer-c" class="font-mono text-[11px] px-3 py-1.5 rounded-sm border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 transition-colors">
           Layer C · Multi-Agent
         </a>
+        <a href="#when-memory-breaks" class="font-mono text-[11px] px-3 py-1.5 rounded-sm border border-chrome-dark/20 bg-steel/50 text-chrome-dark/70 hover:text-chrome hover:border-brass/20 transition-colors">
+          When memory breaks
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Thesis -->
+  <section class="mb-16 max-w-2xl">
+    <div class="border-b border-brass/10 pb-10">
+      <h2 class="font-serif-sc text-xl font-bold m-0 mb-4">The thesis</h2>
+      <div class="font-serif text-chrome-dark leading-relaxed space-y-4 *:text-balance *:block">
+        <p class="">
+          Memory is not data. A filing cabinet treats it as rows. But memory has time, shape, health, relevance,
+          narrative, causality, hierarchy, flow, contradiction, and topology. The interface you choose reveals
+          which dimension you think matters most.
+        </p>
+        <p class="">
+          These 20 concepts aren't mutually exclusive. A real product combines several: a filing cabinet for
+          admin, a debugger for development, push-based recall for daily use, and a contradiction board for governance.
+        </p>
+        <p class="">
+          This research explores where the next iteration of agent-to-human interfaces will land.
+          Each page is standalone, interactive, and built on deja's existing primitives.
+        </p>
       </div>
     </div>
   </section>
@@ -137,25 +162,31 @@ const layerColors = {
     </div>
   </section>
 
-  <!-- Thesis -->
-  <section class="mb-16 max-w-2xl">
-    <div class="border-t border-brass/10 pt-10">
-      <h2 class="font-serif-sc text-xl font-bold m-0 mb-4">The thesis</h2>
-      <div class="font-serif text-chrome-dark leading-relaxed space-y-4">
-        <p class="m-0">
-          Memory is not data. A filing cabinet treats it as rows. But memory has time, shape, health, relevance,
-          narrative, causality, hierarchy, flow, contradiction, and topology. The interface you choose reveals
-          which dimension you think matters most.
-        </p>
-        <p class="m-0">
-          These 20 concepts aren't mutually exclusive. A real product combines several: a filing cabinet for
-          admin, a debugger for development, push-based recall for daily use, and a contradiction board for governance.
-        </p>
-        <p class="m-0">
-          This research explores where the next iteration of agent-to-human interfaces will land.
-          Each page is standalone, interactive, and built on deja's existing primitives.
-        </p>
-      </div>
+  <!-- When memory breaks -->
+  <section id="when-memory-breaks" class="mb-20 scroll-mt-24">
+    <div class="flex items-baseline gap-4 mb-2">
+      <span class="font-mono text-[13px] font-bold tracking-widest text-chrome-dark/50">—</span>
+      <h2 class="font-serif-sc text-2xl font-bold m-0">When memory breaks</h2>
+    </div>
+    <p class="font-serif text-chrome-dark mb-8 max-w-xl">
+      Scenario-driven research. Each page: what went wrong, what was needed, the minimal interface that would have fixed it.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {failureModes.map((fm, i) => (
+        <a href={`/research/${fm.slug}`}
+           class="research-card group block bg-steel border border-brass/10 rounded-sm overflow-hidden hover:border-brass/25 transition-all duration-300"
+           style={`--delay: ${i * 60}ms`}>
+          <div class="relative p-5">
+            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="flex items-center gap-2 mb-3">
+              <span class="font-mono text-[10px] font-bold text-brass/40 group-hover:text-brass/70 transition-colors">{fm.number}</span>
+            </div>
+            <h3 class="font-serif font-semibold text-base m-0 mb-2 group-hover:text-brass transition-colors">{fm.title}</h3>
+            <p class="font-serif text-[13px] text-chrome-dark/60 m-0 leading-relaxed">{fm.tagline}</p>
+          </div>
+        </a>
+      ))}
     </div>
   </section>
 </Base>

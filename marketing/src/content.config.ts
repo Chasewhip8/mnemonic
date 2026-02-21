@@ -14,7 +14,7 @@ const baseSchema = z.object({
 });
 
 const integrations = defineCollection({
-  loader: glob({ pattern: '**/*.mdx', base: './src/content/integrations' }),
+  loader: glob({ pattern: '**/*.mdx', base: 'src/content/integrations' }),
   schema: baseSchema.extend({
     category: z.enum([
       'agent-framework',
@@ -34,7 +34,7 @@ const integrations = defineCollection({
 });
 
 const patterns = defineCollection({
-  loader: glob({ pattern: '**/*.mdx', base: './src/content/patterns' }),
+  loader: glob({ pattern: '**/*.mdx', base: 'src/content/patterns' }),
   schema: baseSchema.extend({
     category: z.enum([
       'recall',
@@ -53,7 +53,7 @@ const patterns = defineCollection({
 });
 
 const prompts = defineCollection({
-  loader: glob({ pattern: '**/*.mdx', base: './src/content/prompts' }),
+  loader: glob({ pattern: '**/*.mdx', base: 'src/content/prompts' }),
   schema: baseSchema.extend({
     category: z.enum([
       'system-prompt',
@@ -67,7 +67,7 @@ const prompts = defineCollection({
 });
 
 const guides = defineCollection({
-  loader: glob({ pattern: '**/*.mdx', base: './src/content/guides' }),
+  loader: glob({ pattern: '**/*.mdx', base: 'src/content/guides' }),
   schema: baseSchema.extend({
     category: z.enum([
       'getting-started',
@@ -82,7 +82,7 @@ const guides = defineCollection({
 });
 
 const useCases = defineCollection({
-  loader: glob({ pattern: '**/*.mdx', base: './src/content/use-cases' }),
+  loader: glob({ pattern: '**/*.mdx', base: 'src/content/use-cases' }),
   schema: baseSchema.extend({
     industry: z.string().optional(),
   }),

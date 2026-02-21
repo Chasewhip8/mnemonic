@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('forgetting-ritual')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('forgetting-ritual')!;
   <div slot="demo">
     <div class="demo-forgetting-wrapper bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10">
         <div class="flex items-center gap-3">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/60">Weekly Review</span>
           <span id="review-progress" class="font-mono text-[10px] text-chrome-dark/40">1 of 5</span>
@@ -73,6 +74,7 @@ const concept = getConceptBySlug('forgetting-ritual')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#philosophical-note" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Philosophical note</a>
   </Fragment>
@@ -118,6 +120,25 @@ const concept = getConceptBySlug('forgetting-ritual')!;
   <p>
     The weekly cadence is deliberate. Daily would be exhausting. Monthly would let too much accumulate. Weekly creates a rhythm that is sustainable and frequent enough to keep memory healthy. The number of cards per session should also be bounded -- five to ten, not fifty. The ritual should take two to three minutes, not twenty. If there are more memories to review than fit in one session, they carry over to the next week.
   </p>
+
+  <DoItWithDeja
+    blurb="List learnings below confidence threshold. Confirm = PATCH (bump confidence), Release = DELETE."
+    snippets={[
+      {
+        label: 'List low-confidence memories',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared" \\
+  -H "Authorization: Bearer YOUR_API_KEY"
+# Filter client-side by confidence < 0.4; sort ascending`,
+      },
+      {
+        label: 'Bump confidence (confirm)',
+        code: `curl -X PATCH "https://deja.your-subdomain.workers.dev/learnings/MEMORY_ID" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"confidence": 0.6}'`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
   <p>

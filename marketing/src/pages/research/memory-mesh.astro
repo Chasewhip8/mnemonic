@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('memory-mesh')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('memory-mesh')!;
   <div slot="demo">
     <div class="mesh-container border border-brass/20 rounded-sm bg-void-deep overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10 bg-steel/30">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10 bg-steel/30">
         <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass">Memory Mesh</span>
         <span class="font-mono text-[10px] text-chrome-dark/30" id="mesh-status">Click a node or edge to inspect</span>
       </div>
@@ -88,6 +89,7 @@ const concept = getConceptBySlug('memory-mesh')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
   </Fragment>
 
@@ -135,6 +137,18 @@ const concept = getConceptBySlug('memory-mesh')!;
   <p>
     The more interesting engineering challenge is computing flow direction. When <code>deploy-bot</code> creates a learning and <code>test-runner</code> later recalls it, that is a clear directional flow. But when a learning is in the shared scope, it becomes ambiguous. If <code>deploy-bot</code> contributed a shared learning and <code>test-runner</code> recalls it, did knowledge "flow" from deploy-bot to test-runner, or did both agents independently access a shared resource? The mesh needs to distinguish between direct transfers (agent-to-agent via shared scope) and indirect consumption (both agents drawing from a common pool). This distinction has real implications for understanding knowledge dependencies.
   </p>
+
+  <DoItWithDeja
+    blurb="List learnings with contributor (created_by). Aggregate flows from your inject logs or run store. Mesh needs recall logs (future)."
+    snippets={[
+      {
+        label: 'List learnings with contributor metadata',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared" \\
+  -H "Authorization: Bearer YOUR_API_KEY"
+# Group by created_by; aggregate cross-agent flows from run trace if available`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 

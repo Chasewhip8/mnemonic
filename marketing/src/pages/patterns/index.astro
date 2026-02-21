@@ -46,7 +46,7 @@ const categories = [...new Set(sorted.map(e => e.data.category))];
   <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" id="content-grid">
     {sorted.map(entry => (
       <a href={`/patterns/${entry.id}`} class="group block bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card hover:border-brass/30 transition-colors" data-category={entry.data.category}>
-        <div class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"></div>
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brass to-transparent opacity-30"></div>
         <div class="flex items-center gap-2 mb-3">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-brass/10 text-brass">{entry.data.category.replace(/-/g, ' ')}</span>
           {entry.data.difficulty && <span class="font-mono text-[10px] tracking-widest uppercase text-chrome-dark/50">{entry.data.difficulty}</span>}

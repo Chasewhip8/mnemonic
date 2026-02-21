@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('handoff-packet')!;
 ---
@@ -216,6 +217,7 @@ const concept = getConceptBySlug('handoff-packet')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
   </Fragment>
 
@@ -263,6 +265,19 @@ const concept = getConceptBySlug('handoff-packet')!;
   <p>
     The harder engineering question is packet generation. Summarizing a run into a clean briefing is itself an LLM task -- the system needs to distinguish between significant actions and noise, categorize failures, and extract the narrative from raw event data. This is an area where deja's learning extraction pipeline could be extended: instead of just generating <code>trigger/learning</code> pairs, generate a structured mission report.
   </p>
+
+  <DoItWithDeja
+    blurb="On run end: GET state + list learnings for run. Serialize to handoff JSON. POST to queue or next agent."
+    snippets={[
+      {
+        label: 'Build handoff packet',
+        code: `const state = await fetch('/state?run_id=' + runId).then(r => r.json());
+const learnings = await fetch('/learnings?scope=agent:' + agentId).then(r => r.json());
+const packet = { goal: state.goal, learnings: learnings.learnings, open_questions: state.open_questions };
+await fetch('/queue/handoff', { method: 'POST', body: JSON.stringify(packet) });`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 

@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('decay-garden')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('decay-garden')!;
   <div slot="demo">
     <div class="demo-garden-wrapper bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10">
         <div class="flex items-center gap-3">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/60">Decay Garden</span>
           <span class="font-mono text-[10px] text-chrome-dark/40">15 memories</span>
@@ -23,8 +24,8 @@ const concept = getConceptBySlug('decay-garden')!;
       </div>
 
       <!-- Garden -->
-      <div id="garden-bed" class="relative px-6 py-8 min-h-[340px]">
-        <div class="garden-grid grid grid-cols-5 gap-x-4 gap-y-2 items-end justify-items-center">
+      <div id="garden-bed" class="relative px-6 py-8 min-h-[340px] rounded-b-sm border border-brass/10 bg-void-deep/50">
+        <div class="garden-grid grid grid-cols-5 gap-x-6 gap-y-4 items-end justify-items-center">
           <!-- Plants rendered by JS -->
         </div>
       </div>
@@ -67,6 +68,7 @@ const concept = getConceptBySlug('decay-garden')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#philosophical-note" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Philosophical note</a>
   </Fragment>
@@ -113,6 +115,24 @@ const concept = getConceptBySlug('decay-garden')!;
     The harder question is how to compute plant position and clustering. One approach: use the embedding vectors that deja already stores for semantic matching. Run a dimensionality reduction (UMAP or t-SNE) on the embedding space and map the results to a 2D garden layout. Semantically related memories would cluster together naturally, making the garden not just a health dashboard but a topology of knowledge.
   </p>
 
+  <DoItWithDeja
+    blurb="List learnings with confidence. Water = PATCH confidence, Prune = DELETE. Use scope for transplant."
+    snippets={[
+      {
+        label: 'List memories with confidence',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`,
+      },
+      {
+        label: 'Water a memory (boost confidence)',
+        code: `curl -X PATCH "https://deja.your-subdomain.workers.dev/learnings/MEMORY_ID" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"confidence": 0.85}'`,
+      },
+    ]}
+  />
+
   <h2 id="design-tensions">Design tensions</h2>
   <p>
     The obvious tension is between metaphor and utility. Gardens are beautiful. They invite care. But they can also obscure the very data they are meant to reveal. When a user needs to find a specific memory, scrolling through an animated garden is slower than searching a table. When a user needs to bulk-update confidence values, clicking individual plants is worse than selecting rows.
@@ -150,16 +170,22 @@ const concept = getConceptBySlug('decay-garden')!;
     align-items: center;
     cursor: pointer;
     transition: transform 0.2s ease;
+    padding: 8px 4px;
+    border-radius: 4px;
+    border: 1px solid transparent;
   }
 
   .plant-container:hover {
     transform: scale(1.08);
+    border-color: rgba(201, 169, 97, 0.15);
+    background: rgba(201, 169, 97, 0.03);
   }
 
   .plant-stem {
-    width: 2px;
+    width: 4px;
+    min-height: 8px;
     background: linear-gradient(to top, var(--stem-color), var(--stem-color-light));
-    border-radius: 1px;
+    border-radius: 2px;
     transform-origin: bottom center;
     animation: plant-sway var(--sway-duration, 4s) ease-in-out infinite alternate;
     position: relative;
@@ -187,8 +213,11 @@ const concept = getConceptBySlug('decay-garden')!;
   .plant-glow {
     width: var(--glow-size, 16px);
     height: var(--glow-size, 16px);
+    min-width: 10px;
+    min-height: 10px;
     border-radius: 50%;
-    background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--glow-color) 0%, transparent 60%);
+    box-shadow: 0 0 8px var(--glow-color);
     animation: plant-pulse var(--pulse-duration, 3s) ease-in-out infinite alternate;
     margin-bottom: -4px;
   }
@@ -340,8 +369,11 @@ const concept = getConceptBySlug('decay-garden')!;
     }
   }
 
+  function initDecayGarden() {
+    const garden = document.querySelector('.garden-grid');
+    if (!garden) return;
+
   function renderGarden() {
-    const garden = document.querySelector('.garden-grid')!;
     garden.innerHTML = '';
 
     memories.forEach((mem, i) => {
@@ -478,4 +510,11 @@ const concept = getConceptBySlug('decay-garden')!;
   });
 
   renderGarden();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDecayGarden);
+  } else {
+    initDecayGarden();
+  }
 </script>

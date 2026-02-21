@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('memory-commons')!;
 ---
@@ -8,7 +9,7 @@ const concept = getConceptBySlug('memory-commons')!;
   <div slot="demo">
     <div class="demo-container border border-brass/20 rounded-sm bg-void-deep overflow-hidden">
       <!-- Demo Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10 bg-steel/50">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10 bg-steel/50">
         <div class="flex items-center gap-3">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass">Memory Commons</span>
           <span class="font-mono text-[10px] text-chrome-dark/40">shared scope</span>
@@ -66,6 +67,7 @@ const concept = getConceptBySlug('memory-commons')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
   </Fragment>
 
@@ -113,6 +115,17 @@ const concept = getConceptBySlug('memory-commons')!;
   <p>
     The deeper question is about the <code>state_resolve</code> mechanism. When an agent calls <code>state_resolve</code> and encounters a contested learning, what should happen? One approach: contested learnings are still returned but flagged, letting the consuming agent decide whether to trust them. Another: contested learnings are excluded from automatic recall until resolved. The right answer probably depends on the stakes -- low-confidence contested learnings about formatting preferences are different from contested learnings about production deployment procedures.
   </p>
+
+  <DoItWithDeja
+    blurb="List shared learnings. Endorse/challenge need POST endpoints (future). Today: list and PATCH metadata for endorse/challenge simulation."
+    snippets={[
+      {
+        label: 'List shared memories',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 
@@ -233,28 +246,38 @@ const concept = getConceptBySlug('memory-commons')!;
 
   .card-actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    margin-top: 4px;
   }
 
   .card-actions button {
     font-family: var(--font-family-mono);
     font-size: 10px;
-    padding: 3px 8px;
+    font-weight: 500;
+    padding: 5px 10px;
     border-radius: 2px;
-    border: 1px solid rgba(184, 184, 184, 0.1);
-    background: transparent;
-    color: rgba(184, 184, 184, 0.5);
+    border: 1px solid rgba(201, 169, 97, 0.2);
+    background: rgba(201, 169, 97, 0.06);
+    color: rgba(201, 169, 97, 0.9);
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .card-actions button:hover {
-    border-color: rgba(201, 169, 97, 0.3);
+    border-color: rgba(201, 169, 97, 0.4);
+    background: rgba(201, 169, 97, 0.12);
     color: #c9a961;
   }
 
+  .card-actions button.challenge-btn {
+    border-color: rgba(184, 184, 184, 0.2);
+    background: rgba(184, 184, 184, 0.04);
+    color: rgba(184, 184, 184, 0.7);
+  }
+
   .card-actions button.challenge-btn:hover {
-    border-color: rgba(234, 179, 8, 0.3);
+    border-color: rgba(234, 179, 8, 0.4);
+    background: rgba(234, 179, 8, 0.08);
     color: #eab308;
   }
 

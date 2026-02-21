@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('search-conversation')!;
 ---
@@ -9,7 +10,7 @@ const concept = getConceptBySlug('search-conversation')!;
   <div slot="demo">
     <div class="sc-demo bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10 bg-steel/50">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10 bg-steel/50">
         <div class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/60">Memory Conversation</div>
         <div class="font-mono text-[10px] text-chrome-dark/30">semantic search + synthesis</div>
       </div>
@@ -138,6 +139,7 @@ const concept = getConceptBySlug('search-conversation')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#the-key-question" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The key question</a>
   </Fragment>
@@ -172,6 +174,19 @@ const concept = getConceptBySlug('search-conversation')!;
   <p>The synthesis layer requires a language model. The search conversation would call <code>/inject</code> to get relevant memories, then pass those memories as context to an LLM with a prompt like: "Given these memories, answer the user's question. Cite specific memories with their confidence scores. Note any contradictions. Identify gaps." The LLM does the reading-across that makes the interface powerful.</p>
 
   <p>This raises an architectural question: should this synthesis happen inside deja or outside it? Deja today is a memory layer, not a chat application. Adding LLM-powered synthesis would change its scope. The alternative is to build the search conversation as a separate application that calls deja's API for retrieval and its own LLM for synthesis. Both approaches are viable. The choice depends on whether deja wants to be a primitive (an API others build on) or a product (an experience users interact with directly).</p>
+
+  <DoItWithDeja
+    blurb="POST /inject with the user's question as context. Pass returned memories to your LLM for synthesis. Display answer with citations."
+    snippets={[
+      {
+        label: 'Inject with question context',
+        code: `curl -X POST "https://deja.your-subdomain.workers.dev/inject" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"context": "What do I know about deploying to production?"}'`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 

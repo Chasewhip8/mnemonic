@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('contradiction-board')!;
 ---
@@ -9,7 +10,7 @@ const concept = getConceptBySlug('contradiction-board')!;
   <div slot="demo">
     <div class="cb-demo bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-brass/10 bg-steel/50">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-brass/10 bg-steel/50">
         <div class="flex items-center gap-3">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/70">Contradiction Board</span>
           <span class="font-mono text-[9px] text-chrome-dark/30 border-l border-brass/10 pl-3">Detected via cosine similarity &gt; 0.85 + LLM contradiction classification</span>
@@ -174,6 +175,7 @@ const concept = getConceptBySlug('contradiction-board')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#why-uniquely-important" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Why uniquely important</a>
   </Fragment>
@@ -208,6 +210,18 @@ const concept = getConceptBySlug('contradiction-board')!;
   <p>Resolution actions map to existing deja operations. "Keep Left" is a <code>DELETE /learnings/:id</code> on the right memory. "Keep Right" is the inverse. "Merge" creates a new learning via <code>POST /learnings</code> and deletes both originals. "Both Valid" is the most interesting: it adds context metadata to both memories -- effectively scoping them to the conditions under which they apply. This might require a new <code>context_tags</code> field on the learning object, or it could use the existing trigger field to make the conditions explicit.</p>
 
   <p>The priority ranking uses a composite score: similarity times the product of both confidence scores. High similarity between two high-confidence memories is a more urgent contradiction than high similarity between a strong memory and a weak one. The weak one might simply be wrong. The strong-strong case is the genuinely hard problem -- both memories have been repeatedly validated by experience, yet they disagree.</p>
+
+  <DoItWithDeja
+    blurb="List shared learnings. Compute pairwise similarity client-side (or via multiple injects). Run LLM classification on high-similarity pairs."
+    snippets={[
+      {
+        label: 'List and detect pairs',
+        code: `const { learnings } = await fetch('/learnings?scope=shared').then(r => r.json());
+// For each pair: similarity > 0.85 -> LLM classify (complementary/contradictory/redundant)
+// Resolve: DELETE one, or PATCH both with context_tags`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 

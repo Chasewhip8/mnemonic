@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('knowledge-tide-pool')!;
 ---
@@ -8,18 +9,18 @@ const concept = getConceptBySlug('knowledge-tide-pool')!;
   <!-- Demo -->
   <div slot="demo">
     <div class="tp-demo bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
-      <!-- Toolbar -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-brass/10 bg-steel/50">
-        <div class="flex items-center gap-3">
+      <!-- Toolbar: wraps on small screens -->
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 border-b border-brass/10 bg-steel/50">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/70">Knowledge Tide Pool</span>
-          <div class="flex items-center gap-1.5 ml-2">
+          <div class="flex flex-wrap items-center gap-1.5">
             <span class="font-mono text-[9px] text-chrome-dark/30">Context:</span>
             <button class="tp-context-btn active font-mono text-[10px] px-2.5 py-1 rounded-sm transition-all" data-context="deploying">deploying</button>
             <button class="tp-context-btn font-mono text-[10px] px-2.5 py-1 rounded-sm transition-all" data-context="debugging">debugging tests</button>
             <button class="tp-context-btn font-mono text-[10px] px-2.5 py-1 rounded-sm transition-all" data-context="writing">writing docs</button>
           </div>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-3 sm:gap-4 ml-0 sm:ml-auto">
           <div class="flex items-center gap-2">
             <span class="font-mono text-[9px] text-chrome-dark/30">Max pool size:</span>
             <input type="range" id="tp-max-slider" min="4" max="12" value="10" class="tp-slider w-16" />
@@ -30,10 +31,10 @@ const concept = getConceptBySlug('knowledge-tide-pool')!;
       </div>
 
       <!-- Current context display -->
-      <div class="px-4 py-2 border-b border-brass/5 bg-steel/20">
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-[9px] text-chrome-dark/30 uppercase tracking-wider">Current context:</span>
-          <span id="tp-context-display" class="font-mono text-[11px] text-brass/80">"deploying auth service to staging"</span>
+      <div class="px-4 py-2 border-b border-brass/5 bg-steel/20 min-w-0">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="font-mono text-[9px] text-chrome-dark/30 uppercase tracking-wider shrink-0">Current context:</span>
+          <span id="tp-context-display" class="font-mono text-[11px] text-brass/80 wrap-break-word">"deploying auth service to staging"</span>
         </div>
       </div>
 
@@ -44,8 +45,8 @@ const concept = getConceptBySlug('knowledge-tide-pool')!;
           <!-- Ocean dots rendered by JS -->
         </div>
 
-        <!-- The pool -->
-        <div class="tp-pool absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" id="tp-pool" style="width: 520px; height: 280px;">
+        <!-- The pool: responsive width -->
+        <div class="tp-pool absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(100%-2rem,520px)] max-w-full" id="tp-pool" style="height: 280px;">
           <div class="tp-pool-inner relative w-full h-full rounded-lg overflow-hidden">
             <div class="tp-water-surface absolute inset-0"></div>
             <div class="tp-pool-label absolute top-2 left-3 font-mono text-[9px] tracking-widest uppercase text-brass/25 z-10">Active Pool</div>
@@ -65,6 +66,7 @@ const concept = getConceptBySlug('knowledge-tide-pool')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#the-paradigm-shift" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The paradigm shift</a>
   </Fragment>
@@ -97,6 +99,23 @@ const concept = getConceptBySlug('knowledge-tide-pool')!;
   <p>Pinning introduces client-side state that interacts with server-side relevance. A pinned memory is always included in the active set, regardless of what <code>/inject</code> returns. This means the effective pool size for dynamic memories is <code>max_pool_size - pinned_count</code>. If you pin five memories and set the max to ten, only five slots remain for the injection system to fill. This creates an interesting tension between human curation and algorithmic relevance.</p>
 
   <p>The drain operation is simpler: it is a client-side exclusion list. A drained memory is temporarily suppressed from the pool, even if <code>/inject</code> would return it. The exclusion persists for the current session. This gives the user a correction mechanism when the relevance algorithm surfaces something they know is not useful -- a feedback signal that could, in a future iteration, be used to fine-tune the embedding model itself.</p>
+
+  <DoItWithDeja
+    blurb="On context change: POST /inject with new context. setInterval or event-driven. Render results as pool; pin = client state."
+    snippets={[
+      {
+        label: 'Inject on context change',
+        code: `function onContextChange(ctx) {
+  fetch('/inject', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ context: ctx })
+  }).then(r => r.json()).then(({ learnings }) => updatePool(learnings));
+}
+// Wire to file switch, command run, etc.`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 
@@ -459,15 +478,17 @@ const concept = getConceptBySlug('knowledge-tide-pool')!;
       }
     });
 
-    // Add new bubbles
+    // Add new bubbles (use container size for responsive layout)
+    const poolEl = document.getElementById('tp-pool')!;
+    const poolWidth = Math.max(200, poolEl.offsetWidth);
+    const poolHeight = Math.max(120, poolEl.offsetHeight);
+
     const toAdd = relevant.filter(m => !existingTriggers.has(m.trigger));
-    const poolWidth = 500;
-    const poolHeight = 260;
 
     toAdd.forEach((memory, i) => {
       const el = createBubbleEl(memory);
-      const x = 30 + Math.random() * (poolWidth - 160);
-      const y = 30 + Math.random() * (poolHeight - 60);
+      const x = 30 + Math.random() * Math.max(40, poolWidth - 160);
+      const y = 30 + Math.random() * Math.max(40, poolHeight - 60);
       el.style.left = `${x}px`;
       el.style.top = `${y}px`;
       container.appendChild(el);
@@ -493,8 +514,9 @@ const concept = getConceptBySlug('knowledge-tide-pool')!;
   }
 
   function animateBubbles() {
-    const poolWidth = 500;
-    const poolHeight = 260;
+    const poolEl = document.getElementById('tp-pool');
+    const poolWidth = poolEl ? Math.max(200, poolEl.offsetWidth) : 500;
+    const poolHeight = poolEl ? Math.max(120, poolEl.offsetHeight) : 260;
 
     activeBubbles.forEach(b => {
       if (!b.el) return;

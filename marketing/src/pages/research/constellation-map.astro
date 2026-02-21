@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('constellation-map')!;
 ---
@@ -9,7 +10,7 @@ const concept = getConceptBySlug('constellation-map')!;
   <div slot="demo">
     <div class="cm-demo bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-brass/10 bg-steel/50">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-brass/10 bg-steel/50">
         <div class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/60">Knowledge Topology</div>
         <div class="flex items-center gap-4">
           <!-- Legend -->
@@ -48,6 +49,7 @@ const concept = getConceptBySlug('constellation-map')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#the-deeper-idea" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The deeper idea</a>
   </Fragment>
@@ -86,6 +88,20 @@ const concept = getConceptBySlug('constellation-map')!;
   <p>Edges are derived from cosine similarity. For each memory, compute the cosine similarity to every other memory. Draw an edge when the similarity exceeds a threshold -- say, 0.7. The threshold is tunable and has a significant effect on the visual density of the graph. Too low, and every node connects to every other node. Too high, and no edges appear. A good default is somewhere between 0.65 and 0.75, with a slider letting the user adjust in real time.</p>
 
   <p>Cluster labels are a harder problem. You can detect clusters algorithmically using DBSCAN or k-means on the 2D projected coordinates, but generating meaningful labels requires understanding the semantic content of each cluster. One approach: for each cluster, extract the most common keywords from the trigger texts of its members. Another: pass the triggers to an LLM and ask for a one-word summary. The latter produces better labels but introduces a dependency on a language model.</p>
+
+  <DoItWithDeja
+    blurb="List learnings via GET /learnings, project embeddings to 2D with UMAP client-side, draw edges where similarity > 0.7. No embedding export yet -- use list + client layout."
+    snippets={[
+      {
+        label: 'List memories for topology',
+        code: `const res = await fetch('https://deja.your-subdomain.workers.dev/learnings?scope=shared&limit=200', {
+  headers: { 'Authorization': 'Bearer YOUR_API_KEY' }
+});
+const { learnings } = await res.json();
+// Then: run UMAP on learnings' embeddings (if exported) or similarity matrix`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 
@@ -153,11 +169,15 @@ const concept = getConceptBySlug('constellation-map')!;
     strength: number;
   }
 
-  const canvas = document.getElementById('cm-canvas') as HTMLCanvasElement;
-  const ctx = canvas.getContext('2d')!;
-  const tooltip = document.getElementById('cm-tooltip') as HTMLDivElement;
-  const tooltipScope = document.getElementById('cm-tooltip-scope') as HTMLDivElement;
-  const tooltipText = document.getElementById('cm-tooltip-text') as HTMLDivElement;
+  function initConstellationMap() {
+    const canvas = document.getElementById('cm-canvas') as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const tooltip = document.getElementById('cm-tooltip') as HTMLDivElement | null;
+    const tooltipScope = document.getElementById('cm-tooltip-scope') as HTMLDivElement | null;
+    const tooltipText = document.getElementById('cm-tooltip-text') as HTMLDivElement | null;
+    if (!tooltip || !tooltipScope || !tooltipText) return;
 
   let width = 0;
   let height = 0;
@@ -480,4 +500,11 @@ const concept = getConceptBySlug('constellation-map')!;
   resize();
   window.addEventListener('resize', resize);
   loop();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initConstellationMap);
+  } else {
+    initConstellationMap();
+  }
 </script>

@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('confidence-heatmap')!;
 ---
@@ -7,7 +8,7 @@ const concept = getConceptBySlug('confidence-heatmap')!;
 <ResearchLayout concept={concept}>
   <div slot="demo">
     <div class="demo-container bg-void-deep border border-brass/10 rounded-sm p-6 md:p-8">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div>
           <h3 class="font-serif-sc text-lg font-bold m-0 text-chrome">Confidence Heatmap</h3>
           <p class="font-mono text-[11px] text-chrome-dark/50 m-0 mt-1">deploy-bot — last 7 months — 5 topic clusters</p>
@@ -79,6 +80,7 @@ const concept = getConceptBySlug('confidence-heatmap')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
   </Fragment>
 
@@ -117,6 +119,18 @@ const concept = getConceptBySlug('confidence-heatmap')!;
   <p>The time axis comes from <code>created_at</code> and <code>last_recalled_at</code> timestamps. Every memory has a creation time. Grouping by month or week produces the rows. The <code>last_recalled_at</code> field, updated every time a memory is returned by <code>/inject</code>, provides the "last recalled" metadata shown in the tooltip. This is data deja tracks for its own internal confidence adjustments -- the heatmap simply surfaces it visually.</p>
 
   <p>The "blind spots" analysis shown in the summary requires slightly more logic: scan for topic clusters with consistently low confidence or no recent entries, then generate a natural language summary. This could be done client-side or as a lightweight analysis endpoint. But the underlying data -- confidence scores, topic clusters, and timestamps -- is all available through the existing <code>/recall</code> and <code>/state</code> endpoints.</p>
+
+  <DoItWithDeja
+    blurb="List learnings, group by topic (embedding clusters) and time bucket. Map confidence to color."
+    snippets={[
+      {
+        label: 'List learnings for heatmap',
+        code: `curl -X GET "https://deja.your-subdomain.workers.dev/learnings?scope=shared&limit=500" \\
+  -H "Authorization: Bearer YOUR_API_KEY"
+# Group by topic (k-means on embeddings) and created_at; aggregate confidence`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 
@@ -337,17 +351,19 @@ const concept = getConceptBySlug('confidence-heatmap')!;
     return 'Critical';
   }
 
-  const grid = document.getElementById('heatmap');
-  const tooltip = document.getElementById('heatmap-tooltip');
-  const tooltipTrigger = document.getElementById('tooltip-trigger');
-  const tooltipConfidence = document.getElementById('tooltip-confidence');
-  const tooltipRecalled = document.getElementById('tooltip-recalled');
-  const detailPanel = document.getElementById('heatmap-detail');
-  const detailTitle = document.getElementById('detail-title');
-  const detailBody = document.getElementById('detail-body');
+  function initHeatmap() {
+    const grid = document.getElementById('heatmap');
+    if (!grid) return;
+    const tooltip = document.getElementById('heatmap-tooltip');
+    const tooltipTrigger = document.getElementById('tooltip-trigger');
+    const tooltipConfidence = document.getElementById('tooltip-confidence');
+    const tooltipRecalled = document.getElementById('tooltip-recalled');
+    const detailPanel = document.getElementById('heatmap-detail');
+    const detailTitle = document.getElementById('detail-title');
+    const detailBody = document.getElementById('detail-body');
 
-  // Build rows
-  heatmapData.periods.forEach((period, periodIdx) => {
+    // Build rows
+    heatmapData.periods.forEach((period, periodIdx) => {
     // Row label
     const label = document.createElement('div');
     label.className = 'heatmap-row-label';
@@ -416,12 +432,19 @@ const concept = getConceptBySlug('confidence-heatmap')!;
     });
   });
 
-  function positionTooltip(e) {
+    function positionTooltip(e) {
     const container = document.querySelector('.demo-container');
     const rect = container.getBoundingClientRect();
     const x = e.clientX - rect.left + 12;
     const y = e.clientY - rect.top - 10;
     tooltip.style.left = `${Math.min(x, rect.width - 290)}px`;
     tooltip.style.top = `${y}px`;
+  }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeatmap);
+  } else {
+    initHeatmap();
   }
 </script>

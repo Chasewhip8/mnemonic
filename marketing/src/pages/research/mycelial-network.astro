@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('mycelial-network')!;
 ---
@@ -9,7 +10,7 @@ const concept = getConceptBySlug('mycelial-network')!;
   <div slot="demo">
     <div class="mn-demo bg-void-deep border border-brass/15 rounded-sm overflow-hidden">
       <!-- Toolbar -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-brass/10 bg-steel/50">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-brass/10 bg-steel/50">
         <div class="flex items-center gap-3">
           <span class="font-mono text-[10px] font-bold tracking-widest uppercase text-brass/70">Mycelial Network</span>
           <div class="flex items-center gap-2 ml-3">
@@ -81,6 +82,7 @@ const concept = getConceptBySlug('mycelial-network')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#the-biological-parallel" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The biological parallel</a>
     <a href="#why-this-is-radical" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Why this is radical</a>
@@ -129,6 +131,20 @@ const concept = getConceptBySlug('mycelial-network')!;
   <p>The activation algorithm is a breadth-first graph walk with decaying activation. Starting from seed nodes (direct matches to the query), each hop multiplies the activation level by a decay factor -- say 0.5. Direct matches activate at 1.0. One-hop neighbors activate at <code>1.0 * edge_strength * 0.5</code>. Two-hop neighbors activate at the product of both edge strengths times 0.25. This means that a two-hop path through two strong connections (strength 0.9 each) produces activation <code>0.9 * 0.9 * 0.25 = 0.2</code>, while two-hop through weak connections (strength 0.2 each) produces <code>0.2 * 0.2 * 0.25 = 0.01</code> -- effectively invisible. The network self-selects for well-trodden paths.</p>
 
   <p>The most significant architectural change is to <code>/inject</code> itself. Today, injection returns the top-k memories by cosine similarity. With the network, injection becomes a hybrid: first, find the top-k by cosine similarity (the direct matches), then perform a graph walk from those seeds, then merge the results by combining cosine score and activation score. The graph walk is O(n) in the number of connections, which for a reasonable memory pool (hundreds to low thousands of memories) completes in single-digit milliseconds. The cost is negligible. The informational gain is substantial.</p>
+
+  <DoItWithDeja
+    blurb="List learnings, build graph from similarity (client-side) or co-recall logs. Inject for seeds; extend with graph layout."
+    snippets={[
+      {
+        label: 'Inject + build similarity graph',
+        code: `const seeds = await fetch('/inject', {
+  method: 'POST', body: JSON.stringify({ context })
+}).then(r => r.json());
+const all = await fetch('/learnings?scope=shared').then(r => r.json());
+// Build edges from similarity; run BFS for activation`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
 

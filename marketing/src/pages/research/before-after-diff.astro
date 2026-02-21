@@ -1,5 +1,6 @@
 ---
 import ResearchLayout from '../../layouts/ResearchLayout.astro';
+import DoItWithDeja from '../../components/DoItWithDeja.astro';
 import { getConceptBySlug } from '../../data/research';
 const concept = getConceptBySlug('before-after-diff')!;
 ---
@@ -276,6 +277,7 @@ const concept = getConceptBySlug('before-after-diff')!;
     <a href="#the-experience" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">The experience</a>
     <a href="#what-it-reveals" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">What it reveals</a>
     <a href="#deja-connection" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Deja connection</a>
+    <a href="#do-it-with-deja" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Do it with deja</a>
     <a href="#design-tensions" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Design tensions</a>
     <a href="#over-time" class="block py-1 text-[12px] font-serif text-chrome-dark/50 hover:text-brass transition-colors">Over time</a>
   </Fragment>
@@ -340,6 +342,19 @@ const concept = getConceptBySlug('before-after-diff')!;
   <p>
     For the initial implementation, the hash-based approach is simpler and sufficient. It adds one write at run-start (the manifest) and one comparison at run-end. The diff itself can be computed client-side given both manifests and the current learning state.
   </p>
+
+  <DoItWithDeja
+    blurb="Snapshot not built yet. Today: GET /learnings before run, GET /learnings after run. Compute diff client-side."
+    snippets={[
+      {
+        label: 'List before run',
+        code: `const before = await fetch('/learnings?scope=agent:deploy-bot').then(r => r.json());
+// run agent...
+const after = await fetch('/learnings?scope=agent:deploy-bot').then(r => r.json());
+// diff(before.learnings, after.learnings) client-side`,
+      },
+    ]}
+  />
 
   <h2 id="design-tensions">Design tensions</h2>
   <p>
