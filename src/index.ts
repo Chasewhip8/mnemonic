@@ -51,6 +51,20 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: 'inject_trace',
+    description: 'Debug retrieval pipeline: returns candidates, similarity scores, threshold filtering. Use to understand why agents recall what they recall.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        context: { type: 'string', description: 'Current context to find relevant memories for' },
+        scopes: { type: 'array', items: { type: 'string' }, description: 'Scopes to search', default: ['shared'] },
+        limit: { type: 'number', description: 'Max memories to return', default: 5 },
+        threshold: { type: 'number', description: 'Minimum similarity score (0-1). Memories below this are marked rejected.', default: 0 },
+      },
+      required: ['context'],
+    },
+  },
+  {
     name: 'query',
     description: 'Search memories semantically. Use when looking for specific past learnings.',
     inputSchema: {
@@ -70,6 +84,31 @@ const MCP_TOOLS = [
       type: 'object',
       properties: {
         id: { type: 'string', description: 'Learning ID to delete' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'forget_bulk',
+    description: 'Bulk delete memories by filters. Requires at least one filter. Use to prune stale or low-confidence memories.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        confidence_lt: { type: 'number', description: 'Delete memories with confidence below this' },
+        not_recalled_in_days: { type: 'number', description: 'Delete memories not recalled in this many days' },
+        scope: { type: 'string', description: 'Delete only memories in this scope' },
+      },
+    },
+  },
+  {
+    name: 'learning_neighbors',
+    description: 'Find semantically similar memories for a learning. Use to check for contradictions or overlap before saving new memories.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Learning ID to find neighbors for' },
+        threshold: { type: 'number', description: 'Minimum cosine similarity (0-1)', default: 0.85 },
+        limit: { type: 'number', description: 'Max neighbors to return', default: 10 },
       },
       required: ['id'],
     },
@@ -182,6 +221,21 @@ async function handleMcpToolCall(stub: DurableObjectStub, toolName: string, args
       }));
       return response.json();
     }
+    case 'inject_trace': {
+      const url = new URL('http://internal/inject/trace');
+      if (args.threshold != null) url.searchParams.set('threshold', String(args.threshold));
+      const response = await stub.fetch(new Request(url.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context: args.context,
+          scopes: args.scopes ?? ['shared'],
+          limit: args.limit ?? 5,
+          threshold: args.threshold,
+        }),
+      }));
+      return response.json();
+    }
     case 'query': {
       const response = await stub.fetch(new Request('http://internal/query', {
         method: 'POST',
@@ -198,6 +252,21 @@ async function handleMcpToolCall(stub: DurableObjectStub, toolName: string, args
       const response = await stub.fetch(new Request(`http://internal/learning/${args.id}`, {
         method: 'DELETE',
       }));
+      return response.json();
+    }
+    case 'learning_neighbors': {
+      const params = new URLSearchParams();
+      if (args.threshold != null) params.set('threshold', String(args.threshold));
+      if (args.limit != null) params.set('limit', String(args.limit));
+      const response = await stub.fetch(new Request(`http://internal/learning/${args.id}/neighbors?${params}`));
+      return response.json();
+    }
+    case 'forget_bulk': {
+      const params = new URLSearchParams();
+      if (args.confidence_lt != null) params.set('confidence_lt', String(args.confidence_lt));
+      if (args.not_recalled_in_days != null) params.set('not_recalled_in_days', String(args.not_recalled_in_days));
+      if (args.scope != null) params.set('scope', args.scope);
+      const response = await stub.fetch(new Request(`http://internal/learnings?${params}`, { method: 'DELETE' }));
       return response.json();
     }
     case 'list': {

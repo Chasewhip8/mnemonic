@@ -70,8 +70,10 @@ Example:
 
 ## Core API surface
 
-- Memory: `/learn`, `/inject`, `/query`, `/learnings`, `/learning/:id`, `/stats`
+- Memory: `/learn`, `/inject`, `/inject/trace`, `/query`, `/learnings`, `/learning/:id`, `/learning/:id/neighbors`, `/stats`, `DELETE /learning/:id`, `DELETE /learnings`
 - Working state: `/state/:runId`, `/state/:runId/events`, `/state/:runId/resolve`
 - Secrets: `/secret`, `/secret/:name`, `/secrets`
+
+Learnings include `last_recalled_at`, `recall_count` for tracking. Bulk delete: `DELETE /learnings?confidence_lt=0.5` or `?not_recalled_in_days=90` or `?scope=shared` (requires at least one filter).
 
 For full payloads and examples, use: https://deja.coey.dev/docs

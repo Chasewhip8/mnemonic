@@ -10,6 +10,8 @@ export const learnings = sqliteTable('learnings', {
   scope: text('scope').notNull(), // Added for scope support
   embedding: text('embedding'), // Vector embedding as JSON string
   createdAt: text('created_at').notNull(),
+  lastRecalledAt: text('last_recalled_at'),
+  recallCount: integer('recall_count').default(0),
 });
 
 export const secrets = sqliteTable('secrets', {

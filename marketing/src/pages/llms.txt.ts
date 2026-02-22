@@ -35,9 +35,12 @@ It provides durable memory + optional live working state via REST and MCP.
 ## Core API
 - POST /learn
 - POST /inject
+- POST /inject/trace
 - POST /query
 - GET /learnings
+- GET /learning/:id/neighbors
 - DELETE /learning/:id
+- DELETE /learnings
 - GET /stats
 - GET|PUT|PATCH /state/:runId
 - POST /state/:runId/events
@@ -48,8 +51,11 @@ It provides durable memory + optional live working state via REST and MCP.
 ## MCP tools
 - learn
 - inject
+- inject_trace
 - query
 - forget
+- forget_bulk
+- learning_neighbors
 - list
 - stats
 - state_put

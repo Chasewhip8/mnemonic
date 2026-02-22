@@ -27,6 +27,8 @@ interface Learning {
   scope: string;
   embedding?: number[];
   createdAt: string;
+  lastRecalledAt?: string;
+  recallCount: number;
 }
 
 interface Secret {
@@ -52,6 +54,26 @@ interface InjectResult {
   prompt: string;
   learnings: Learning[];
   state?: WorkingStateResponse;
+}
+
+interface InjectTraceResult {
+  input_context: string;
+  embedding_generated: number[];
+  candidates: Array<{
+    id: string;
+    trigger: string;
+    learning: string;
+    similarity_score: number;
+    passed_threshold: boolean;
+  }>;
+  threshold_applied: number;
+  injected: Learning[];
+  duration_ms: number;
+  metadata: {
+    total_candidates: number;
+    above_threshold: number;
+    below_threshold: number;
+  };
 }
 
 interface WorkingStatePayload {
@@ -104,6 +126,17 @@ export class DejaDO extends DurableObject<Env> {
         CREATE INDEX IF NOT EXISTS idx_learnings_confidence ON learnings(confidence);
         CREATE INDEX IF NOT EXISTS idx_learnings_created_at ON learnings(created_at);
         CREATE INDEX IF NOT EXISTS idx_learnings_scope ON learnings(scope);
+      `);
+      try {
+        this.ctx.storage.sql.exec(`ALTER TABLE learnings ADD COLUMN last_recalled_at TEXT`);
+      } catch (_) {}
+      try {
+        this.ctx.storage.sql.exec(`ALTER TABLE learnings ADD COLUMN recall_count INTEGER DEFAULT 0`);
+      } catch (_) {}
+      try {
+        this.ctx.storage.sql.exec(`CREATE INDEX IF NOT EXISTS idx_learnings_last_recalled_at ON learnings(last_recalled_at)`);
+      } catch (_) {}
+      this.ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS secrets (
           name TEXT PRIMARY KEY,
           value TEXT NOT NULL,
@@ -186,7 +219,9 @@ export class DejaDO extends DurableObject<Env> {
       source: dbLearning.source !== null ? dbLearning.source : undefined,
       scope: dbLearning.scope,
       embedding: dbLearning.embedding ? JSON.parse(dbLearning.embedding) : undefined,
-      createdAt: dbLearning.createdAt
+      createdAt: dbLearning.createdAt,
+      lastRecalledAt: dbLearning.lastRecalledAt ?? undefined,
+      recallCount: dbLearning.recallCount ?? 0,
     };
   }
 
@@ -325,15 +360,17 @@ export class DejaDO extends DurableObject<Env> {
       // Convert to our Learning interface
       const learnings = dbLearnings.map(this.convertDbLearning);
       
-      // Update hit counts for returned learnings
-      const hitUpdates = learnings.map(learning => 
+      // Update recall tracking for returned learnings
+      const now = new Date().toISOString();
+      const hitUpdates = learnings.map(learning =>
         db.update(schema.learnings)
-          .set({ 
-            confidence: sql`${schema.learnings.confidence} + 0.1` 
+          .set({
+            lastRecalledAt: now,
+            recallCount: sql`COALESCE(${schema.learnings.recallCount}, 0) + 1`,
           })
           .where(eq(schema.learnings.id, learning.id))
       );
-      
+
       await Promise.all(hitUpdates);
       
       // Format result based on requested format
@@ -346,6 +383,114 @@ export class DejaDO extends DurableObject<Env> {
     } catch (error) {
       console.error('Inject error:', error);
       return { prompt: '', learnings: [] };
+    }
+  }
+
+  /**
+   * Instrumented inject - returns full retrieval pipeline for debugging
+   */
+  async injectTrace(
+    scopes: string[],
+    context: string,
+    limit: number = 5,
+    threshold: number = 0
+  ): Promise<InjectTraceResult> {
+    const startTime = Date.now();
+    const db = await this.initDB();
+
+    const filteredScopes = this.filterScopesByPriority(scopes);
+    if (filteredScopes.length === 0) {
+      return {
+        input_context: context,
+        embedding_generated: [],
+        candidates: [],
+        threshold_applied: threshold,
+        injected: [],
+        duration_ms: Date.now() - startTime,
+        metadata: { total_candidates: 0, above_threshold: 0, below_threshold: 0 },
+      };
+    }
+
+    try {
+      const embedding = await this.createEmbedding(context);
+      const vectorResults = await this.env.VECTORIZE.query(embedding, {
+        topK: Math.max(limit * 3, 20),
+        returnValues: true,
+      });
+
+      const scoreById = new Map<string, number>(
+        vectorResults.matches.map((m) => [m.id, m.score ?? 0])
+      );
+      const ids = vectorResults.matches.map((m) => m.id);
+
+      if (ids.length === 0) {
+        return {
+          input_context: context,
+          embedding_generated: embedding,
+          candidates: [],
+          threshold_applied: threshold,
+          injected: [],
+          duration_ms: Date.now() - startTime,
+          metadata: { total_candidates: 0, above_threshold: 0, below_threshold: 0 },
+        };
+      }
+
+      const whereClause = and(
+        inArray(schema.learnings.id, ids),
+        inArray(schema.learnings.scope, filteredScopes)
+      );
+      const dbLearnings = await db.select().from(schema.learnings).where(whereClause);
+
+      const candidates = dbLearnings.map((row) => {
+        const learning = this.convertDbLearning(row);
+        const similarity_score = scoreById.get(row.id) ?? 0;
+        return {
+          id: learning.id,
+          trigger: learning.trigger,
+          learning: learning.learning,
+          similarity_score,
+          passed_threshold: similarity_score >= threshold,
+        };
+      });
+
+      candidates.sort((a, b) => b.similarity_score - a.similarity_score);
+
+      const injected = candidates
+        .filter((c) => c.passed_threshold)
+        .slice(0, limit)
+        .map((c) => {
+          const full = dbLearnings.find((r) => r.id === c.id);
+          return full ? this.convertDbLearning(full) : null;
+        })
+        .filter((l): l is Learning => l !== null);
+
+      const above_threshold = candidates.filter((c) => c.passed_threshold).length;
+      const below_threshold = candidates.length - above_threshold;
+
+      return {
+        input_context: context,
+        embedding_generated: embedding,
+        candidates,
+        threshold_applied: threshold,
+        injected,
+        duration_ms: Date.now() - startTime,
+        metadata: {
+          total_candidates: candidates.length,
+          above_threshold,
+          below_threshold,
+        },
+      };
+    } catch (error) {
+      console.error('InjectTrace error:', error);
+      return {
+        input_context: context,
+        embedding_generated: [],
+        candidates: [],
+        threshold_applied: threshold,
+        injected: [],
+        duration_ms: Date.now() - startTime,
+        metadata: { total_candidates: 0, above_threshold: 0, below_threshold: 0 },
+      };
     }
   }
 
@@ -379,7 +524,8 @@ export class DejaDO extends DurableObject<Env> {
       source,
       scope,
       embedding,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      recallCount: 0,
     };
     
     try {
@@ -412,6 +558,31 @@ export class DejaDO extends DurableObject<Env> {
       console.error('Learn error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get semantically similar memories for a learning (for contradiction/overlap checks)
+   */
+  async getLearningNeighbors(id: string, threshold: number = 0.85, limit: number = 10): Promise<Array<Learning & { similarity_score: number }>> {
+    const db = await this.initDB();
+    const row = await db.select().from(schema.learnings).where(eq(schema.learnings.id, id)).limit(1);
+    if (row.length === 0) return [];
+    const learning = row[0];
+    const embeddingJson = learning.embedding;
+    if (!embeddingJson) return [];
+    const embedding = JSON.parse(embeddingJson) as number[];
+    const vectorResults = await this.env.VECTORIZE.query(embedding, { topK: limit + 5, returnValues: true });
+    const neighborMatches = vectorResults.matches
+      .filter((m) => m.id !== id && (m.score ?? 0) >= threshold)
+      .slice(0, limit);
+    if (neighborMatches.length === 0) return [];
+    const ids = neighborMatches.map((m) => m.id);
+    const scoreById = new Map(neighborMatches.map((m) => [m.id, m.score ?? 0]));
+    const dbNeighbors = await db.select().from(schema.learnings).where(inArray(schema.learnings.id, ids));
+    return dbNeighbors.map((r) => ({
+      ...this.convertDbLearning(r),
+      similarity_score: scoreById.get(r.id) ?? 0,
+    }));
   }
 
   /**
@@ -526,6 +697,44 @@ export class DejaDO extends DurableObject<Env> {
       console.error('Delete learning error:', error);
       return { success: false, error: 'Failed to delete learning' };
     }
+  }
+
+  /**
+   * Bulk delete learnings by filters. Requires at least one filter.
+   */
+  async deleteLearnings(filters: {
+    confidence_lt?: number;
+    not_recalled_in_days?: number;
+    scope?: string;
+  }): Promise<{ deleted: number; ids: string[] }> {
+    const db = await this.initDB();
+    const conditions: ReturnType<typeof sql>[] = [];
+
+    if (filters.confidence_lt != null) {
+      conditions.push(sql`${schema.learnings.confidence} < ${filters.confidence_lt}`);
+    }
+    if (filters.not_recalled_in_days != null) {
+      const cutoff = new Date(Date.now() - filters.not_recalled_in_days * 24 * 60 * 60 * 1000).toISOString();
+      conditions.push(
+        sql`COALESCE(${schema.learnings.lastRecalledAt}, ${schema.learnings.createdAt}) < ${cutoff}`
+      );
+    }
+    if (filters.scope != null) {
+      conditions.push(eq(schema.learnings.scope, filters.scope));
+    }
+
+    if (conditions.length === 0) {
+      return { deleted: 0, ids: [] };
+    }
+
+    const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+    const toDelete = await db.select({ id: schema.learnings.id }).from(schema.learnings).where(whereClause);
+    const ids = toDelete.map((r) => r.id);
+    if (ids.length === 0) return { deleted: 0, ids: [] };
+
+    await db.delete(schema.learnings).where(whereClause);
+    await this.env.VECTORIZE.deleteByIds(ids);
+    return { deleted: ids.length, ids };
   }
 
   /**
@@ -941,6 +1150,25 @@ export class DejaDO extends DurableObject<Env> {
 
       return c.json(result);
     });
+
+    // Inject trace endpoint - full retrieval pipeline for debugging
+    app.post('/inject/trace', async (c) => {
+      const body: any = await c.req.json().catch(() => ({}));
+      const thresholdParam = c.req.query('threshold');
+      const threshold =
+        typeof body.threshold === 'number'
+          ? body.threshold
+          : thresholdParam !== undefined
+            ? parseFloat(thresholdParam)
+            : 0;
+      const result = await this.injectTrace(
+        body.scopes || ['shared'],
+        body.context || '',
+        body.limit ?? 5,
+        Number.isFinite(threshold) ? threshold : 0
+      );
+      return c.json(result);
+    });
     
     // Stats endpoint
     app.get('/stats', async (c) => {
@@ -994,10 +1222,34 @@ export class DejaDO extends DurableObject<Env> {
     app.get('/learnings', async (c) => {
       const scope = c.req.query('scope');
       const limit = c.req.query('limit');
-      const result = await this.getLearnings({ 
-        scope, 
-        limit: limit ? parseInt(limit) : undefined 
+      const result = await this.getLearnings({
+        scope,
+        limit: limit ? parseInt(limit) : undefined
       });
+      return c.json(result);
+    });
+
+    app.delete('/learnings', async (c) => {
+      const confidenceLt = c.req.query('confidence_lt');
+      const notRecalledInDays = c.req.query('not_recalled_in_days');
+      const scope = c.req.query('scope');
+
+      const filters: { confidence_lt?: number; not_recalled_in_days?: number; scope?: string } = {};
+      if (confidenceLt != null) {
+        const n = parseFloat(confidenceLt);
+        if (Number.isFinite(n)) filters.confidence_lt = n;
+      }
+      if (notRecalledInDays != null) {
+        const n = parseInt(notRecalledInDays);
+        if (Number.isFinite(n) && n > 0) filters.not_recalled_in_days = n;
+      }
+      if (scope != null && scope.trim()) filters.scope = scope.trim();
+
+      if (Object.keys(filters).length === 0) {
+        return c.json({ error: 'At least one filter required: confidence_lt, not_recalled_in_days, or scope' }, 400);
+      }
+
+      const result = await this.deleteLearnings(filters);
       return c.json(result);
     });
     
@@ -1007,7 +1259,21 @@ export class DejaDO extends DurableObject<Env> {
       const result = await this.deleteLearning(id);
       return c.json(result);
     });
-    
+
+    app.get('/learning/:id/neighbors', async (c) => {
+      const id = c.req.param('id');
+      const thresholdParam = c.req.query('threshold');
+      const limitParam = c.req.query('limit');
+      const threshold = thresholdParam ? parseFloat(thresholdParam) : 0.85;
+      const limit = limitParam ? parseInt(limitParam) : 10;
+      const result = await this.getLearningNeighbors(
+        id,
+        Number.isFinite(threshold) ? threshold : 0.85,
+        Number.isFinite(limit) && limit > 0 ? limit : 10
+      );
+      return c.json(result);
+    });
+
     // Set secret endpoint
     app.post('/secret', async (c) => {
       const body: any = await c.req.json();

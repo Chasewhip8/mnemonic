@@ -111,6 +111,13 @@ const integrationCategories = [
     </div>
   </section>
 
+  <p class="mt-8 font-mono text-[11px] text-chrome-dark/70">
+    <a href="/guides/quickstart" class="hover:text-brass transition-colors">Quickstart</a>
+    · <a href="/docs" class="hover:text-brass transition-colors">Docs</a>
+    · <a href="/integrations" class="hover:text-brass transition-colors">Integrations</a>
+    · <a href="/research" class="hover:text-brass transition-colors">Research</a>
+  </p>
+
   <!-- Three Ways to Use -->
   <section class="mt-18">
     <div
@@ -137,8 +144,7 @@ const integrationCategories = [
         </p>
         <div
           class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"
-        ><span class="flag">import</span> <span class="var">deja</span> <span class="flag">from</span> <span class="string">'deja-client'</span>
-<span class="flag">const</span> <span class="var">mem</span> = deja(<span class="var">DEJA_URL</span>)
+        ><span class="flag">import</span> <span class="var">deja</span> <span class="flag">from</span> <span class="string">'deja-client'</span><br/><span class="flag">const</span> <span class="var">mem</span> = deja(<span class="var">DEJA_URL</span>)
 
 <span class="flag">await</span> mem.<span class="cmd">learn</span>(<span class="string">"trigger"</span>, <span class="string">"learning"</span>)
 <span class="flag">await</span> mem.<span class="cmd">inject</span>(<span class="string">"context"</span>)</div>
@@ -188,113 +194,19 @@ const integrationCategories = [
         <div
           class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto whitespace-pre shadow-code"
         ><span class="comment">// claude_desktop_config.json</span>
-<span class="string">"mcpServers"</span>: {"{"}
-  <span class="string">"deja"</span>: {"{"}
-    <span class="string">"url"</span>: <span class="string">"..."</span>
-  {"}"}
-{"}"}</div>
+<span class="string">&quot;mcpServers&quot;</span>: &#123;
+  <span class="string">&quot;deja&quot;</span>: &#123;
+    <span class="string">&quot;url&quot;</span>: <span class="string">&quot;...&quot;</span>
+  &#125;
+&#125;</div>
       </div>
     </div>
   </section>
 
-  <!-- Use Cases -->
   <section class="mt-18">
-    <div
-      class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6"
-    >
-      Use cases
-    </div>
-    <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-      <div
-        class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-      >
-        <div
-          class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-        >
-        </div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">
-          Incident response
-        </h3>
-        <p class="font-serif font-light text-chrome-dark m-0">
-          Capture the postmortem as learnings, inject them before the next
-          on-call handoff.
-        </p>
-      </div>
-      <div
-        class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-      >
-        <div
-          class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-        >
-        </div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">
-          Agent onboarding
-        </h3>
-        <p class="font-serif font-light text-chrome-dark m-0">
-          Give fresh agents the muscle memory of your best runs without flooding
-          them with logs.
-        </p>
-      </div>
-      <div
-        class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-      >
-        <div
-          class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-        >
-        </div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">
-          Long-running workflows
-        </h3>
-        <p class="font-serif font-light text-chrome-dark m-0">
-          Stitch multi-day work into a single arc. Deja remembers outcomes, not
-          noise.
-        </p>
-      </div>
-      <div
-        class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-      >
-        <div
-          class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-        >
-        </div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">
-          Tool reliability
-        </h3>
-        <p class="font-serif font-light text-chrome-dark m-0">
-          Teach agents the traps: flaky endpoints, brittle migrations, and safe
-          retries.
-        </p>
-      </div>
-      <div
-        class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-      >
-        <div
-          class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-        >
-        </div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">
-          Ops playbooks
-        </h3>
-        <p class="font-serif font-light text-chrome-dark m-0">
-          Store the short form. Inject it when the runbook needs to be alive.
-        </p>
-      </div>
-      <div
-        class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-      >
-        <div
-          class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-        >
-        </div>
-        <h3 class="font-serif font-semibold text-xl tracking-tight m-0 mb-3">
-          Product memory
-        </h3>
-        <p class="font-serif font-light text-chrome-dark m-0">
-          Let agents remember the why, not just the what. Keep decisions
-          tethered.
-        </p>
-      </div>
-    </div>
+    <p class="font-serif font-light text-chrome-dark m-0">
+      Use cases: incident response, onboarding, playbooks. <a href="/use-cases" class="text-brass hover:underline">See walkthroughs</a>.
+    </p>
   </section>
 
   <!-- One memory, everywhere -->
@@ -375,63 +287,6 @@ const integrationCategories = [
       </div>
       <p class="text-center text-chrome-dark font-serif mt-8 text-sm">
         CI learns it. Your chat agent knows it. Same memory, different doors.
-      </p>
-    </div>
-  </section>
-
-  <!-- How it works - Flow Visualization -->
-  <section class="mt-18">
-    <div
-      class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6"
-    >
-      Your context window is precious
-    </div>
-    <div
-      class="bg-steel border border-brass/10 rounded-sm p-8 md:p-12 relative shadow-card overflow-hidden"
-    >
-      <div
-        class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-      >
-      </div>
-
-      <!-- Flow visualization -->
-      <div class="flow-container">
-        <!-- The wire connecting all nodes -->
-        <div class="flow-wire"></div>
-
-        <!-- Node 1: Learn -->
-        <div class="flow-node">
-          <div class="flow-node-ring">
-            <span class="flow-node-icon">.learn()</span>
-          </div>
-          <span class="flow-node-label">Post-run</span>
-          <span class="flow-node-desc"
-            >Capture what worked and what didn't.</span
-          >
-        </div>
-
-        <!-- Node 2: Store -->
-        <div class="flow-node">
-          <div class="flow-node-ring">
-            <span class="flow-node-icon">vector</span>
-          </div>
-          <span class="flow-node-label">Semantic</span>
-          <span class="flow-node-desc">Indexed by meaning, not keywords.</span>
-        </div>
-
-        <!-- Node 3: Inject -->
-        <div class="flow-node">
-          <div class="flow-node-ring">
-            <span class="flow-node-icon">.inject()</span>
-          </div>
-          <span class="flow-node-label">On-demand</span>
-          <span class="flow-node-desc">Recall what's relevant right now.</span>
-        </div>
-      </div>
-
-      <!-- Tagline -->
-      <p class="text-center text-chrome-dark font-serif mt-8 text-sm">
-        Don't carry everything. Ask for what's relevant <em>right now</em>.
       </p>
     </div>
   </section>
@@ -543,104 +398,6 @@ const integrationCategories = [
           <span id="demo-method" class="text-brass">POST</span>
           <span id="demo-endpoint" class="ml-1">/learn</span>
           <span id="demo-status" class="ml-3"></span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Stack -->
-  <section class="mt-18">
-    <div
-      class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6"
-    >
-      Under the hood
-    </div>
-    <div
-      class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-    >
-      <div
-        class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-      >
-      </div>
-      <div class="grid gap-6 grid-cols-2 md:grid-cols-5 text-center">
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">compute</div>
-          <div class="font-serif text-chrome-dark text-sm">
-            Cloudflare Workers
-          </div>
-        </div>
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">isolation</div>
-          <div class="font-serif text-chrome-dark text-sm">Durable Objects</div>
-        </div>
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">vectors</div>
-          <div class="font-serif text-chrome-dark text-sm">
-            Vectorize + Workers AI
-          </div>
-        </div>
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">storage</div>
-          <div class="font-serif text-chrome-dark text-sm">
-            SQLite + Drizzle
-          </div>
-        </div>
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">auth</div>
-          <div class="font-serif text-chrome-dark text-sm">
-            API key + scoped access
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Security -->
-  <section class="mt-18">
-    <div
-      class="font-mono text-[11px] font-bold uppercase tracking-[0.3em] text-brass mb-6"
-    >
-      Secure by default
-    </div>
-    <div
-      class="bg-steel border border-brass/10 rounded-sm p-6 relative shadow-card"
-    >
-      <div
-        class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-brass to-transparent opacity-30"
-      >
-      </div>
-      <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">
-            Your infrastructure
-          </div>
-          <p class="font-serif font-light text-chrome-dark text-sm m-0">
-            Deploys to your Cloudflare account. No data leaves your Workers.
-          </p>
-        </div>
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">
-            Per-tenant isolation
-          </div>
-          <p class="font-serif font-light text-chrome-dark text-sm m-0">
-            Each API key gets its own Durable Object. No cross-tenant leakage.
-          </p>
-        </div>
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">
-            Auth-first routing
-          </div>
-          <p class="font-serif font-light text-chrome-dark text-sm m-0">
-            All routes require Bearer tokens by default. Explicitly opt in to
-            public access.
-          </p>
-        </div>
-        <div>
-          <div class="font-mono text-xs text-brass mb-2">Scoped access</div>
-          <p class="font-serif font-light text-chrome-dark text-sm m-0">
-            Shared, agent-specific, and session-scoped memories. Least privilege
-            by design.
-          </p>
         </div>
       </div>
     </div>
@@ -812,32 +569,11 @@ const integrationCategories = [
           Level up with deja
         </a>
       </div>
-      <div class="flex flex-wrap gap-4 justify-center mt-6 relative">
-        <a
-          href="/integrations"
-          class="font-mono px-5 py-2.5 rounded-sm text-xs tracking-[0.1em] uppercase border border-brass/10 bg-transparent text-chrome-dark hover:bg-brass/5 hover:text-brass transition-colors"
-        >
-          Browse Integrations
-        </a>
-        <a
-          href="/patterns"
-          class="font-mono px-5 py-2.5 rounded-sm text-xs tracking-[0.1em] uppercase border border-brass/10 bg-transparent text-chrome-dark hover:bg-brass/5 hover:text-brass transition-colors"
-        >
-          See Patterns
-        </a>
-        <a
-          href="/research"
-          class="font-mono px-5 py-2.5 rounded-sm text-xs tracking-[0.1em] uppercase border border-brass/10 bg-transparent text-chrome-dark hover:bg-brass/5 hover:text-brass transition-colors"
-        >
-          Research
-        </a>
-        <a
-          href="/docs"
-          class="font-mono px-5 py-2.5 rounded-sm text-xs tracking-[0.1em] uppercase border border-brass/10 bg-transparent text-chrome-dark hover:bg-brass/5 hover:text-brass transition-colors"
-        >
-          Read the Docs
-        </a>
-      </div>
+      <p class="mt-6 font-mono text-[11px] text-chrome-dark/70">
+        <a href="/docs" class="hover:text-brass transition-colors">Docs</a>
+        · <a href="/integrations" class="hover:text-brass transition-colors">Integrations</a>
+        · <a href="/research" class="hover:text-brass transition-colors">Research</a>
+      </p>
       <footer
         class="mt-8 pt-8 border-t border-brass/10 text-chrome-dark font-mono text-[11px] font-medium tracking-[0.05em]"
       >

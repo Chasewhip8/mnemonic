@@ -154,8 +154,11 @@ const clineInstall = `{
         <div class="space-y-3">
           <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">learn</code><span class="font-serif text-sm text-chrome-dark">Store a memory for future recall</span></div>
           <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">inject</code><span class="font-serif text-sm text-chrome-dark">Retrieve context-relevant memories</span></div>
+          <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">inject_trace</code><span class="font-serif text-sm text-chrome-dark">Debug retrieval: candidates, scores, threshold (observability)</span></div>
           <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">query</code><span class="font-serif text-sm text-chrome-dark">Semantic search across memory</span></div>
           <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">forget</code><span class="font-serif text-sm text-chrome-dark">Delete a specific memory</span></div>
+          <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">forget_bulk</code><span class="font-serif text-sm text-chrome-dark">Bulk delete by confidence, staleness, or scope</span></div>
+          <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">learning_neighbors</code><span class="font-serif text-sm text-chrome-dark">Find semantically similar memories (contradiction checks)</span></div>
           <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">list</code><span class="font-serif text-sm text-chrome-dark">List memories by scope</span></div>
           <div class="flex items-start gap-3"><code class="font-mono text-xs text-brass bg-brass/10 px-2 py-0.5 rounded">stats</code><span class="font-serif text-sm text-chrome-dark">Read memory usage/statistics</span></div>
         </div>
@@ -185,7 +188,7 @@ const clineInstall = `{
           <ul class="font-serif font-light text-chrome-dark pl-4 space-y-1">
             <li><code class="text-brass">trigger</code> (required) — What triggers this memory</li>
             <li><code class="text-brass">learning</code> (required) — What was learned</li>
-            <li><code class="text-brass">confidence</code> (required) — 0.0 to 1.0, memories below 0.3 are auto-cleaned</li>
+            <li><code class="text-brass">confidence</code> — 0.0 to 1.0 (default 0.5), memories below 0.3 are auto-cleaned</li>
             <li><code class="text-brass">scope</code> — "shared", "agent:id", or "session:id" (default: "shared")</li>
             <li><code class="text-brass">reason</code> — Optional context</li>
             <li><code class="text-brass">source</code> — Optional source identifier</li>
@@ -198,11 +201,19 @@ const clineInstall = `{
           <span class="font-mono text-xs font-bold px-2 py-1 bg-brass/20 text-brass rounded">POST</span>
           <code class="font-mono text-sm text-chrome">/inject</code>
         </div>
-        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Get relevant memories formatted for prompt injection.</p>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Get relevant memories formatted for prompt injection. Each recalled memory gets <code class="text-brass">last_recalled_at</code> and <code class="text-brass">recall_count</code> updated.</p>
         <pre class="code-block bg-void-deep border border-brass/10 rounded-sm p-4 font-mono text-xs leading-relaxed text-chrome-dark overflow-x-auto shadow-code">{injectExample}</pre>
         <p class="font-serif font-light text-chrome-dark m-0 mt-4 text-sm">
-          Returns a formatted string ready to inject into your agent's system prompt.
+          Returns a formatted string ready to inject into your agent's system prompt. Learnings include <code class="text-brass">last_recalled_at</code>, <code class="text-brass">recall_count</code>.
         </p>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-brass/20 text-brass rounded">POST</span>
+          <code class="font-mono text-sm text-chrome">/inject/trace</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0 mb-4">Full retrieval pipeline for debugging. Returns candidates, similarity scores, threshold pass/fail, and timing. Use <code class="text-brass">?threshold=0.X</code> or body to experiment with cutoffs.</p>
       </div>
 
       <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
@@ -227,7 +238,15 @@ const clineInstall = `{
           <span class="font-mono text-xs font-bold px-2 py-1 bg-void-deep text-chrome-dark border border-brass/20 rounded">GET</span>
           <code class="font-mono text-sm text-chrome">/learnings?scope=shared</code>
         </div>
-        <p class="font-serif font-light text-chrome-dark m-0">List all learnings, optionally filtered by scope.</p>
+        <p class="font-serif font-light text-chrome-dark m-0">List all learnings, optionally filtered by scope. Each learning includes <code class="text-brass">last_recalled_at</code>, <code class="text-brass">recall_count</code>.</p>
+      </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-void-deep text-chrome-dark border border-brass/20 rounded">GET</span>
+          <code class="font-mono text-sm text-chrome">/learning/:id/neighbors?threshold=0.85&amp;limit=10</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0">Find semantically similar memories for a learning. Use before saving to check for contradictions. Default threshold 0.85.</p>
       </div>
 
       <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
@@ -237,6 +256,28 @@ const clineInstall = `{
         </div>
         <p class="font-serif font-light text-chrome-dark m-0">Delete a specific learning by ID. Requires authentication.</p>
       </div>
+
+      <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="font-mono text-xs font-bold px-2 py-1 bg-red-500/20 text-red-400 rounded">DELETE</span>
+          <code class="font-mono text-sm text-chrome">/learnings?confidence_lt=0.5&amp;not_recalled_in_days=90&amp;scope=shared</code>
+        </div>
+        <p class="font-serif font-light text-chrome-dark m-0">Bulk delete memories. Requires at least one filter: <code class="text-brass">confidence_lt</code>, <code class="text-brass">not_recalled_in_days</code>, or <code class="text-brass">scope</code>. Returns <code class="text-brass">&#123; deleted, ids &#125;</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="font-serif font-semibold text-2xl tracking-tight m-0 mb-6 flex items-center gap-3">
+      <span class="text-brass">#</span> Memory Tracking
+    </h2>
+    <div class="bg-steel border border-brass/10 rounded-sm p-6 shadow-card">
+      <p class="font-serif font-light text-chrome-dark m-0 mb-4">Each learning tracks usage for observability and pruning:</p>
+      <div class="space-y-2">
+        <div class="flex items-start gap-4"><code class="font-mono text-sm text-brass whitespace-nowrap">last_recalled_at</code><span class="font-serif text-chrome-dark">ISO timestamp of last /inject recall</span></div>
+        <div class="flex items-start gap-4"><code class="font-mono text-sm text-brass whitespace-nowrap">recall_count</code><span class="font-serif text-chrome-dark">Number of times this memory was injected</span></div>
+      </div>
+      <p class="font-serif font-light text-chrome-dark m-0 mt-4 text-sm">Use <code class="text-brass">DELETE /learnings?not_recalled_in_days=90</code> to prune stale memories.</p>
     </div>
   </section>
 
