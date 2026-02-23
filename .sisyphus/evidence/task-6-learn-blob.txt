@@ -1,0 +1,12 @@
+Task 6 evidence: learn() uses raw SQL vector32() blob insert.
+
+Source: src/service.ts
+
+224: async learn(...)
+234: const embedding = await createEmbedding(textForEmbedding);
+251: await this.db.execute({
+252:   sql: `INSERT INTO learnings (id, trigger, learning, reason, confidence, source, scope, embedding, created_at, recall_count)
+253:         VALUES (?, ?, ?, ?, ?, ?, ?, vector32(?), ?, 0)`,
+262:   JSON.stringify(newLearning.embedding),
+
+Result: embedding is inserted through raw this.db.execute() and wrapped with vector32(?) for F32_BLOB storage.

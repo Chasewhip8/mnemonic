@@ -1,4 +1,8 @@
-import { sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core';
+import { customType, sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core';
+
+const f32Blob = customType<{ data: number[] | null; driverData: null }>({
+  dataType() { return 'F32_BLOB(384)'; },
+});
 
 export const learnings = sqliteTable('learnings', {
   id: text('id').primaryKey(),
@@ -8,7 +12,7 @@ export const learnings = sqliteTable('learnings', {
   confidence: real('confidence').default(1.0),
   source: text('source'),
   scope: text('scope').notNull(), // Added for scope support
-  embedding: text('embedding'), // Vector embedding as JSON string
+  embedding: f32Blob('embedding'),
   createdAt: text('created_at').notNull(),
   lastRecalledAt: text('last_recalled_at'),
   recallCount: integer('recall_count').default(0),

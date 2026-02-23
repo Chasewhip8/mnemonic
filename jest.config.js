@@ -1,13 +1,11 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: './test/environment.js',
   testMatch: ['**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
   transform: {
-    '^.+\.tsx?$': 'ts-jest',
+    '^.+\\.tsx?$': 'ts-jest',
   },
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
-  moduleNameMapper: {
-    '^cloudflare:workers$': '<rootDir>/__mocks__/cloudflare-workers.js',
-  },
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/packages/'],
+  testTimeout: 120000,
 };

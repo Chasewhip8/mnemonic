@@ -1,469 +1,903 @@
-/**
- * deja - persistent memory for agents
- *
- * Agents learn from failures. Deja remembers.
- */
+import { and, desc, eq, like, sql } from "drizzle-orm";
+import { type Context, Hono } from "hono";
+import { cors } from "hono/cors";
+import { startCleanupCron } from "./cleanup";
+import { getDb, getDrizzle, initDb } from "./db";
+import { initEmbeddings } from "./embeddings";
+import * as schema from "./schema";
+import {
+	DejaService,
+	type InjectResult,
+	type WorkingStateResponse,
+} from "./service";
 
-import { DejaDO } from './do/DejaDO';
-import { cleanup } from './cleanup';
+const app = new Hono();
 
-interface Env {
-  DEJA: DurableObjectNamespace;
-  API_KEY?: string;
-  VECTORIZE: VectorizeIndex;
-  AI: any;
-  ASSETS: Fetcher;
+type JsonObject = Record<string, unknown>;
+type DeleteLearningsFilters = Parameters<DejaService["deleteLearnings"]>[0];
+type ResolveStateOptions = NonNullable<
+	Parameters<DejaService["resolveState"]>[1]
+>;
+type UpsertStatePayload = Parameters<DejaService["upsertState"]>[1];
+
+declare const Bun: {
+	serve(options: {
+		port: number;
+		fetch: (request: Request) => Response | Promise<Response>;
+	}): unknown;
+};
+
+function asObject(value: unknown): JsonObject {
+	return typeof value === "object" && value !== null
+		? (value as JsonObject)
+		: {};
 }
 
-export { DejaDO };
+function asString(value: unknown): string | undefined {
+	return typeof value === "string" ? value : undefined;
+}
 
-// MCP Tool definitions
+function asNumber(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isFinite(value)
+		? value
+		: undefined;
+}
+
+function asStringArray(value: unknown, fallback: string[]): string[] {
+	if (!Array.isArray(value)) return fallback;
+	const items = value.filter(
+		(entry): entry is string => typeof entry === "string",
+	);
+	return items.length > 0 ? items : fallback;
+}
+
 const MCP_TOOLS = [
-  {
-    name: 'learn',
-    description: 'Store a learning for future recall. Use after completing tasks, encountering issues, or when the user says "remember this".',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        trigger: { type: 'string', description: 'When this learning applies (e.g., "deploying to production")' },
-        learning: { type: 'string', description: 'What was learned (e.g., "always run dry-run first")' },
-        confidence: { type: 'number', description: 'Confidence level 0-1 (default 0.8)', default: 0.8 },
-        scope: { type: 'string', description: 'Memory scope: "shared", "agent:<id>", or "session:<id>"', default: 'shared' },
-        reason: { type: 'string', description: 'Why this was learned' },
-        source: { type: 'string', description: 'Source identifier' },
-      },
-      required: ['trigger', 'learning'],
-    },
-  },
-  {
-    name: 'inject',
-    description: 'Retrieve relevant memories for the current context. Use before starting tasks to get helpful context.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        context: { type: 'string', description: 'Current context to find relevant memories for' },
-        scopes: { type: 'array', items: { type: 'string' }, description: 'Scopes to search', default: ['shared'] },
-        limit: { type: 'number', description: 'Max memories to return', default: 5 },
-        includeState: { type: 'boolean', description: 'Include live working state in prompt', default: false },
-        runId: { type: 'string', description: 'Run/session ID when includeState is true' },
-      },
-      required: ['context'],
-    },
-  },
-  {
-    name: 'inject_trace',
-    description: 'Debug retrieval pipeline: returns candidates, similarity scores, threshold filtering. Use to understand why agents recall what they recall.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        context: { type: 'string', description: 'Current context to find relevant memories for' },
-        scopes: { type: 'array', items: { type: 'string' }, description: 'Scopes to search', default: ['shared'] },
-        limit: { type: 'number', description: 'Max memories to return', default: 5 },
-        threshold: { type: 'number', description: 'Minimum similarity score (0-1). Memories below this are marked rejected.', default: 0 },
-      },
-      required: ['context'],
-    },
-  },
-  {
-    name: 'query',
-    description: 'Search memories semantically. Use when looking for specific past learnings.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Search query' },
-        scopes: { type: 'array', items: { type: 'string' }, description: 'Scopes to search', default: ['shared'] },
-        limit: { type: 'number', description: 'Max results', default: 10 },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'forget',
-    description: 'Delete a specific learning by ID. Use to remove outdated or incorrect memories.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'Learning ID to delete' },
-      },
-      required: ['id'],
-    },
-  },
-  {
-    name: 'forget_bulk',
-    description: 'Bulk delete memories by filters. Requires at least one filter. Use to prune stale or low-confidence memories.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        confidence_lt: { type: 'number', description: 'Delete memories with confidence below this' },
-        not_recalled_in_days: { type: 'number', description: 'Delete memories not recalled in this many days' },
-        scope: { type: 'string', description: 'Delete only memories in this scope' },
-      },
-    },
-  },
-  {
-    name: 'learning_neighbors',
-    description: 'Find semantically similar memories for a learning. Use to check for contradictions or overlap before saving new memories.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'Learning ID to find neighbors for' },
-        threshold: { type: 'number', description: 'Minimum cosine similarity (0-1)', default: 0.85 },
-        limit: { type: 'number', description: 'Max neighbors to return', default: 10 },
-      },
-      required: ['id'],
-    },
-  },
-  {
-    name: 'list',
-    description: 'List all memories, optionally filtered by scope.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        scope: { type: 'string', description: 'Filter by scope' },
-        limit: { type: 'number', description: 'Max results', default: 20 },
-      },
-    },
-  },
-  {
-    name: 'stats',
-    description: 'Get memory statistics including counts by scope.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-    },
-  },
-  {
-    name: 'state_put',
-    description: 'Upsert live working state for a run/session.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        runId: { type: 'string' },
-        goal: { type: 'string' },
-        assumptions: { type: 'array', items: { type: 'string' } },
-        decisions: { type: 'array', items: { type: 'object' } },
-        open_questions: { type: 'array', items: { type: 'string' } },
-        next_actions: { type: 'array', items: { type: 'string' } },
-        confidence: { type: 'number' },
-        updatedBy: { type: 'string' },
-      },
-      required: ['runId'],
-    },
-  },
-  {
-    name: 'state_get',
-    description: 'Fetch live working state for a run/session.',
-    inputSchema: {
-      type: 'object',
-      properties: { runId: { type: 'string' } },
-      required: ['runId'],
-    },
-  },
-  {
-    name: 'state_patch',
-    description: 'Patch live working state for a run/session.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        runId: { type: 'string' },
-        patch: { type: 'object' },
-        updatedBy: { type: 'string' },
-      },
-      required: ['runId', 'patch'],
-    },
-  },
-  {
-    name: 'state_resolve',
-    description: 'Resolve a run/session state and optionally persist compact learnings.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        runId: { type: 'string' },
-        persistToLearn: { type: 'boolean', default: false },
-        scope: { type: 'string', default: 'shared' },
-        summaryStyle: { type: 'string', enum: ['compact', 'full'], default: 'compact' },
-        updatedBy: { type: 'string' },
-      },
-      required: ['runId'],
-    },
-  },
+	{
+		name: "learn",
+		description:
+			'Store a learning for future recall. Use after completing tasks, encountering issues, or when the user says "remember this".',
+		inputSchema: {
+			type: "object",
+			properties: {
+				trigger: {
+					type: "string",
+					description:
+						'When this learning applies (e.g., "deploying to production")',
+				},
+				learning: {
+					type: "string",
+					description: 'What was learned (e.g., "always run dry-run first")',
+				},
+				confidence: {
+					type: "number",
+					description: "Confidence level 0-1 (default 0.8)",
+					default: 0.8,
+				},
+				scope: {
+					type: "string",
+					description:
+						'Memory scope: "shared", "agent:<id>", or "session:<id>"',
+					default: "shared",
+				},
+				reason: { type: "string", description: "Why this was learned" },
+				source: { type: "string", description: "Source identifier" },
+			},
+			required: ["trigger", "learning"],
+		},
+	},
+	{
+		name: "inject",
+		description:
+			"Retrieve relevant memories for the current context. Use before starting tasks to get helpful context.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				context: {
+					type: "string",
+					description: "Current context to find relevant memories for",
+				},
+				scopes: {
+					type: "array",
+					items: { type: "string" },
+					description: "Scopes to search",
+					default: ["shared"],
+				},
+				limit: {
+					type: "number",
+					description: "Max memories to return",
+					default: 5,
+				},
+				includeState: {
+					type: "boolean",
+					description: "Include live working state in prompt",
+					default: false,
+				},
+				runId: {
+					type: "string",
+					description: "Run/session ID when includeState is true",
+				},
+			},
+			required: ["context"],
+		},
+	},
+	{
+		name: "inject_trace",
+		description:
+			"Debug retrieval pipeline: returns candidates, similarity scores, threshold filtering. Use to understand why agents recall what they recall.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				context: {
+					type: "string",
+					description: "Current context to find relevant memories for",
+				},
+				scopes: {
+					type: "array",
+					items: { type: "string" },
+					description: "Scopes to search",
+					default: ["shared"],
+				},
+				limit: {
+					type: "number",
+					description: "Max memories to return",
+					default: 5,
+				},
+				threshold: {
+					type: "number",
+					description:
+						"Minimum similarity score (0-1). Memories below this are marked rejected.",
+					default: 0,
+				},
+			},
+			required: ["context"],
+		},
+	},
+	{
+		name: "query",
+		description:
+			"Search memories semantically. Use when looking for specific past learnings.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				query: { type: "string", description: "Search query" },
+				scopes: {
+					type: "array",
+					items: { type: "string" },
+					description: "Scopes to search",
+					default: ["shared"],
+				},
+				limit: { type: "number", description: "Max results", default: 10 },
+			},
+			required: ["query"],
+		},
+	},
+	{
+		name: "forget",
+		description:
+			"Delete a specific learning by ID. Use to remove outdated or incorrect memories.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				id: { type: "string", description: "Learning ID to delete" },
+			},
+			required: ["id"],
+		},
+	},
+	{
+		name: "forget_bulk",
+		description:
+			"Bulk delete memories by filters. Requires at least one filter. Use to prune stale or low-confidence memories.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				confidence_lt: {
+					type: "number",
+					description: "Delete memories with confidence below this",
+				},
+				not_recalled_in_days: {
+					type: "number",
+					description: "Delete memories not recalled in this many days",
+				},
+				scope: {
+					type: "string",
+					description: "Delete only memories in this scope",
+				},
+			},
+		},
+	},
+	{
+		name: "learning_neighbors",
+		description:
+			"Find semantically similar memories for a learning. Use to check for contradictions or overlap before saving new memories.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				id: {
+					type: "string",
+					description: "Learning ID to find neighbors for",
+				},
+				threshold: {
+					type: "number",
+					description: "Minimum cosine similarity (0-1)",
+					default: 0.85,
+				},
+				limit: {
+					type: "number",
+					description: "Max neighbors to return",
+					default: 10,
+				},
+			},
+			required: ["id"],
+		},
+	},
+	{
+		name: "list",
+		description: "List all memories, optionally filtered by scope.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				scope: { type: "string", description: "Filter by scope" },
+				limit: { type: "number", description: "Max results", default: 20 },
+			},
+		},
+	},
+	{
+		name: "stats",
+		description: "Get memory statistics including counts by scope.",
+		inputSchema: {
+			type: "object",
+			properties: {},
+		},
+	},
+	{
+		name: "state_put",
+		description: "Upsert live working state for a run/session.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				runId: { type: "string" },
+				goal: { type: "string" },
+				assumptions: { type: "array", items: { type: "string" } },
+				decisions: { type: "array", items: { type: "object" } },
+				open_questions: { type: "array", items: { type: "string" } },
+				next_actions: { type: "array", items: { type: "string" } },
+				confidence: { type: "number" },
+				updatedBy: { type: "string" },
+			},
+			required: ["runId"],
+		},
+	},
+	{
+		name: "state_get",
+		description: "Fetch live working state for a run/session.",
+		inputSchema: {
+			type: "object",
+			properties: { runId: { type: "string" } },
+			required: ["runId"],
+		},
+	},
+	{
+		name: "state_patch",
+		description: "Patch live working state for a run/session.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				runId: { type: "string" },
+				patch: { type: "object" },
+				updatedBy: { type: "string" },
+			},
+			required: ["runId", "patch"],
+		},
+	},
+	{
+		name: "state_resolve",
+		description:
+			"Resolve a run/session state and optionally persist compact learnings.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				runId: { type: "string" },
+				persistToLearn: { type: "boolean", default: false },
+				scope: { type: "string", default: "shared" },
+				summaryStyle: {
+					type: "string",
+					enum: ["compact", "full"],
+					default: "compact",
+				},
+				updatedBy: { type: "string" },
+			},
+			required: ["runId"],
+		},
+	},
 ];
 
-// Handle MCP tool calls
-async function handleMcpToolCall(stub: DurableObjectStub, toolName: string, args: any): Promise<any> {
-  switch (toolName) {
-    case 'learn': {
-      const response = await stub.fetch(new Request('http://internal/learn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trigger: args.trigger,
-          learning: args.learning,
-          confidence: args.confidence ?? 0.8,
-          scope: args.scope ?? 'shared',
-          reason: args.reason,
-          source: args.source,
-        }),
-      }));
-      return response.json();
-    }
-    case 'inject': {
-      const response = await stub.fetch(new Request('http://internal/inject', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          context: args.context,
-          scopes: args.scopes ?? ['shared'],
-          limit: args.limit ?? 5,
-          includeState: args.includeState ?? false,
-          runId: args.runId,
-        }),
-      }));
-      return response.json();
-    }
-    case 'inject_trace': {
-      const url = new URL('http://internal/inject/trace');
-      if (args.threshold != null) url.searchParams.set('threshold', String(args.threshold));
-      const response = await stub.fetch(new Request(url.toString(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          context: args.context,
-          scopes: args.scopes ?? ['shared'],
-          limit: args.limit ?? 5,
-          threshold: args.threshold,
-        }),
-      }));
-      return response.json();
-    }
-    case 'query': {
-      const response = await stub.fetch(new Request('http://internal/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: args.query,
-          scopes: args.scopes ?? ['shared'],
-          limit: args.limit ?? 10,
-        }),
-      }));
-      return response.json();
-    }
-    case 'forget': {
-      const response = await stub.fetch(new Request(`http://internal/learning/${args.id}`, {
-        method: 'DELETE',
-      }));
-      return response.json();
-    }
-    case 'learning_neighbors': {
-      const params = new URLSearchParams();
-      if (args.threshold != null) params.set('threshold', String(args.threshold));
-      if (args.limit != null) params.set('limit', String(args.limit));
-      const response = await stub.fetch(new Request(`http://internal/learning/${args.id}/neighbors?${params}`));
-      return response.json();
-    }
-    case 'forget_bulk': {
-      const params = new URLSearchParams();
-      if (args.confidence_lt != null) params.set('confidence_lt', String(args.confidence_lt));
-      if (args.not_recalled_in_days != null) params.set('not_recalled_in_days', String(args.not_recalled_in_days));
-      if (args.scope != null) params.set('scope', args.scope);
-      const response = await stub.fetch(new Request(`http://internal/learnings?${params}`, { method: 'DELETE' }));
-      return response.json();
-    }
-    case 'list': {
-      const params = new URLSearchParams();
-      if (args.scope) params.set('scope', args.scope);
-      if (args.limit) params.set('limit', String(args.limit));
-      const response = await stub.fetch(new Request(`http://internal/learnings?${params}`));
-      return response.json();
-    }
-    case 'stats': {
-      const response = await stub.fetch(new Request('http://internal/stats'));
-      return response.json();
-    }
-    case 'state_get': {
-      const response = await stub.fetch(new Request(`http://internal/state/${args.runId}`));
-      return response.json();
-    }
-    case 'state_put': {
-      const { runId, ...payload } = args;
-      const response = await stub.fetch(new Request(`http://internal/state/${runId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }));
-      return response.json();
-    }
-    case 'state_patch': {
-      const response = await stub.fetch(new Request(`http://internal/state/${args.runId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...(args.patch || {}), updatedBy: args.updatedBy }),
-      }));
-      return response.json();
-    }
-    case 'state_resolve': {
-      const response = await stub.fetch(new Request(`http://internal/state/${args.runId}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          persistToLearn: args.persistToLearn ?? false,
-          scope: args.scope ?? 'shared',
-          summaryStyle: args.summaryStyle ?? 'compact',
-          updatedBy: args.updatedBy,
-        }),
-      }));
-      return response.json();
-    }
-    default:
-      throw new Error(`Unknown tool: ${toolName}`);
-  }
+function formatStatePrompt(state: WorkingStateResponse): string {
+	const lines: string[] = [];
+	lines.push("Working state (live):");
+	if (state.state.goal) lines.push(`Goal: ${state.state.goal}`);
+	if (state.state.assumptions?.length) {
+		lines.push("Assumptions:");
+		for (const a of state.state.assumptions) lines.push(`- ${a}`);
+	}
+	if (state.state.decisions?.length) {
+		lines.push("Decisions:");
+		for (const d of state.state.decisions) {
+			lines.push(`- ${d.text}${d.status ? ` (${d.status})` : ""}`);
+		}
+	}
+	if (state.state.open_questions?.length) {
+		lines.push("Open questions:");
+		for (const q of state.state.open_questions) lines.push(`- ${q}`);
+	}
+	if (state.state.next_actions?.length) {
+		lines.push("Next actions:");
+		for (const a of state.state.next_actions) lines.push(`- ${a}`);
+	}
+	if (typeof state.state.confidence === "number") {
+		lines.push(`Confidence: ${state.state.confidence}`);
+	}
+	return lines.join("\n");
 }
 
-// Handle MCP JSON-RPC requests
-async function handleMcpRequest(request: Request, stub: DurableObjectStub): Promise<Response> {
-  const body = await request.json() as any;
-  const { jsonrpc, id, method, params } = body;
+async function maybeAttachState(
+	service: DejaService,
+	result: InjectResult,
+	includeState: unknown,
+	runId: unknown,
+	format: string,
+): Promise<void> {
+	if (!(includeState && typeof runId === "string" && runId.trim())) return;
 
-  if (jsonrpc !== '2.0') {
-    return new Response(JSON.stringify({
-      jsonrpc: '2.0',
-      id,
-      error: { code: -32600, message: 'Invalid Request - must be JSON-RPC 2.0' },
-    }), { headers: { 'Content-Type': 'application/json' } });
-  }
+	const state = await service.getState(runId.trim());
+	if (!state) return;
 
-  try {
-    let result: any;
-
-    switch (method) {
-      case 'initialize':
-        result = {
-          protocolVersion: '2024-11-05',
-          capabilities: { tools: {} },
-          serverInfo: { name: 'deja', version: '1.0.0' },
-        };
-        break;
-
-      case 'tools/list':
-        result = { tools: MCP_TOOLS };
-        break;
-
-      case 'tools/call': {
-        const { name, arguments: args } = params;
-        const toolResult = await handleMcpToolCall(stub, name, args || {});
-        result = {
-          content: [{ type: 'text', text: JSON.stringify(toolResult, null, 2) }],
-        };
-        break;
-      }
-
-      case 'notifications/initialized':
-      case 'notifications/cancelled':
-        // These are notifications, no response needed
-        return new Response(null, { status: 204 });
-
-      default:
-        return new Response(JSON.stringify({
-          jsonrpc: '2.0',
-          id,
-          error: { code: -32601, message: `Method not found: ${method}` },
-        }), { headers: { 'Content-Type': 'application/json' } });
-    }
-
-    return new Response(JSON.stringify({ jsonrpc: '2.0', id, result }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error: any) {
-    return new Response(JSON.stringify({
-      jsonrpc: '2.0',
-      id,
-      error: { code: -32603, message: error.message || 'Internal error' },
-    }), { headers: { 'Content-Type': 'application/json' } });
-  }
+	const statePrompt = formatStatePrompt(state);
+	if (result.prompt) {
+		result.prompt = `${statePrompt}\n\n${result.prompt}`;
+	} else if ((format || "prompt") === "prompt") {
+		result.prompt = statePrompt;
+	}
+	result.state = state;
 }
 
-function getUserIdFromApiKey(apiKey: string | undefined, authHeader: string | null): string {
-  if (!apiKey || !authHeader) return 'anonymous';
-  const providedKey = authHeader?.replace('Bearer ', '');
-  // If API key is provided and matches, use it as the user ID for isolation
-  // Otherwise, use 'anonymous'
-  return providedKey === apiKey ? providedKey : 'anonymous';
+async function runCleanup(): Promise<{ deleted: number; reasons: string[] }> {
+	const drizzle = getDrizzle();
+	let deleted = 0;
+	const reasons: string[] = [];
+
+	const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+	const staleSession = await drizzle
+		.select({ id: schema.learnings.id })
+		.from(schema.learnings)
+		.where(
+			and(
+				like(schema.learnings.scope, "session:%"),
+				sql`${schema.learnings.createdAt} < ${weekAgo}`,
+			),
+		);
+	if (staleSession.length > 0) {
+		deleted += staleSession.length;
+		reasons.push(`${staleSession.length} stale session entries`);
+		await drizzle
+			.delete(schema.learnings)
+			.where(
+				and(
+					like(schema.learnings.scope, "session:%"),
+					sql`${schema.learnings.createdAt} < ${weekAgo}`,
+				),
+			);
+	}
+
+	const monthAgo = new Date(
+		Date.now() - 30 * 24 * 60 * 60 * 1000,
+	).toISOString();
+	const staleAgent = await drizzle
+		.select({ id: schema.learnings.id })
+		.from(schema.learnings)
+		.where(
+			and(
+				like(schema.learnings.scope, "agent:%"),
+				sql`${schema.learnings.createdAt} < ${monthAgo}`,
+			),
+		);
+	if (staleAgent.length > 0) {
+		deleted += staleAgent.length;
+		reasons.push(`${staleAgent.length} stale agent entries`);
+		await drizzle
+			.delete(schema.learnings)
+			.where(
+				and(
+					like(schema.learnings.scope, "agent:%"),
+					sql`${schema.learnings.createdAt} < ${monthAgo}`,
+				),
+			);
+	}
+
+	const lowConfidence = await drizzle
+		.select({ id: schema.learnings.id })
+		.from(schema.learnings)
+		.where(sql`${schema.learnings.confidence} < 0.3`);
+	if (lowConfidence.length > 0) {
+		deleted += lowConfidence.length;
+		reasons.push(`${lowConfidence.length} low confidence entries`);
+		await drizzle
+			.delete(schema.learnings)
+			.where(sql`${schema.learnings.confidence} < 0.3`);
+	}
+
+	return { deleted, reasons };
 }
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    const path = url.pathname;
+async function handleMcpToolCall(
+	service: DejaService,
+	toolName: string,
+	args: JsonObject,
+): Promise<unknown> {
+	switch (toolName) {
+		case "learn":
+			return service.learn(
+				asString(args.scope) ?? "shared",
+				asString(args.trigger) ?? "",
+				asString(args.learning) ?? "",
+				asNumber(args.confidence) ?? 0.8,
+				asString(args.reason),
+				asString(args.source),
+			);
 
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Content-Type': 'application/json',
-    };
+		case "inject": {
+			const result = await service.inject(
+				asStringArray(args.scopes, ["shared"]),
+				asString(args.context) ?? "",
+				asNumber(args.limit) ?? 5,
+				"prompt",
+			);
+			await maybeAttachState(
+				service,
+				result,
+				args.includeState,
+				args.runId,
+				"prompt",
+			);
+			return result;
+		}
 
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
+		case "inject_trace": {
+			const threshold = asNumber(args.threshold) ?? 0;
+			return service.injectTrace(
+				asStringArray(args.scopes, ["shared"]),
+				asString(args.context) ?? "",
+				asNumber(args.limit) ?? 5,
+				threshold,
+			);
+		}
 
-    // Marketing domain: serve static Astro site, no auth required
-    if (url.hostname === 'deja.coey.dev') {
-      return env.ASSETS.fetch(request);
-    }
+		case "query":
+			return service.query(
+				asStringArray(args.scopes, ["shared"]),
+				asString(args.query) ?? "",
+				asNumber(args.limit) ?? 10,
+			);
 
-    // API domain (deja-api.coey.dev, workers.dev, localhost, etc.)
-    // All routes require authentication
-    const checkAuth = (): boolean => {
-      if (!env.API_KEY) return true; // No API key configured = open access
-      const authHeader = request.headers.get('Authorization');
-      const providedKey = authHeader?.replace('Bearer ', '');
-      return providedKey === env.API_KEY;
-    };
+		case "forget":
+			return service.deleteLearning(asString(args.id) ?? "");
 
-    if (!checkAuth()) {
-      return new Response(
-        JSON.stringify({ error: 'unauthorized - API key required' }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
+		case "learning_neighbors":
+			return service.getLearningNeighbors(
+				asString(args.id) ?? "",
+				asNumber(args.threshold) ?? 0.85,
+				asNumber(args.limit) ?? 10,
+			);
 
-    // Get user ID from API key or use 'anonymous'
-    const userId = getUserIdFromApiKey(env.API_KEY, request.headers.get('Authorization'));
-    const stub = env.DEJA.get(env.DEJA.idFromName(userId));
+		case "forget_bulk":
+			return service.deleteLearnings({
+				confidence_lt: asNumber(args.confidence_lt),
+				not_recalled_in_days: asNumber(args.not_recalled_in_days),
+				scope: asString(args.scope),
+			});
 
-    // MCP endpoint - Model Context Protocol
-    if (path === '/mcp' && request.method === 'POST') {
-      return handleMcpRequest(request, stub);
-    }
+		case "list":
+			return service.getLearnings({
+				scope: asString(args.scope),
+				limit: asNumber(args.limit),
+			});
 
-    // MCP discovery endpoint
-    if (path === '/mcp' && request.method === 'GET') {
-      return new Response(JSON.stringify({
-        name: 'deja',
-        version: '1.0.0',
-        description: 'Persistent memory for agents. Store learnings, recall context.',
-        protocol: 'mcp',
-        endpoint: `${url.origin}/mcp`,
-        tools: MCP_TOOLS.map(t => t.name),
-      }), { headers: corsHeaders });
-    }
+		case "stats":
+			return service.getStats();
 
-    // Health check at API root
-    if (path === '/') {
-      return new Response(JSON.stringify({ status: 'ok', service: 'deja' }), { headers: corsHeaders });
-    }
+		case "state_get":
+			return service.getState(asString(args.runId) ?? "");
 
-    // Forward all other requests to the Durable Object
-    return await stub.fetch(request);
-  },
+		case "state_put": {
+			const runId = asString(args.runId);
+			if (!runId) throw new Error("runId is required");
+			const { runId: _runId, ...payload } = args;
+			return service.upsertState(
+				runId,
+				payload as unknown as UpsertStatePayload,
+				asString(payload.updatedBy),
+				asString(payload.changeSummary),
+			);
+		}
 
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    // Run cleanup daily
-    try {
-      const result = await cleanup(env);
-      console.log(`Cleanup completed: ${result.deleted} entries deleted`, result.reasons);
-    } catch (error) {
-      console.error('Cleanup failed:', error);
-    }
-  },
+		case "state_patch":
+			return service.patchState(
+				asString(args.runId) ?? "",
+				asObject(args.patch),
+				asString(args.updatedBy),
+			);
+
+		case "state_resolve":
+			return service.resolveState(asString(args.runId) ?? "", {
+				persistToLearn: args.persistToLearn === true,
+				scope: asString(args.scope),
+				summaryStyle:
+					args.summaryStyle === "compact" || args.summaryStyle === "full"
+						? args.summaryStyle
+						: undefined,
+				updatedBy: asString(args.updatedBy),
+			});
+
+		default:
+			throw new Error(`Unknown tool: ${toolName}`);
+	}
+}
+
+async function handleMcpRequest(
+	c: Context,
+	service: DejaService,
+): Promise<Response> {
+	const body = asObject(await c.req.json());
+	const jsonrpc = body.jsonrpc;
+	const id = body.id;
+	const method = body.method;
+	const params = asObject(body.params);
+
+	if (jsonrpc !== "2.0") {
+		return c.json({
+			jsonrpc: "2.0",
+			id,
+			error: {
+				code: -32600,
+				message: "Invalid Request - must be JSON-RPC 2.0",
+			},
+		});
+	}
+
+	try {
+		let result: unknown;
+
+		switch (method) {
+			case "initialize":
+				result = {
+					protocolVersion: "2024-11-05",
+					capabilities: { tools: {} },
+					serverInfo: { name: "deja", version: "1.0.0" },
+				};
+				break;
+
+			case "tools/list":
+				result = { tools: MCP_TOOLS };
+				break;
+
+			case "tools/call": {
+				const name = asString(params.name);
+				if (!name) throw new Error("Tool name is required");
+				const toolResult = await handleMcpToolCall(
+					service,
+					name,
+					asObject(params.arguments),
+				);
+				result = {
+					content: [
+						{ type: "text", text: JSON.stringify(toolResult, null, 2) },
+					],
+				};
+				break;
+			}
+
+			case "notifications/initialized":
+			case "notifications/cancelled":
+				return new Response(null, { status: 204 });
+
+			default:
+				return c.json({
+					jsonrpc: "2.0",
+					id,
+					error: { code: -32601, message: `Method not found: ${method}` },
+				});
+		}
+
+		return c.json({ jsonrpc: "2.0", id, result });
+	} catch (error: unknown) {
+		const message = error instanceof Error ? error.message : "Internal error";
+		return c.json({
+			jsonrpc: "2.0",
+			id,
+			error: { code: -32603, message },
+		});
+	}
+}
+
+app.use(
+	"*",
+	cors({
+		origin: "*",
+		allowMethods: ["GET", "POST", "DELETE", "PATCH", "PUT", "OPTIONS"],
+		allowHeaders: ["Content-Type", "Authorization"],
+	}),
+);
+
+app.use("*", async (c, next) => {
+	if (c.req.method === "OPTIONS" || c.req.path === "/") return next();
+	const apiKey = process.env.API_KEY;
+	if (apiKey) {
+		const auth = c.req.header("Authorization");
+		const provided = auth?.replace("Bearer ", "");
+		if (provided !== apiKey) {
+			return c.json({ error: "unauthorized - API key required" }, 401);
+		}
+	}
+	return next();
+});
+
+await initDb();
+await initEmbeddings();
+const db = getDb();
+const drizzle = getDrizzle();
+const service = new DejaService(db, drizzle) as DejaService & {
+	cleanup: () => Promise<{ deleted: number; reasons: string[] }>;
 };
+service.cleanup = runCleanup;
+
+app.get("/", (c) => c.json({ status: "ok", service: "deja" }));
+
+app.post("/learn", async (c) => {
+	const body = asObject(await c.req.json());
+	const result = await service.learn(
+		asString(body.scope) ?? "shared",
+		asString(body.trigger) ?? "",
+		asString(body.learning) ?? "",
+		asNumber(body.confidence),
+		asString(body.reason),
+		asString(body.source),
+	);
+	return c.json(result);
+});
+
+app.post("/query", async (c) => {
+	const body = asObject(await c.req.json());
+	const result = await service.query(
+		asStringArray(body.scopes, ["shared"]),
+		asString(body.text) ?? "",
+		asNumber(body.limit),
+	);
+	return c.json(result);
+});
+
+app.post("/inject", async (c) => {
+	const body = asObject(await c.req.json());
+	const format = body.format === "learnings" ? "learnings" : "prompt";
+	const result = await service.inject(
+		asStringArray(body.scopes, ["shared"]),
+		asString(body.context) ?? "",
+		asNumber(body.limit),
+		format,
+	);
+	await maybeAttachState(
+		service,
+		result,
+		body.includeState,
+		body.runId,
+		format,
+	);
+	return c.json(result);
+});
+
+app.post("/inject/trace", async (c) => {
+	const body = asObject(await c.req.json().catch(() => ({})));
+	const thresholdParam = c.req.query("threshold");
+	const threshold =
+		asNumber(body.threshold) !== undefined
+			? (asNumber(body.threshold) as number)
+			: thresholdParam !== undefined
+				? parseFloat(thresholdParam)
+				: 0;
+	const result = await service.injectTrace(
+		asStringArray(body.scopes, ["shared"]),
+		asString(body.context) ?? "",
+		asNumber(body.limit) ?? 5,
+		Number.isFinite(threshold) ? threshold : 0,
+	);
+	return c.json(result);
+});
+
+app.get("/stats", async (c) => c.json(await service.getStats()));
+
+app.get("/learnings", async (c) => {
+	const scope = c.req.query("scope");
+	const limit = c.req.query("limit");
+	const result = await service.getLearnings({
+		scope,
+		limit: limit ? parseInt(limit, 10) : undefined,
+	});
+	return c.json(result);
+});
+
+app.delete("/learnings", async (c) => {
+	const confidenceLt = c.req.query("confidence_lt");
+	const notRecalledInDays = c.req.query("not_recalled_in_days");
+	const scope = c.req.query("scope");
+
+	const filters: DeleteLearningsFilters = {};
+	if (confidenceLt != null) {
+		const n = parseFloat(confidenceLt);
+		if (Number.isFinite(n)) filters.confidence_lt = n;
+	}
+	if (notRecalledInDays != null) {
+		const n = parseInt(notRecalledInDays, 10);
+		if (Number.isFinite(n) && n > 0) filters.not_recalled_in_days = n;
+	}
+	if (scope?.trim()) filters.scope = scope.trim();
+
+	if (Object.keys(filters).length === 0) {
+		return c.json(
+			{
+				error:
+					"At least one filter required: confidence_lt, not_recalled_in_days, or scope",
+			},
+			400,
+		);
+	}
+
+	return c.json(await service.deleteLearnings(filters));
+});
+
+app.delete("/learning/:id", async (c) => {
+	const id = c.req.param("id");
+	return c.json(await service.deleteLearning(id));
+});
+
+app.get("/learning/:id/neighbors", async (c) => {
+	const id = c.req.param("id");
+	const thresholdParam = c.req.query("threshold");
+	const limitParam = c.req.query("limit");
+	const threshold = thresholdParam ? parseFloat(thresholdParam) : 0.85;
+	const limit = limitParam ? parseInt(limitParam, 10) : 10;
+	const result = await service.getLearningNeighbors(
+		id,
+		Number.isFinite(threshold) ? threshold : 0.85,
+		Number.isFinite(limit) && limit > 0 ? limit : 10,
+	);
+	return c.json(result);
+});
+
+app.post("/secret", async (c) => {
+	const body = asObject(await c.req.json());
+	return c.json(
+		await service.setSecret(
+			asString(body.scope) ?? "shared",
+			asString(body.name) ?? "",
+			asString(body.value) ?? "",
+		),
+	);
+});
+
+app.get("/secret/:name", async (c) => {
+	const name = c.req.param("name");
+	const scopes = c.req.query("scopes")?.split(",") || ["shared"];
+	const result = await service.getSecret(scopes, name);
+	if (result === null) return c.json({ error: "not found" }, 404);
+	return c.json({ value: result });
+});
+
+app.delete("/secret/:name", async (c) => {
+	const name = c.req.param("name");
+	const scope = c.req.query("scope") || "shared";
+	const result = await service.deleteSecret(scope, name);
+	if (result.error) return c.json({ error: result.error }, 404);
+	return c.json(result);
+});
+
+app.get("/secrets", async (c) => {
+	const scope = c.req.query("scope");
+	const results = scope
+		? await drizzle
+				.select()
+				.from(schema.secrets)
+				.where(eq(schema.secrets.scope, scope))
+				.orderBy(desc(schema.secrets.updatedAt))
+		: await drizzle
+				.select()
+				.from(schema.secrets)
+				.orderBy(desc(schema.secrets.updatedAt));
+	return c.json(results);
+});
+
+app.get("/state/:runId", async (c) => {
+	const runId = c.req.param("runId");
+	const state = await service.getState(runId);
+	if (!state) return c.json({ error: "not found" }, 404);
+	return c.json(state);
+});
+
+app.put("/state/:runId", async (c) => {
+	const runId = c.req.param("runId");
+	const body = asObject(await c.req.json());
+	const state = await service.upsertState(
+		runId,
+		body as unknown as UpsertStatePayload,
+		asString(body.updatedBy),
+		asString(body.changeSummary) ?? "state put",
+	);
+	return c.json(state);
+});
+
+app.patch("/state/:runId", async (c) => {
+	const runId = c.req.param("runId");
+	const body = asObject(await c.req.json());
+	return c.json(
+		await service.patchState(runId, body, asString(body.updatedBy)),
+	);
+});
+
+app.post("/state/:runId/events", async (c) => {
+	const runId = c.req.param("runId");
+	const body = asObject(await c.req.json());
+	const payload = body.payload !== undefined ? asObject(body.payload) : body;
+	const result = await service.addStateEvent(
+		runId,
+		asString(body.eventType) ?? "note",
+		payload,
+		asString(body.createdBy),
+	);
+	return c.json(result);
+});
+
+app.post("/state/:runId/resolve", async (c) => {
+	const runId = c.req.param("runId");
+	const body = asObject(await c.req.json());
+	const opts: ResolveStateOptions = {
+		persistToLearn: body.persistToLearn === true,
+		scope: asString(body.scope),
+		summaryStyle:
+			body.summaryStyle === "compact" || body.summaryStyle === "full"
+				? body.summaryStyle
+				: undefined,
+		updatedBy: asString(body.updatedBy),
+	};
+	const result = await service.resolveState(runId, opts);
+	if (!result) return c.json({ error: "not found" }, 404);
+	return c.json(result);
+});
+
+app.post("/cleanup", async (c) => {
+	return c.json(await service.cleanup());
+});
+
+app.post("/mcp", async (c) => handleMcpRequest(c, service));
+
+app.get("/mcp", async (c) => {
+	const url = new URL(c.req.url);
+	return c.json({
+		name: "deja",
+		version: "1.0.0",
+		description:
+			"Persistent memory for agents. Store learnings, recall context.",
+		protocol: "mcp",
+		endpoint: `${url.origin}/mcp`,
+		tools: MCP_TOOLS.map((t) => t.name),
+	});
+});
+
+app.notFound((c) => c.json({ error: "not found" }, 404));
+
+app.onError((err, c) => {
+	console.error("Hono error:", err);
+	return c.json({ error: err.message }, 500);
+});
+
+startCleanupCron(service);
+
+const port = Number(process.env.PORT) || 8787;
+Bun.serve({ port, fetch: app.fetch });
+console.log(`Server running on port ${port}`);
