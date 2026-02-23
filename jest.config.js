@@ -6,6 +6,12 @@ module.exports = {
   transform: {
     '^.+\\.tsx?$': 'ts-jest',
   },
-  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/packages/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/packages/',
+    '/.deja-state/',
+    '/.direnv/',
+  ],
   testTimeout: 120000,
 };

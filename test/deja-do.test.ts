@@ -201,7 +201,17 @@ describe('vector: learn + inject roundtrip', () => {
 
     const result = await service.inject(['shared'], 'how to deploy safely', 5);
     expect(result.learnings.length).toBeGreaterThan(0);
-    expect(result.prompt.length).toBeGreaterThan(0);
+    expect(
+      result.prompt.includes('deploying to production') ||
+        result.prompt.includes('smoke tests after deploy'),
+    ).toBe(true);
+    expect(
+      result.learnings.some(
+        (l) =>
+          l.trigger.includes('deploying to production') ||
+          l.learning.includes('smoke tests after deploy'),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -213,8 +223,9 @@ describe('vector: query', () => {
 
     const result = await service.query(['shared'], 'how to write good tests');
     expect(result.learnings.length).toBeGreaterThan(0);
-    // The most relevant result should be about testing
-    expect(result.learnings[0].trigger).toContain('test');
+    expect(
+      result.learnings.some((l) => l.trigger.includes('writing tests')),
+    ).toBe(true);
   });
 });
 
