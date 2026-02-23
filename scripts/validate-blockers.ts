@@ -89,7 +89,10 @@ async function validateBlocker1(): Promise<Float32Array> {
 	try {
 		console.log("Blocker 1: validating Transformers.js embedding output...");
 		const { pipeline } = await import("@huggingface/transformers");
-		const extractor = await pipeline("feature-extraction", MODEL_ID);
+		const extractor = await pipeline("feature-extraction", MODEL_ID, {
+			device: "cpu",
+			dtype: "fp32",
+		});
 		const tensor = await extractor("hello world", {
 			pooling: "cls",
 			normalize: true,

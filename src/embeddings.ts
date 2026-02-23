@@ -1,11 +1,14 @@
-import { pipeline, type FeatureExtractionPipeline } from '@huggingface/transformers';
+import { type FeatureExtractionPipeline, pipeline } from '@huggingface/transformers';
 
 let extractor: FeatureExtractionPipeline | null = null;
 
 export async function initEmbeddings(): Promise<void> {
   try {
     console.log('Loading embedding model...');
-    extractor = await pipeline('feature-extraction', 'onnx-community/bge-small-en-v1.5-ONNX') as FeatureExtractionPipeline;
+    extractor = await pipeline('feature-extraction', 'onnx-community/bge-small-en-v1.5-ONNX', {
+      device: 'cpu',
+      dtype: 'fp32',
+    }) as FeatureExtractionPipeline;
     console.log('Embedding model loaded');
   } catch (error) {
     console.error('Embedding model loading error:', error);
