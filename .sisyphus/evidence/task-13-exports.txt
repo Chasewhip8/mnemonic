@@ -1,0 +1,5 @@
+=== Exports from dist/index.d.ts ===
+export { type ClientOptions, DejaClient, type InjectOptions, type InjectResult, type LearnOptions, type Learning, type ListOptions, type QueryOptions, type QueryResult, type Stats, deja as default, deja };
+
+=== Default export ===
+export { type ClientOptions, DejaClient, type InjectOptions, type InjectResult, type LearnOptions, type Learning, type ListOptions, type QueryOptions, type QueryResult, type Stats, deja as default, deja };
