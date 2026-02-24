@@ -68,3 +68,10 @@
 - `Learning.fields` is accessible on Schema.Class instances for field spreading
 - Root API: `HttpApi.make('deja').add(Group1).add(Group2)...` composes all groups
 - Pre-existing tsc errors in database.ts and index.ts — no errors in new API files
+
+## Task 8: LearningsRepo + LearningsApiLive
+- `LearningsRepo` implemented via `Effect.Service` with `sql`, `SqliteDrizzle`, and `EmbeddingService` yielded in constructor and method object returned.
+- Vector operations all done with `SqlClient.unsafe()` using `vector32(?)` and `JSON.stringify(embedding)`.
+- Preserved behaviors: ID generation format, embedding text `When ${trigger}, ${learning}`, prompt join with `\n`, and scope priority filter.
+- Error swallowing preserved with `Effect.catchAll` defaults for `inject`, `injectTrace`, `query`, `getLearnings`, `getStats`.
+- `LearningsApiLive` uses `HttpApiBuilder.group(Api, 'learnings', ...)` with all 9 endpoints wired to repo methods and DELETE filter validation.

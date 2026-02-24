@@ -1,0 +1,10 @@
+Task 8 typecheck evidence
+
+- Ran: bunx tsc --noEmit
+- Result: project has pre-existing errors outside learnings migration scope.
+- Verification for this task: no TypeScript errors reported from src/learnings/*.ts.
+  - Checked pattern: src/learnings/.*error TS
+  - Matches: none
+- LSP diagnostics (errors only):
+  - src/learnings/repo.ts: clean
+  - src/learnings/live.ts: clean

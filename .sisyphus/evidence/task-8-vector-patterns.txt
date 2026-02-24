@@ -1,0 +1,14 @@
+Vector query evidence (src/learnings/repo.ts)
+
+- vector32 insert:
+  - line 100: VALUES (?, ?, ?, ?, ?, ?, ?, vector32(?), ?, ?)
+- vector search queries:
+  - line 143: SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
+  - line 225: SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
+  - line 308: SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
+  - line 361: SELECT l2.*, vector_distance_cos(l2.embedding, l1.embedding) as distance
+- embedding serialization:
+  - line 109: JSON.stringify(embedding)
+  - line 148: [JSON.stringify(embedding), ...filteredScopes, limit]
+  - line 230: [JSON.stringify(embedding), ...filteredScopes, candidateLimit]
+  - line 313: [JSON.stringify(embedding), ...filteredScopes, limit]
