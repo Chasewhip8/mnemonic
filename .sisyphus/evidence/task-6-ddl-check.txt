@@ -1,0 +1,20 @@
+src/database.ts DDL grep results:
+
+18: CREATE TABLE IF NOT EXISTS learnings
+35: CREATE INDEX IF NOT EXISTS idx_learnings_trigger
+39: CREATE INDEX IF NOT EXISTS idx_learnings_confidence
+43: CREATE INDEX IF NOT EXISTS idx_learnings_created_at
+47: CREATE INDEX IF NOT EXISTS idx_learnings_scope
+51: CREATE INDEX IF NOT EXISTS idx_learnings_last_recalled_at
+56: CREATE TABLE IF NOT EXISTS secrets
+66: CREATE INDEX IF NOT EXISTS idx_secrets_scope
+71: CREATE TABLE IF NOT EXISTS state_runs
+85: CREATE TABLE IF NOT EXISTS state_revisions
+98: CREATE TABLE IF NOT EXISTS state_events
+110: ALTER TABLE learnings ADD COLUMN last_recalled_at TEXT
+113: ALTER TABLE learnings ADD COLUMN recall_count INTEGER DEFAULT 0
+
+Totals:
+- CREATE TABLE IF NOT EXISTS: 5
+- CREATE INDEX IF NOT EXISTS: 6
+- ALTER TABLE: 2

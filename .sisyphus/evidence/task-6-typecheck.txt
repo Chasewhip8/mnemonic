@@ -1,0 +1,5 @@
+Command:
+bunx tsc --noEmit --target ES2022 --module preserve --moduleResolution bundler --lib ES2022 --types node --strict --exactOptionalPropertyTypes --noUncheckedIndexedAccess --verbatimModuleSyntax --rewriteRelativeImportExtensions --skipLibCheck src/config.ts src/database.ts
+
+Result:
+PASS (no TypeScript errors)
