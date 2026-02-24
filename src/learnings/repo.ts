@@ -51,7 +51,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			source?: string,
 		) =>
 			Effect.gen(function* () {
-				const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+				const id = crypto.randomUUID()
 				const textForEmbedding = `When ${trigger}, ${learning}`
 				const embedding = yield* embeddings.embed(textForEmbedding)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
