@@ -1,0 +1,6 @@
+17:			const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+45:			const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+72:			// 3. Low confidence (< 0.3)
+77:					.where(sql`${schema.learnings.confidence} < 0.3`)
+81:				reasons.push(`Deleted ${lowConfidence.length} low-confidence learnings (<0.3 confidence)`);
+85:						.where(sql`${schema.learnings.confidence} < 0.3`)

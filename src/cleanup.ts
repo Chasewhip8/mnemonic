@@ -1,11 +1,107 @@
+import { SqliteDrizzle } from '@effect/sql-drizzle/Sqlite';
+import { and, like, sql } from 'drizzle-orm';
+import { Cron, Effect, Layer, Schedule } from 'effect';
+import { AppConfig } from './config';
+import { DatabaseLive } from './database';
+import * as schema from './schema';
 
+export class CleanupService extends Effect.Service<CleanupService>()('CleanupService', {
+	scoped: Effect.gen(function* () {
+		const db = yield* SqliteDrizzle;
 
-import cron from 'node-cron';
-import type { DejaService } from './service';
+		const runCleanup = Effect.fn('CleanupService.runCleanup')(function* () {
+			let deleted = 0;
+			const reasons: string[] = [];
 
-export function startCleanupCron(service: DejaService): void {
-  cron.schedule('0 0 * * *', async () => {
-    const result = await service.cleanup();
-    console.log('Cleanup:', result);
-  });
-}
+			// 1. Session learnings older than 7 days
+			const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+			const staleSession = yield* Effect.promise(() =>
+				db
+					.select({ id: schema.learnings.id })
+					.from(schema.learnings)
+					.where(
+						and(
+							like(schema.learnings.scope, 'session:%'),
+							sql`${schema.learnings.createdAt} < ${weekAgo}`,
+						),
+					)
+			);
+			if (staleSession.length > 0) {
+				deleted += staleSession.length;
+				reasons.push(`Deleted ${staleSession.length} old session-scoped learnings (>7 days)`);
+				yield* Effect.promise(() =>
+					db
+						.delete(schema.learnings)
+						.where(
+							and(
+								like(schema.learnings.scope, 'session:%'),
+								sql`${schema.learnings.createdAt} < ${weekAgo}`,
+							),
+						)
+				);
+			}
+
+			// 2. Agent learnings older than 30 days
+			const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+			const staleAgent = yield* Effect.promise(() =>
+				db
+					.select({ id: schema.learnings.id })
+					.from(schema.learnings)
+					.where(
+						and(
+							like(schema.learnings.scope, 'agent:%'),
+							sql`${schema.learnings.createdAt} < ${monthAgo}`,
+						),
+					)
+			);
+			if (staleAgent.length > 0) {
+				deleted += staleAgent.length;
+				reasons.push(`Deleted ${staleAgent.length} old agent-scoped learnings (>30 days)`);
+				yield* Effect.promise(() =>
+					db
+						.delete(schema.learnings)
+						.where(
+							and(
+								like(schema.learnings.scope, 'agent:%'),
+								sql`${schema.learnings.createdAt} < ${monthAgo}`,
+							),
+						)
+				);
+			}
+
+			// 3. Low confidence (< 0.3)
+			const lowConfidence = yield* Effect.promise(() =>
+				db
+					.select({ id: schema.learnings.id })
+					.from(schema.learnings)
+					.where(sql`${schema.learnings.confidence} < 0.3`)
+			);
+			if (lowConfidence.length > 0) {
+				deleted += lowConfidence.length;
+				reasons.push(`Deleted ${lowConfidence.length} low-confidence learnings (<0.3 confidence)`);
+				yield* Effect.promise(() =>
+					db
+						.delete(schema.learnings)
+						.where(sql`${schema.learnings.confidence} < 0.3`)
+				);
+			}
+
+			return { deleted, reasons };
+		});
+
+		// Fork background scheduled cleanup fiber
+		yield* Effect.forkDaemon(
+			Effect.repeat(
+				Effect.zipLeft(runCleanup(), Effect.logInfo('Scheduled cleanup complete')),
+				Schedule.cron(Cron.unsafeParse('0 0 * * *')),
+			),
+		);
+
+		return { runCleanup };
+	}),
+}) {}
+
+export const CleanupServiceDefault = CleanupService.Default.pipe(
+	Layer.provide(DatabaseLive),
+	Layer.provide(AppConfig.Default),
+);
