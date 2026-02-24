@@ -106,6 +106,7 @@ describe("mcp tools", () => {
 			const injectedLearnings = asArray(injectResult.learnings);
 			expect(injectedLearnings.some((item) => asRecord(item).id === learnedId)).toBe(true);
 
+			// MCP tools/call: inject_trace
 			const traced = await mcpToolCall("inject_trace", {
 				context: `Need memory for ${trigger}`,
 				scopes: [scope],
@@ -133,6 +134,7 @@ describe("mcp tools", () => {
 
 			await mcpLearn(scope, trigger, learningText);
 
+			// MCP tools/call: query
 			const queried = await mcpToolCall("query", {
 				query: `Find memory about ${trigger}`,
 				scopes: [scope],
@@ -165,11 +167,13 @@ describe("mcp tools", () => {
 			const learned = await mcpLearn(scope, trigger, learningText);
 			const learnedId = String(learned.id);
 
+			// MCP tools/call: forget
 			const forgotten = await mcpToolCall("forget", { id: learnedId });
 			expect(forgotten.status).toBe(200);
 			const forgetResult = parseMcpToolResultFlexible(forgotten.body);
 			expect(forgetResult.success).toBe(true);
 
+			// MCP tools/call: list (in forget test)
 			const listed = await mcpToolCall("list", { scope, limit: 20 });
 			expect(listed.status).toBe(200);
 			const listResult = parseMcpToolResultFlexible(listed.body);
@@ -187,6 +191,7 @@ describe("mcp tools", () => {
 			await mcpLearn(scope, unique("deploy-bun-low-a"), unique("low-learning-a"), 0.2);
 			await mcpLearn(scope, unique("deploy-bun-low-b"), unique("low-learning-b"), 0.2);
 
+			// MCP tools/call: forget_bulk
 			const forgotten = await mcpToolCall("forget_bulk", {
 				confidence_lt: 0.5,
 				scope,
@@ -207,6 +212,7 @@ describe("mcp tools", () => {
 			const learnedA = await mcpLearn(scope, "deploy bun service", unique("neighbor-a"));
 			await mcpLearn(scope, "deploy bun application", unique("neighbor-b"));
 
+			// MCP tools/call: learning_neighbors
 			const neighborsResponse = await mcpToolCall("learning_neighbors", {
 				id: String(learnedA.id),
 				threshold: 0,
@@ -235,6 +241,7 @@ describe("mcp tools", () => {
 			await mcpLearn(scope, unique("deploy-bun-list-a"), unique("list-learning-a"));
 			await mcpLearn(scope, unique("deploy-bun-list-b"), unique("list-learning-b"));
 
+			// MCP tools/call: list
 			const listed = await mcpToolCall("list", { scope, limit: 20 });
 			expect(listed.status).toBe(200);
 			const listResult = parseMcpToolResultFlexible(listed.body);
@@ -247,6 +254,7 @@ describe("mcp tools", () => {
 	it(
 		"stats returns totals and scope data",
 		async () => {
+			// MCP tools/call: stats
 			const statsResponse = await mcpToolCall("stats", {});
 			expect(statsResponse.status).toBe(200);
 			const stats = parseMcpToolResultFlexible(statsResponse.body);
@@ -261,6 +269,7 @@ describe("mcp tools", () => {
 		"state_put stores state and starts at revision 1",
 		async () => {
 			const runId = unique("mcp-state-put");
+			// MCP tools/call: state_put
 			const put = await mcpToolCall("state_put", { runId, goal: "test goal" });
 
 			expect(put.status).toBe(200);
@@ -277,9 +286,11 @@ describe("mcp tools", () => {
 			const runId = unique("mcp-state-get");
 			const goal = unique("goal");
 
+			// MCP tools/call: state_put (in state_get test)
 			const put = await mcpToolCall("state_put", { runId, goal });
 			expect(put.status).toBe(200);
 
+			// MCP tools/call: state_get
 			const got = await mcpToolCall("state_get", { runId });
 			expect(got.status).toBe(200);
 			const state = parseMcpToolResultFlexible(got.body);
@@ -294,9 +305,11 @@ describe("mcp tools", () => {
 		async () => {
 			const runId = unique("mcp-state-patch");
 
+			// MCP tools/call: state_put (in state_patch test)
 			const put = await mcpToolCall("state_put", { runId, goal: "test goal" });
 			expect(put.status).toBe(200);
 
+			// MCP tools/call: state_patch
 			const patched = await mcpToolCall("state_patch", {
 				runId,
 				patch: { open_questions: ["Q1"] },
@@ -315,6 +328,7 @@ describe("mcp tools", () => {
 			const runId = unique("mcp-state-resolve");
 			const scope = memoryScope("mcp-state-resolve");
 
+			// MCP tools/call: state_put (in state_resolve test)
 			const put = await mcpToolCall("state_put", {
 				runId,
 				goal: "test goal",
@@ -322,6 +336,7 @@ describe("mcp tools", () => {
 			});
 			expect(put.status).toBe(200);
 
+			// MCP tools/call: state_resolve
 			const resolved = await mcpToolCall("state_resolve", {
 				runId,
 				persistToLearn: true,

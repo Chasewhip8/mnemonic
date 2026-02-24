@@ -92,10 +92,8 @@ describe("not-found behaviors", () => {
 				"/learning/nonexistent-id-xyz/neighbors",
 			);
 
-			expect([200, 404]).toContain(response.status);
-			if (response.status === 200) {
-				expect(asArray(response.body).length).toBe(0);
-			}
+			expect(response.status).toBe(200);
+			expect(asArray(response.body).length).toBe(0);
 		},
 		TEST_TIMEOUT_MS,
 	);
