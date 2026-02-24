@@ -163,7 +163,7 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 				};
 				const next = {
 					...(current.state as Record<string, unknown>),
-					...normalizeWorkingStatePayload({ ...(current.state as Record<string, unknown>), ...patch }),
+					...normalizeWorkingStatePayload({ ...(current.state as Record<string, unknown>), ...(patch as Record<string, unknown>) }),
 				};
 				return yield* upsertState(runId, next, updatedBy, 'state patch');
 			});

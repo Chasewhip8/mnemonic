@@ -145,7 +145,7 @@ describe("auth edge cases", () => {
 			});
 
 			console.log(`MALFORMED_AUTH_STATUS=${response.status}`);
-			expect([400, 401, 403, 200]).toContain(response.status);
+			expect(response.status).toBe(401);
 		},
 		TEST_TIMEOUT_MS,
 	);
