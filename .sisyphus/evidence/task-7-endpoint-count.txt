@@ -1,0 +1,9 @@
+=== Endpoint Counts ===
+src/learnings/api.ts: 9 endpoints
+src/secrets/api.ts: 4 endpoints
+src/state/api.ts: 5 endpoints
+src/health/api.ts: 2 endpoints
+src/mcp/api.ts: 2 endpoints
+
+=== No tsc errors in new files ===
+(none)

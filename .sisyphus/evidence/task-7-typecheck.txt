@@ -1,0 +1,124 @@
+src/database.ts(17,19): error TS2352: Conversion of type 'SqliteRemoteDatabase<Record<string, never>>' to type 'SqliteRemoteDatabase<typeof import("/home/chase/deja/src/schema")>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The types of '_.fullSchema' are incompatible between these types.
+    Type 'Record<string, never>' is missing the following properties from type 'typeof import("/home/chase/deja/src/schema")': learnings, secrets, stateRuns, stateRevisions, stateEvents
+src/index.ts(6,10): error TS2305: Module '"./embeddings"' has no exported member 'initEmbeddings'.
+src/index.ts(492,35): error TS2379: Argument of type '{ confidence_lt: number | undefined; not_recalled_in_days: number | undefined; scope: string | undefined; }' is not assignable to parameter of type '{ confidence_lt?: number; not_recalled_in_days?: number; scope?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'confidence_lt' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/index.ts(499,32): error TS2379: Argument of type '{ scope: string | undefined; limit: number | undefined; }' is not assignable to parameter of type '{ scope?: string; limit?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'scope' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/index.ts(530,60): error TS2379: Argument of type '{ persistToLearn: boolean; scope: string | undefined; summaryStyle: "compact" | "full" | undefined; updatedBy: string | undefined; }' is not assignable to parameter of type 'ResolveStateOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'scope' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/index.ts(719,44): error TS2379: Argument of type '{ scope: string | undefined; limit: number | undefined; }' is not assignable to parameter of type '{ scope?: string; limit?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'scope' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/index.ts(859,8): error TS2375: Type '{ persistToLearn: boolean; scope: string | undefined; summaryStyle: "compact" | "full" | undefined; updatedBy: string | undefined; }' is not assignable to type 'ResolveStateOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'scope' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/service.ts(6,10): error TS2305: Module '"./embeddings"' has no exported member 'createEmbedding'.
+src/service.ts(121,5): error TS2375: Type '{ id: any; trigger: any; learning: any; reason: any; confidence: any; source: any; scope: any; embedding: undefined; createdAt: any; lastRecalledAt: any; recallCount: any; }' is not assignable to type 'Learning' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'embedding' are incompatible.
+    Type 'undefined' is not assignable to type 'number[]'.
+src/service.ts(137,5): error TS2375: Type '{ id: string; trigger: string; learning: string; reason: string | undefined; confidence: number; source: string | undefined; scope: string; embedding: undefined; createdAt: string; lastRecalledAt: string | undefined; recallCount: number; }' is not assignable to type 'Learning' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reason' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/service.ts(180,5): error TS2375: Type '{ goal: any; assumptions: string[] | undefined; decisions: any; open_questions: string[] | undefined; next_actions: string[] | undefined; confidence: any; }' is not assignable to type 'WorkingStatePayload' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'assumptions' are incompatible.
+    Type 'string[] | undefined' is not assignable to type 'string[]'.
+      Type 'undefined' is not assignable to type 'string[]'.
+src/service.ts(237,11): error TS2375: Type '{ id: string; trigger: string; learning: string; reason: string | undefined; confidence: number; source: string | undefined; scope: string; embedding: any; createdAt: string; recallCount: number; }' is not assignable to type 'Learning' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'reason' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/service.ts(588,35): error TS2532: Object is possibly 'undefined'.
+src/service.ts(667,11): error TS2532: Object is possibly 'undefined'.
+src/service.ts(674,11): error TS2532: Object is possibly 'undefined'.
+test/deja-do.test.ts(8,10): error TS2305: Module '"../src/embeddings"' has no exported member 'initEmbeddings'.
+test/deja-do.test.ts(8,26): error TS2305: Module '"../src/embeddings"' has no exported member 'createEmbedding'.
+test/deja-do.test.ts(16,1): error TS2304: Cannot find name 'beforeAll'.
+test/deja-do.test.ts(22,1): error TS2304: Cannot find name 'afterEach'.
+test/deja-do.test.ts(31,1): error TS2304: Cannot find name 'afterAll'.
+test/deja-do.test.ts(41,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(42,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(48,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(51,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(52,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(55,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(56,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(56,12): error TS2532: Object is possibly 'undefined'.
+test/deja-do.test.ts(59,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(65,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(69,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(70,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(73,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(77,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(82,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(86,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(89,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(92,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(97,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(99,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(102,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(106,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(107,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(114,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(115,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(116,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(116,12): error TS2532: Object is possibly 'undefined'.
+test/deja-do.test.ts(117,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(117,12): error TS2532: Object is possibly 'undefined'.
+test/deja-do.test.ts(118,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(118,12): error TS2532: Object is possibly 'undefined'.
+test/deja-do.test.ts(122,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(125,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(131,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(132,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(133,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(134,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(137,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(141,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(142,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(145,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(154,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(155,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(156,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(159,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(166,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(167,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(170,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(180,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(181,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(182,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(186,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(192,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(193,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(203,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(204,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(208,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(218,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(219,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(225,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(226,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(232,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(233,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(250,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(252,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(258,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(259,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(262,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(265,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(268,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+test/deja-do.test.ts(293,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(300,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(301,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(305,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(306,5): error TS2304: Cannot find name 'expect'.
+test/deja-do.test.ts(306,12): error TS2532: Object is possibly 'undefined'.
