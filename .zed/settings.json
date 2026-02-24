@@ -1,0 +1,16 @@
+{
+	"lsp": {
+		"biome": {
+			"settings": {
+				"require_config_file": true
+			}
+		}
+	},
+	"formatter": {
+		"external": {
+			"command": "bunx",
+			"arguments": ["biome", "format", "--stdin-file-path", "{buffer_path}"]
+		}
+	},
+	"format_on_save": "on"
+}
