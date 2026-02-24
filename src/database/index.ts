@@ -64,30 +64,9 @@ export class Database extends Effect.Service<Database>()('Database', {
 				}),
 			)
 
-		const withDbTx = <Out>({
-			context,
-			run,
-		}: {
-			context: string
-			run: (db: unknown) => Promise<Out>
-		}) =>
-			Effect.tryPromise({
-				try: () => drizzle.transaction((tx) => run(tx)),
-				catch: (cause) => classifySqliteError(cause),
-			}).pipe(
-				Effect.retry(retryPolicy),
-				Effect.catchTag('RetryableDatabaseError', (cause) =>
-					Effect.fail(DatabaseAvailabilityError.make({ cause })),
-				),
-				Effect.withSpan('infra::sqlite::withDbTx', {
-					attributes: { context },
-				}),
-			)
-
 		return {
 			drizzle,
 			withDb,
-			withDbTx,
 		}
 	}),
 }) {}
@@ -114,5 +93,3 @@ const DatabaseOnlyLive = Database.Default.pipe(
 )
 
 export const DatabaseLive = Layer.mergeAll(SqlClientLive, SqliteDrizzleLive, DatabaseOnlyLive)
-
-export const DatabaseDefault = DatabaseLive

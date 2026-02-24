@@ -1,7 +1,6 @@
 import { and, like, sql } from 'drizzle-orm'
-import { Cron, Effect, Layer, Schedule } from 'effect'
-import { AppConfig } from './config'
-import { Database, DatabaseLive } from './database'
+import { Cron, Effect, Schedule } from 'effect'
+import { Database } from './database'
 import * as schema from './database/schema'
 import { DatabaseError } from './errors'
 
@@ -113,7 +112,3 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 	}),
 }) {}
 
-export const CleanupServiceDefault = CleanupService.Default.pipe(
-	Layer.provide(DatabaseLive),
-	Layer.provide(AppConfig.Default),
-)

@@ -1,7 +1,6 @@
 import { and, desc, sql as drizzleSql, eq, inArray, type SQL } from 'drizzle-orm'
-import { Effect, Layer, Schema } from 'effect'
-import { AppConfig } from '../config'
-import { Database, DatabaseLive } from '../database'
+import { Effect, Schema } from 'effect'
+import { Database } from '../database'
 import {
 	insertLearningRaw,
 	queryLearningNeighborsRaw,
@@ -555,8 +554,3 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 	}),
 }) {}
 
-export const LearningsRepoLive = LearningsRepo.Default.pipe(
-	Layer.provide(EmbeddingService.Default),
-	Layer.provide(DatabaseLive),
-	Layer.provide(AppConfig.Default),
-)
