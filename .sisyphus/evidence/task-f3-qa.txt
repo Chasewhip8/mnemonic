@@ -1,0 +1,37 @@
+Task: f3 manual QA - REST endpoints after MCP removal
+Date: 2026-02-24
+
+1) Test suite health
+- Command: bun test 2>&1 | tail -10
+- Result: 50 pass, 0 fail, ran 50 tests across 6 files.
+
+2) MCP directory removal
+- Command: ls src/mcp/ 2>&1
+- Result: ls: cannot access 'src/mcp/': No such file or directory
+
+3) MCP reference scan in source
+- Command: grep -ri "mcp" src/ || echo CLEAN
+- Result: CLEAN
+
+4) MCP route scan in source
+- Command: grep -rn "/mcp" src/ || echo CLEAN
+- Result: CLEAN
+
+5) README API surface check
+- File: README.md
+- Result: Core API surface lists Memory, Working state, Secrets routes only; no /mcp endpoint documented.
+
+6) API composition check
+- File: src/api.ts
+- Result: Api chain includes LearningsApi, SecretsApi, StateApi, HealthApi only; no McpApi import or .add(McpApi).
+
+7) README route presence in src
+- Memory routes present in src/learnings/api.ts (/learn, /inject, /inject/trace, /query, /learnings, /learning/:id, /learning/:id/neighbors, /stats).
+- Working state routes present in src/state/api.ts (/state/:runId, /state/:runId/events, /state/:runId/resolve).
+- Secrets routes present in src/secrets/api.ts (/secret, /secret/:name, /secrets).
+
+8) Diagnostics spot-check
+- File: src/api.ts
+- lsp_diagnostics severity=error: No diagnostics found.
+
+Conclusion: MCP endpoint/handler remnants not found; REST endpoints and tests are healthy.

@@ -137,7 +137,7 @@ Critical Path: Task 1 → Task 2 → Final
 
 ## TODOs
 
-- [ ] 1. Remove all MCP code, tests, and documentation
+- [x] 1. Remove all MCP code, tests, and documentation
 
   **What to do**:
   1. Delete `src/mcp/` directory entirely (contains: api.ts, handler.ts, live.ts, tools.ts)
@@ -251,7 +251,7 @@ Critical Path: Task 1 → Task 2 → Final
 
 ---
 
-- [ ] 2. Full verification pass
+- [x] 2. Full verification pass
 
   **What to do**:
   1. Run `bun run check` — must exit 0 with no errors
@@ -344,19 +344,19 @@ Critical Path: Task 1 → Task 2 → Final
 
 > 4 review agents run in PARALLEL. ALL must APPROVE. Rejection → fix → re-run.
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against plan.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `bun run check` + `bun test`. Review all changed files for: dangling imports, empty blocks left after removal, broken formatting, dead code. Check that no MCP string literals remain anywhere in src/ or test/.
   Output: `Build [PASS/FAIL] | Lint [PASS/FAIL] | Tests [N pass/N fail] | Files [N clean/N issues] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high`
+- [x] F3. **Real Manual QA** — `unspecified-high`
   Start from clean state. Verify the server starts without errors. Verify REST endpoints still work (hit /health, /learn, /query). Verify /mcp endpoint returns 404 or equivalent. Save evidence.
   Output: `Scenarios [N/N pass] | Integration [N/N] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual diff (git log/diff). Verify 1:1 — everything in spec was removed, nothing beyond spec was touched. Check that test/helpers.ts still exports asRecord, asArray, and all other non-MCP helpers. Flag any unaccounted changes.
   Output: `Tasks [N/N compliant] | Contamination [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
 
