@@ -8,7 +8,7 @@
     "start": "bun run src/index.ts",
     "prepare": "effect-language-service patch",
     "db:generate": "drizzle-kit generate",
-    "test": "jest",
+    "test": "vitest",
     "typecheck": "tsc --noEmit",
     "gates": "bun run prd.ts"
   },
@@ -23,24 +23,24 @@
   "license": "MIT",
   "devDependencies": {
     "@effect/language-service": "^0.75.1",
-    "@types/jest": "^30.0.0",
+    "@effect/vitest": "^0.20.0",
     "@types/node": "^25.1.0",
-    "@types/node-cron": "^3.0.11",
     "drizzle-kit": "^0.31.4",
     "effect-solutions": "^0.4.13",
     "gateproof": "^0.2.2",
-    "jest": "^30.2.0",
-    "ts-jest": "^29.4.6",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^3.0.0"
   },
   "dependencies": {
+    "@effect/experimental": "^0.44.0",
     "@effect/platform": "^0.94.5",
+    "@effect/platform-bun": "^0.62.0",
+    "@effect/sql": "^0.30.0",
+    "@effect/sql-drizzle": "^0.26.0",
+    "@effect/sql-libsql": "^0.30.0",
     "@huggingface/transformers": "^3.8.1",
     "@libsql/client": "^0.17.0",
     "drizzle-orm": "^0.45.1",
-    "effect": "^3.19.19",
-    "hono": "^4.11.7",
-    "node-cron": "^4.2.1",
-    "zod": "^3.24.0"
+    "effect": "^3.19.19"
   }
 }
