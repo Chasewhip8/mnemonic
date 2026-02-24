@@ -8,9 +8,6 @@ import { AppConfig } from './config'
 
 export class Database extends Effect.Service<Database>()('Database', {
 	effect: Effect.gen(function* () {
-		const { dbPath } = yield* AppConfig
-		mkdirSync(dirname(dbPath), { recursive: true })
-
 		const sql = yield* SqlClient.SqlClient
 		const drizzle = yield* SqliteDrizzle
 
@@ -112,11 +109,12 @@ export class Database extends Effect.Service<Database>()('Database', {
 }) {}
 
 const LibsqlClientLive = Layer.unwrapEffect(
-	Effect.map(AppConfig, ({ dbPath }) =>
-		LibsqlClient.layer({
+	Effect.map(AppConfig, ({ dbPath }) => {
+		mkdirSync(dirname(dbPath), { recursive: true })
+		return LibsqlClient.layer({
 			url: `file:${dbPath}`,
-		}),
-	),
+		})
+	}),
 )
 
 const AppConfigLive = AppConfig.Default
