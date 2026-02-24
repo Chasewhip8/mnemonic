@@ -4,19 +4,7 @@ import { Database } from '../database'
 import { upsertSecretRaw } from '../database/queries/secrets'
 import * as schema from '../database/schema'
 import { Secret } from '../domain'
-
-function filterScopesByPriority(scopes: string[]): string[] {
-	const priority = ['session:', 'agent:', 'shared']
-
-	for (const prefix of priority) {
-		const matches = scopes.filter((scope) => scope.startsWith(prefix))
-		if (matches.length > 0) {
-			return matches
-		}
-	}
-
-	return scopes.includes('shared') ? ['shared'] : []
-}
+import { filterScopesByPriority } from '../scopes'
 
 export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 	effect: Effect.gen(function* () {

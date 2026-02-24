@@ -10,6 +10,7 @@ import * as schema from '../database/schema'
 import type { LearningRow } from '../database/types'
 import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
+import { filterScopesByPriority } from '../scopes'
 
 type InjectFormat = 'prompt' | 'learnings'
 
@@ -20,19 +21,6 @@ type DeleteLearningsFilters = {
 }
 
 const EmbeddingJson = Schema.parseJson(Schema.Array(Schema.Number))
-
-function filterScopesByPriority(scopes: ReadonlyArray<string>): string[] {
-	const priority = ['session:', 'agent:', 'shared']
-
-	for (const prefix of priority) {
-		const matches = scopes.filter((scope) => scope.startsWith(prefix))
-		if (matches.length > 0) {
-			return matches
-		}
-	}
-
-	return scopes.includes('shared') ? ['shared'] : []
-}
 
 function convertSqlLearningRow(row: LearningRow): Learning {
 	return new Learning({
