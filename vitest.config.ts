@@ -1,14 +1,14 @@
-import { defineConfig } from "vitest/config"
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  test: {
-    globals: false,
-    include: ["test/**/*.test.ts"],
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
-  },
+	test: {
+		globals: false,
+		include: ['test/**/*.test.ts'],
+		pool: 'forks',
+		poolOptions: {
+			forks: {
+				singleFork: true,
+			},
+		},
+	},
 })

@@ -1,40 +1,39 @@
-import { SqliteDrizzle } from '@effect/sql-drizzle/Sqlite';
-import { eq } from 'drizzle-orm';
-import { Effect, Schema } from 'effect';
-import { WorkingStatePayload, WorkingStateResponse } from '../domain';
-import { LearningsRepo } from '../learnings/repo';
-import * as schema from '../schema';
+import { SqliteDrizzle } from '@effect/sql-drizzle/Sqlite'
+import { eq } from 'drizzle-orm'
+import { Effect, Schema } from 'effect'
+import { WorkingStatePayload, WorkingStateResponse } from '../domain'
+import { LearningsRepo } from '../learnings/repo'
+import * as schema from '../schema'
 
 export interface ResolveStateOptions {
-	persistToLearn?: boolean;
-	scope?: string;
-	summaryStyle?: string;
-	updatedBy?: string;
+	persistToLearn?: boolean
+	scope?: string
+	summaryStyle?: string
+	updatedBy?: string
 }
 
-
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = Record<string, unknown>
 
 function asRecord(value: unknown): UnknownRecord {
 	if (typeof value === 'object' && value !== null) {
-		return value as UnknownRecord;
+		return value as UnknownRecord
 	}
-	return {};
+	return {}
 }
 
 function normalizeWorkingStatePayload(payload: unknown) {
-	const raw = asRecord(payload);
+	const raw = asRecord(payload)
 	const asStringArray = (value: unknown): string[] | undefined => {
-		if (!Array.isArray(value)) return undefined;
+		if (!Array.isArray(value)) return undefined
 		return value
 			.map((v) => (typeof v === 'string' ? v.trim() : String(v ?? '').trim()))
-			.filter(Boolean);
-	};
+			.filter(Boolean)
+	}
 
 	const decisions = Array.isArray(raw.decisions)
 		? raw.decisions
 				.map((d) => {
-					const decision = asRecord(d);
+					const decision = asRecord(d)
 					return {
 						id: typeof decision.id === 'string' ? decision.id : undefined,
 						text:
@@ -42,10 +41,10 @@ function normalizeWorkingStatePayload(payload: unknown) {
 								? decision.text.trim()
 								: String(decision.text ?? '').trim(),
 						status: typeof decision.status === 'string' ? decision.status : undefined,
-					};
+					}
 				})
 				.filter((d) => d.text)
-		: undefined;
+		: undefined
 
 	return {
 		goal: typeof raw.goal === 'string' ? raw.goal.trim() : undefined,
@@ -57,30 +56,26 @@ function normalizeWorkingStatePayload(payload: unknown) {
 			typeof raw.confidence === 'number' && Number.isFinite(raw.confidence)
 				? raw.confidence
 				: undefined,
-	};
+	}
 }
 
-const WorkingStatePayloadJson = Schema.parseJson(WorkingStatePayload);
+const WorkingStatePayloadJson = Schema.parseJson(WorkingStatePayload)
 
 export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 	effect: Effect.gen(function* () {
-		const drizzle = yield* SqliteDrizzle;
-		const learningsRepo = yield* LearningsRepo;
+		const drizzle = yield* SqliteDrizzle
+		const learningsRepo = yield* LearningsRepo
 
 		const getState = (runId: string): Effect.Effect<WorkingStateResponse | null> =>
 			Effect.gen(function* () {
 				const rows = yield* Effect.promise(() =>
-					drizzle
-						.select()
-						.from(schema.stateRuns)
-						.where(eq(schema.stateRuns.runId, runId))
-						.limit(1)
-				);
-				const current = rows[0];
-				if (!current) return null;
+					drizzle.select().from(schema.stateRuns).where(eq(schema.stateRuns.runId, runId)).limit(1),
+				)
+				const current = rows[0]
+				if (!current) return null
 				const decodedState = yield* Schema.decodeUnknown(WorkingStatePayloadJson)(
 					current.stateJson || '{}',
-				).pipe(Effect.orDie);
+				).pipe(Effect.orDie)
 				return new WorkingStateResponse({
 					runId: current.runId,
 					revision: current.revision,
@@ -90,8 +85,8 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 					createdAt: current.createdAt,
 					updatedAt: current.updatedAt,
 					resolvedAt: current.resolvedAt ?? undefined,
-				});
-			});
+				})
+			})
 
 		const upsertState = (
 			runId: string,
@@ -100,14 +95,14 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 			changeSummary: string = 'state upsert',
 		): Effect.Effect<WorkingStateResponse> =>
 			Effect.gen(function* () {
-				const now = new Date().toISOString();
-				const normalized = normalizeWorkingStatePayload(payload);
-				const normalizedState = new WorkingStatePayload(normalized);
-				const existing = yield* getState(runId);
-				const nextRevision = (existing?.revision ?? 0) + 1;
+				const now = new Date().toISOString()
+				const normalized = normalizeWorkingStatePayload(payload)
+				const normalizedState = new WorkingStatePayload(normalized)
+				const existing = yield* getState(runId)
+				const nextRevision = (existing?.revision ?? 0) + 1
 				const stateJson = yield* Schema.encode(WorkingStatePayloadJson)(normalizedState).pipe(
 					Effect.orDie,
-				);
+				)
 
 				if (existing) {
 					yield* Effect.promise(() =>
@@ -120,8 +115,8 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 								updatedBy,
 								updatedAt: now,
 							})
-							.where(eq(schema.stateRuns.runId, runId))
-					);
+							.where(eq(schema.stateRuns.runId, runId)),
+					)
 				} else {
 					yield* Effect.promise(() =>
 						drizzle.insert(schema.stateRuns).values({
@@ -133,8 +128,8 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 							createdAt: now,
 							updatedAt: now,
 							resolvedAt: null,
-						} as typeof schema.stateRuns.$inferInsert)
-					);
+						} as typeof schema.stateRuns.$inferInsert),
+					)
 				}
 
 				yield* Effect.promise(() =>
@@ -146,11 +141,11 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 						changeSummary,
 						updatedBy,
 						createdAt: now,
-					} as typeof schema.stateRevisions.$inferInsert)
-				);
+					} as typeof schema.stateRevisions.$inferInsert),
+				)
 
-				return (yield* getState(runId)) as WorkingStateResponse;
-			});
+				return (yield* getState(runId)) as WorkingStateResponse
+			})
 
 		const patchState = (
 			runId: string,
@@ -165,13 +160,16 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 					state: new WorkingStatePayload({}),
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
-				};
+				}
 				const next = {
 					...(current.state as Record<string, unknown>),
-					...normalizeWorkingStatePayload({ ...(current.state as Record<string, unknown>), ...(patch as Record<string, unknown>) }),
-				};
-				return yield* upsertState(runId, next, updatedBy, 'state patch');
-			});
+					...normalizeWorkingStatePayload({
+						...(current.state as Record<string, unknown>),
+						...(patch as Record<string, unknown>),
+					}),
+				}
+				return yield* upsertState(runId, next, updatedBy, 'state patch')
+			})
 
 		const addStateEvent = (
 			runId: string,
@@ -180,8 +178,8 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 			createdBy?: string,
 		): Effect.Effect<{ success: true; id: string }> =>
 			Effect.gen(function* () {
-				const now = new Date().toISOString();
-				const id = crypto.randomUUID();
+				const now = new Date().toISOString()
+				const id = crypto.randomUUID()
 				yield* Effect.promise(() =>
 					drizzle.insert(schema.stateEvents).values({
 						id,
@@ -190,20 +188,20 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 						payloadJson: JSON.stringify(payload ?? {}),
 						createdBy,
 						createdAt: now,
-					} as typeof schema.stateEvents.$inferInsert)
-				);
-				return { success: true as const, id };
-			});
+					} as typeof schema.stateEvents.$inferInsert),
+				)
+				return { success: true as const, id }
+			})
 
 		const resolveState = (
 			runId: string,
 			opts: ResolveStateOptions = {},
 		): Effect.Effect<WorkingStateResponse | null, never> =>
 			Effect.gen(function* () {
-				const current = yield* getState(runId);
-				if (!current) return null;
+				const current = yield* getState(runId)
+				if (!current) return null
 
-				const now = new Date().toISOString();
+				const now = new Date().toISOString()
 				yield* Effect.promise(() =>
 					drizzle
 						.update(schema.stateRuns)
@@ -213,8 +211,8 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 							updatedAt: now,
 							resolvedAt: now,
 						})
-						.where(eq(schema.stateRuns.runId, runId))
-				);
+						.where(eq(schema.stateRuns.runId, runId)),
+				)
 
 				if (opts.persistToLearn) {
 					const compact = [
@@ -227,26 +225,28 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 							: '',
 					]
 						.filter(Boolean)
-						.join(' | ');
+						.join(' | ')
 
 					if (compact) {
-						yield* learningsRepo.learn(
-							opts.scope || 'shared',
-							`run:${runId} resolved`,
-							compact,
-							typeof current.state.confidence === 'number' ? current.state.confidence : 0.8,
-							'Derived from working state resolve',
-							`state:${runId}`,
-						).pipe(
-							Effect.catchAll((error) =>
-								Effect.logError('Failed to persist learning on resolve', error)
+						yield* learningsRepo
+							.learn(
+								opts.scope || 'shared',
+								`run:${runId} resolved`,
+								compact,
+								typeof current.state.confidence === 'number' ? current.state.confidence : 0.8,
+								'Derived from working state resolve',
+								`state:${runId}`,
 							)
-						);
+							.pipe(
+								Effect.catchAll((error) =>
+									Effect.logError('Failed to persist learning on resolve', error),
+								),
+							)
 					}
 				}
 
-				return yield* getState(runId);
-			});
+				return yield* getState(runId)
+			})
 
 		return {
 			getState,
@@ -254,6 +254,6 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 			patchState,
 			addStateEvent,
 			resolveState,
-		};
+		}
 	}),
 }) {}

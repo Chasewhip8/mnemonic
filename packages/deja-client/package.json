@@ -1,48 +1,48 @@
 {
-  "name": "deja-client",
-  "version": "0.2.0",
-  "description": "Thin client for deja - persistent memory for agents",
-  "main": "dist/client.js",
-  "module": "dist/client.mjs",
-  "types": "dist/client.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/client.d.ts",
-      "import": "./dist/client.mjs",
-      "require": "./dist/client.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup ../../src/client.ts --format cjs,esm --dts --clean --outDir dist",
-    "test": "vitest",
-    "lint": "tsc --noEmit",
-    "prepublishOnly": "bun run lint && bun run test && bun run build"
-  },
-  "keywords": [
-    "ai",
-    "agents",
-    "memory",
-    "llm",
-    "cloudflare",
-    "deja"
-  ],
-  "author": "",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/acoyfellow/deja"
-  },
-  "homepage": "https://deja.coey.dev",
-  "devDependencies": {
-    "tsup": "^8.0.0",
-    "typescript": "^5.4.0",
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "effect": "^3.19.0",
-    "@effect/platform": "^0.94.0"
-  }
+	"name": "deja-client",
+	"version": "0.2.0",
+	"description": "Thin client for deja - persistent memory for agents",
+	"main": "dist/client.js",
+	"module": "dist/client.mjs",
+	"types": "dist/client.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/client.d.ts",
+			"import": "./dist/client.mjs",
+			"require": "./dist/client.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup ../../src/client.ts --format cjs,esm --dts --clean --outDir dist",
+		"test": "vitest",
+		"lint": "tsc --noEmit",
+		"prepublishOnly": "bun run lint && bun run test && bun run build"
+	},
+	"keywords": [
+		"ai",
+		"agents",
+		"memory",
+		"llm",
+		"cloudflare",
+		"deja"
+	],
+	"author": "",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/acoyfellow/deja"
+	},
+	"homepage": "https://deja.coey.dev",
+	"devDependencies": {
+		"tsup": "^8.0.0",
+		"typescript": "^5.4.0",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"effect": "^3.19.0",
+		"@effect/platform": "^0.94.0"
+	}
 }

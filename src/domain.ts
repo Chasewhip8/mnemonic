@@ -1,94 +1,96 @@
-import { Schema } from "effect"
+import { Schema } from 'effect'
 
-export class Learning extends Schema.Class<Learning>("Learning")({
-  id: Schema.String,
-  trigger: Schema.String,
-  learning: Schema.String,
-  reason: Schema.optional(Schema.String),
-  confidence: Schema.Number,
-  source: Schema.optional(Schema.String),
-  scope: Schema.String,
-  createdAt: Schema.String,
-  lastRecalledAt: Schema.optional(Schema.String),
-  recallCount: Schema.Number,
+export class Learning extends Schema.Class<Learning>('Learning')({
+	id: Schema.String,
+	trigger: Schema.String,
+	learning: Schema.String,
+	reason: Schema.optional(Schema.String),
+	confidence: Schema.Number,
+	source: Schema.optional(Schema.String),
+	scope: Schema.String,
+	createdAt: Schema.String,
+	lastRecalledAt: Schema.optional(Schema.String),
+	recallCount: Schema.Number,
 }) {}
 
-export class Secret extends Schema.Class<Secret>("Secret")({
-  name: Schema.String,
-  value: Schema.String,
-  scope: Schema.String,
-  createdAt: Schema.String,
-  updatedAt: Schema.String,
+export class Secret extends Schema.Class<Secret>('Secret')({
+	name: Schema.String,
+	value: Schema.String,
+	scope: Schema.String,
+	createdAt: Schema.String,
+	updatedAt: Schema.String,
 }) {}
 
 const Decision = Schema.Struct({
-  id: Schema.optional(Schema.String),
-  text: Schema.String,
-  status: Schema.optional(Schema.String),
+	id: Schema.optional(Schema.String),
+	text: Schema.String,
+	status: Schema.optional(Schema.String),
 })
 
-export class WorkingStatePayload extends Schema.Class<WorkingStatePayload>("WorkingStatePayload")({
-  goal: Schema.optional(Schema.String),
-  assumptions: Schema.optional(Schema.Array(Schema.String)),
-  decisions: Schema.optional(Schema.Array(Decision)),
-  open_questions: Schema.optional(Schema.Array(Schema.String)),
-  next_actions: Schema.optional(Schema.Array(Schema.String)),
-  confidence: Schema.optional(Schema.Number),
+export class WorkingStatePayload extends Schema.Class<WorkingStatePayload>('WorkingStatePayload')({
+	goal: Schema.optional(Schema.String),
+	assumptions: Schema.optional(Schema.Array(Schema.String)),
+	decisions: Schema.optional(Schema.Array(Decision)),
+	open_questions: Schema.optional(Schema.Array(Schema.String)),
+	next_actions: Schema.optional(Schema.Array(Schema.String)),
+	confidence: Schema.optional(Schema.Number),
 }) {}
 
-export class WorkingStateResponse extends Schema.Class<WorkingStateResponse>("WorkingStateResponse")({
-  runId: Schema.String,
-  revision: Schema.Number,
-  status: Schema.String,
-  state: WorkingStatePayload,
-  updatedBy: Schema.optional(Schema.String),
-  createdAt: Schema.String,
-  updatedAt: Schema.String,
-  resolvedAt: Schema.optional(Schema.String),
+export class WorkingStateResponse extends Schema.Class<WorkingStateResponse>(
+	'WorkingStateResponse',
+)({
+	runId: Schema.String,
+	revision: Schema.Number,
+	status: Schema.String,
+	state: WorkingStatePayload,
+	updatedBy: Schema.optional(Schema.String),
+	createdAt: Schema.String,
+	updatedAt: Schema.String,
+	resolvedAt: Schema.optional(Schema.String),
 }) {}
 
-export class InjectResult extends Schema.Class<InjectResult>("InjectResult")({
-  prompt: Schema.String,
-  learnings: Schema.Array(Learning),
-  state: Schema.optional(WorkingStateResponse),
+export class InjectResult extends Schema.Class<InjectResult>('InjectResult')({
+	prompt: Schema.String,
+	learnings: Schema.Array(Learning),
+	state: Schema.optional(WorkingStateResponse),
 }) {}
 
 const InjectTraceCandidate = Schema.Struct({
-  id: Schema.String,
-  trigger: Schema.String,
-  learning: Schema.String,
-  similarity_score: Schema.Number,
-  passed_threshold: Schema.Boolean,
+	id: Schema.String,
+	trigger: Schema.String,
+	learning: Schema.String,
+	similarity_score: Schema.Number,
+	passed_threshold: Schema.Boolean,
 })
 
 const InjectTraceMetadata = Schema.Struct({
-  total_candidates: Schema.Number,
-  above_threshold: Schema.Number,
-  below_threshold: Schema.Number,
+	total_candidates: Schema.Number,
+	above_threshold: Schema.Number,
+	below_threshold: Schema.Number,
 })
 
-export class InjectTraceResult extends Schema.Class<InjectTraceResult>("InjectTraceResult")({
-  input_context: Schema.String,
-  embedding_generated: Schema.Array(Schema.Number),
-  candidates: Schema.Array(InjectTraceCandidate),
-  threshold_applied: Schema.Number,
-  injected: Schema.Array(Learning),
-  duration_ms: Schema.Number,
-  metadata: InjectTraceMetadata,
+export class InjectTraceResult extends Schema.Class<InjectTraceResult>('InjectTraceResult')({
+	input_context: Schema.String,
+	embedding_generated: Schema.Array(Schema.Number),
+	candidates: Schema.Array(InjectTraceCandidate),
+	threshold_applied: Schema.Number,
+	injected: Schema.Array(Learning),
+	duration_ms: Schema.Number,
+	metadata: InjectTraceMetadata,
 }) {}
 
-export class QueryResult extends Schema.Class<QueryResult>("QueryResult")({
-  learnings: Schema.Array(Learning),
-  hits: Schema.Record({ key: Schema.String, value: Schema.Number }),
+export class QueryResult extends Schema.Class<QueryResult>('QueryResult')({
+	learnings: Schema.Array(Learning),
+	hits: Schema.Record({ key: Schema.String, value: Schema.Number }),
 }) {}
 
 const ScopeStats = Schema.Struct({
-  scope: Schema.String,
-  count: Schema.Number,
+	scope: Schema.String,
+	count: Schema.Number,
 })
 
-export class Stats extends Schema.Class<Stats>("Stats")({
-  totalLearnings: Schema.Number,
-  totalSecrets: Schema.Number,
-  scopes: Schema.Array(ScopeStats),
+export class Stats extends Schema.Class<Stats>('Stats')({
+	totalLearnings: Schema.Number,
+	totalSecrets: Schema.Number,
+	scopes: Schema.Array(ScopeStats),
 }) {}
