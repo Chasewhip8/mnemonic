@@ -1,0 +1,7 @@
+bunx tsc --noEmit run completed.
+No `error TS` entries for:
+- src/mcp/tools.ts
+- src/mcp/handler.ts
+- src/mcp/live.ts
+
+Note: repository still has pre-existing TypeScript errors under test/deja-do.test.ts unrelated to this task.
