@@ -1,9 +1,5 @@
-import { type SQLWrapper, sql } from 'drizzle-orm'
-
-type DrizzleRawDb = {
-	run: (query: string | SQLWrapper) => PromiseLike<unknown>
-}
-
+import { sql } from 'drizzle-orm'
+import type { DrizzleRawDb } from '../types'
 export function upsertSecretRaw(
 	db: DrizzleRawDb,
 	params: { scope: string; name: string; value: string; now: string },

@@ -6,6 +6,7 @@ import {
 	queryLearningNeighborsRaw,
 	queryLearningsByEmbeddingRaw,
 } from '../database/queries/learnings'
+import type { LearningRow } from '../database/types'
 import * as schema from '../database/schema'
 import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
@@ -18,22 +19,6 @@ type DeleteLearningsFilters = {
 	scope?: string
 }
 
-type LearningRow = {
-	id: unknown
-	trigger: unknown
-	learning: unknown
-	reason?: unknown
-	confidence?: unknown
-	source?: unknown
-	scope: unknown
-	created_at?: unknown
-	createdAt?: unknown
-	last_recalled_at?: unknown
-	lastRecalledAt?: unknown
-	recall_count?: unknown
-	recallCount?: unknown
-	distance?: unknown
-}
 
 function normalizeLearningRow(row: LearningRow): LearningRow {
 	const maybeArray = row as unknown
@@ -43,17 +28,17 @@ function normalizeLearningRow(row: LearningRow): LearningRow {
 
 	const values = maybeArray as Array<unknown>
 	return {
-		id: values[0],
-		trigger: values[1],
-		learning: values[2],
-		reason: values[3],
-		confidence: values[4],
-		source: values[5],
-		scope: values[6],
-		created_at: values[8],
-		last_recalled_at: values[9],
-		recall_count: values[10],
-		distance: values[11],
+		id: values[0] as string,
+		trigger: values[1] as string,
+		learning: values[2] as string,
+		reason: values[3] as string | null,
+		confidence: values[4] as number | null,
+		source: values[5] as string | null,
+		scope: values[6] as string,
+		created_at: values[8] as string,
+		last_recalled_at: values[9] as string | null,
+		recall_count: values[10] as number | null,
+		...(values[11] !== undefined ? { distance: values[11] as number } : {}),
 	}
 }
 
@@ -76,13 +61,7 @@ function convertSqlLearningRow(row: LearningRow): Learning {
 	const normalized = normalizeLearningRow(row)
 	const reason = normalized.reason != null ? String(normalized.reason) : undefined
 	const source = normalized.source != null ? String(normalized.source) : undefined
-	const lastRecalledAt =
-		normalized.last_recalled_at != null
-			? String(normalized.last_recalled_at)
-			: normalized.lastRecalledAt != null
-				? String(normalized.lastRecalledAt)
-				: undefined
-
+	const lastRecalledAt = normalized.last_recalled_at != null ? String(normalized.last_recalled_at) : undefined
 	return new Learning({
 		id: String(normalized.id),
 		trigger: String(normalized.trigger),
@@ -91,14 +70,9 @@ function convertSqlLearningRow(row: LearningRow): Learning {
 		confidence: normalized.confidence != null ? Number(normalized.confidence) : 0,
 		...(source !== undefined ? { source } : {}),
 		scope: String(normalized.scope),
-		createdAt: String(normalized.created_at ?? normalized.createdAt),
+		createdAt: String(normalized.created_at),
 		...(lastRecalledAt !== undefined ? { lastRecalledAt } : {}),
-		recallCount:
-			normalized.recall_count != null
-				? Number(normalized.recall_count)
-				: normalized.recallCount != null
-					? Number(normalized.recallCount)
-					: 0,
+		recallCount: normalized.recall_count != null ? Number(normalized.recall_count) : 0,
 	})
 }
 
@@ -142,11 +116,12 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					id,
 					trigger,
 					learning,
-					reason,
+					reason: reason ?? null,
 					confidence,
-					source,
+					source: source ?? null,
 					scope,
 					created_at: createdAt,
+					last_recalled_at: null,
 					recall_count: 0,
 				})
 			})

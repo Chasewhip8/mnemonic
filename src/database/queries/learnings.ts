@@ -1,27 +1,5 @@
-import { type SQLWrapper, sql } from 'drizzle-orm'
-
-type LearningRow = {
-	id: unknown
-	trigger: unknown
-	learning: unknown
-	reason?: unknown
-	confidence?: unknown
-	source?: unknown
-	scope: unknown
-	created_at?: unknown
-	createdAt?: unknown
-	last_recalled_at?: unknown
-	lastRecalledAt?: unknown
-	recall_count?: unknown
-	recallCount?: unknown
-	distance?: unknown
-}
-
-type DrizzleRawDb = {
-	run: (query: string | SQLWrapper) => PromiseLike<unknown>
-	all: <T = unknown>(query: string | SQLWrapper) => PromiseLike<Array<T>>
-}
-
+import { sql } from 'drizzle-orm'
+import type { DrizzleRawDb, LearningRow } from '../types'
 export function insertLearningRaw(
 	db: DrizzleRawDb,
 	params: {
