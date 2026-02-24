@@ -1,7 +1,7 @@
 import { SqliteDrizzle } from '@effect/sql-drizzle/Sqlite';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { WorkingStateResponse } from '../domain';
+import { WorkingStatePayload, WorkingStateResponse } from '../domain';
 import { LearningsRepo } from '../learnings/repo';
 import * as schema from '../schema';
 
@@ -12,33 +12,50 @@ export interface ResolveStateOptions {
 	updatedBy?: string;
 }
 
-function normalizeWorkingStatePayload(payload: any) {
-	const asStringArray = (value: any): string[] | undefined => {
+
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord {
+	if (typeof value === 'object' && value !== null) {
+		return value as UnknownRecord;
+	}
+	return {};
+}
+
+function normalizeWorkingStatePayload(payload: unknown) {
+	const raw = asRecord(payload);
+	const asStringArray = (value: unknown): string[] | undefined => {
 		if (!Array.isArray(value)) return undefined;
 		return value
-			.map((v: any) => (typeof v === 'string' ? v.trim() : String(v ?? '').trim()))
+			.map((v) => (typeof v === 'string' ? v.trim() : String(v ?? '').trim()))
 			.filter(Boolean);
 	};
 
-	const decisions = Array.isArray(payload?.decisions)
-		? payload.decisions
-				.map((d: any) => ({
-					id: typeof d?.id === 'string' ? d.id : undefined,
-					text: typeof d?.text === 'string' ? d.text.trim() : String(d?.text ?? '').trim(),
-					status: typeof d?.status === 'string' ? d.status : undefined,
-				}))
-				.filter((d: any) => d.text)
+	const decisions = Array.isArray(raw.decisions)
+		? raw.decisions
+				.map((d) => {
+					const decision = asRecord(d);
+					return {
+						id: typeof decision.id === 'string' ? decision.id : undefined,
+						text:
+							typeof decision.text === 'string'
+								? decision.text.trim()
+								: String(decision.text ?? '').trim(),
+						status: typeof decision.status === 'string' ? decision.status : undefined,
+					};
+				})
+				.filter((d) => d.text)
 		: undefined;
 
 	return {
-		goal: typeof payload?.goal === 'string' ? payload.goal.trim() : undefined,
-		assumptions: asStringArray(payload?.assumptions),
+		goal: typeof raw.goal === 'string' ? raw.goal.trim() : undefined,
+		assumptions: asStringArray(raw.assumptions),
 		decisions,
-		open_questions: asStringArray(payload?.open_questions),
-		next_actions: asStringArray(payload?.next_actions),
+		open_questions: asStringArray(raw.open_questions),
+		next_actions: asStringArray(raw.next_actions),
 		confidence:
-			typeof payload?.confidence === 'number' && Number.isFinite(payload.confidence)
-				? payload.confidence
+			typeof raw.confidence === 'number' && Number.isFinite(raw.confidence)
+				? raw.confidence
 				: undefined,
 	};
 }
@@ -59,11 +76,14 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 				);
 				const current = rows[0];
 				if (!current) return null;
+				const decodedState = new WorkingStatePayload(
+					JSON.parse(current.stateJson || '{}') as Record<string, unknown>
+				);
 				return new WorkingStateResponse({
 					runId: current.runId,
 					revision: current.revision,
 					status: current.status,
-					state: JSON.parse(current.stateJson || '{}'),
+					state: decodedState,
 					updatedBy: current.updatedBy ?? undefined,
 					createdAt: current.createdAt,
 					updatedAt: current.updatedAt,
@@ -73,7 +93,7 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 
 		const upsertState = (
 			runId: string,
-			payload: any,
+			payload: unknown,
 			updatedBy?: string,
 			changeSummary: string = 'state upsert',
 		): Effect.Effect<WorkingStateResponse> =>
@@ -108,7 +128,7 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 							createdAt: now,
 							updatedAt: now,
 							resolvedAt: null,
-						} as any)
+						} as typeof schema.stateRuns.$inferInsert)
 					);
 				}
 
@@ -121,7 +141,7 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 						changeSummary,
 						updatedBy,
 						createdAt: now,
-					} as any)
+					} as typeof schema.stateRevisions.$inferInsert)
 				);
 
 				return (yield* getState(runId)) as WorkingStateResponse;
@@ -129,7 +149,7 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 
 		const patchState = (
 			runId: string,
-			patch: any,
+			patch: unknown,
 			updatedBy?: string,
 		): Effect.Effect<WorkingStateResponse> =>
 			Effect.gen(function* () {
@@ -137,13 +157,13 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 					runId,
 					revision: 0,
 					status: 'active' as const,
-					state: {} as any,
+					state: new WorkingStatePayload({}),
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
 				};
 				const next = {
-					...current.state,
-					...normalizeWorkingStatePayload({ ...current.state, ...patch }),
+					...(current.state as Record<string, unknown>),
+					...normalizeWorkingStatePayload({ ...(current.state as Record<string, unknown>), ...patch }),
 				};
 				return yield* upsertState(runId, next, updatedBy, 'state patch');
 			});
@@ -165,7 +185,7 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 						payloadJson: JSON.stringify(payload ?? {}),
 						createdBy,
 						createdAt: now,
-					} as any)
+					} as typeof schema.stateEvents.$inferInsert)
 				);
 				return { success: true as const, id };
 			});
