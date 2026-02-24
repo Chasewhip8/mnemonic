@@ -47,3 +47,10 @@
 - scope priority: inject returns only highest-priority scope results (session > agent > shared)
 - format:'learnings' returns empty prompt + populated learnings array
 - recall tracking: last_recalled_at updated after inject call
+
+## [2026-02-24] Task 6: MCP Tools
+- test/mcp-tools.test.ts created, port 8793
+- All 13 MCP tools covered
+- Error codes: -32600 invalid request, -32601 method not found, -32603 tool error
+- GET /mcp returns info with name:'deja' and 13 tools
+- notifications/initialized returns 204
