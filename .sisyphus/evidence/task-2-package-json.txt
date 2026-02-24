@@ -1,0 +1,19 @@
+  "version": "0.2.0",
+  "main": "dist/client.js",
+  "module": "dist/client.mjs",
+  "types": "dist/client.d.ts",
+      "types": "./dist/client.d.ts",
+    "build": "tsup ../../src/client.ts --format cjs,esm --dts --clean --outDir dist",
+--- exports ---
+  "exports": {
+    ".": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.mjs",
+      "require": "./dist/client.js"
+    }
+--- dist/ contents ---
+client.d.mts
+client.d.ts
+client.js
+client.mjs
+--- build exit 0 ---

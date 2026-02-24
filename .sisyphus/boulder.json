@@ -1,9 +1,9 @@
 {
-  "active_plan": "/home/chase/deja/.sisyphus/plans/remove-mcp.md",
-  "started_at": "2026-02-24T17:37:51.130Z",
+  "active_plan": "/home/chase/deja/.sisyphus/plans/deja-client-rewrite.md",
+  "started_at": "2026-02-24T18:22:29.510Z",
   "session_ids": [
-    "ses_36f4571f7ffeQuU1kHB3AYtULW"
+    "ses_36f1c93bbffepPhzMv7y9WnMa7"
   ],
-  "plan_name": "remove-mcp",
+  "plan_name": "deja-client-rewrite",
   "agent": "atlas"
 }

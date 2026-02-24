@@ -1,0 +1,37 @@
+src/learnings/repo.ts(118,8): message TS44: Consider using Effect Schema for JSON operations instead of JSON.parse/JSON.stringify    effect(preferSchemaOverJson)
+src/learnings/repo.ts(157,8): message TS44: Consider using Effect Schema for JSON operations instead of JSON.parse/JSON.stringify    effect(preferSchemaOverJson)
+src/learnings/repo.ts(170,14): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(250,8): message TS44: Consider using Effect Schema for JSON operations instead of JSON.parse/JSON.stringify    effect(preferSchemaOverJson)
+src/learnings/repo.ts(342,8): message TS44: Consider using Effect Schema for JSON operations instead of JSON.parse/JSON.stringify    effect(preferSchemaOverJson)
+src/learnings/repo.ts(374,25): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(424,29): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(443,13): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(497,30): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(511,13): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(521,41): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(529,39): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/learnings/repo.ts(537,37): warning TS31: The 'catch' callback in Effect.tryPromise returns 'unknown'. The catch callback should be used to provide typed errors.
+    Consider wrapping unknown errors into Effect's Data.TaggedError for example, or narrow down the type to the specific error raised.    effect(unknownInEffectCatch)
+src/state/live.ts(14,13): message TS29: This Effect.fail call uses a yieldable error type as argument. You can yield* the error directly instead.    effect(unnecessaryFailYieldableError)
+src/state/live.ts(63,13): message TS29: This Effect.fail call uses a yieldable error type as argument. You can yield* the error directly instead.    effect(unnecessaryFailYieldableError)
+src/state/repo.ts(80,6): message TS44: Consider using Effect Schema for JSON operations instead of JSON.parse/JSON.stringify    effect(preferSchemaOverJson)
+src/state/repo.ts(105,23): message TS44: Consider using Effect Schema for JSON operations instead of JSON.parse/JSON.stringify    effect(preferSchemaOverJson)
+EXIT_CODE: 1
+
+=== client.ts grep checks ===
+OK: no interface/type keywords
+OK: no scoped:
+29:	dependencies: [FetchHttpClient.layer],
+OK: FetchHttpClient.layer present
+OK: no forbidden imports
+
+=== Line count ===
+30 /home/chase/deja/src/client.ts

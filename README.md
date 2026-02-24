@@ -1,6 +1,6 @@
 # deja
 
-*What survives a run.*
+_What survives a run._
 
 deja is a self-hosted memory layer for agents.
 It exposes durable memory via REST, with scoped recall and optional live working state.
@@ -13,18 +13,6 @@ It exposes durable memory via REST, with scoped recall and optional live working
 - **DB migrations**: `drizzle/`
 
 ---
-
-## Minimal deploy
-
-```bash
-git clone https://github.com/acoyfellow/deja
-cd deja
-bun install
-wrangler login
-wrangler vectorize create deja-embeddings --dimensions 384 --metric cosine
-wrangler secret put API_KEY
-bun run deploy
-```
 
 ## Core API surface
 
