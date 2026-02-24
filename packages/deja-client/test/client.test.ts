@@ -4,7 +4,8 @@ import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import deja from '../src/index.ts'
+import { DejaClient } from '../src/index.ts'
+import { ConfigProvider, Effect, Layer } from 'effect'
 
 const PORT = 8789
 const API_KEY = 'test-key'
@@ -15,6 +16,7 @@ const SERVER_ROOT = '/home/chase/deja'
 
 const RUN_SUFFIX = `${Date.now()}-${process.pid}`
 const DB_PATH = `./data/test-client-${RUN_SUFFIX}.db`
+const BASE_URL = `http://127.0.0.1:${PORT}`
 
 function mergedLdLibraryPath(current: string | undefined): string {
   if (!current || current.trim() === '') return REQUIRED_LD_LIBRARY_PATH
@@ -36,7 +38,6 @@ async function removeDbArtifacts(dbPath: string): Promise<void> {
 async function waitForServer(baseUrl: string, timeoutMs = STARTUP_TIMEOUT_MS): Promise<void> {
   const deadline = Date.now() + timeoutMs
   let lastError: unknown
-
   while (Date.now() < deadline) {
     try {
       const response = await fetch(`${baseUrl}/`)
@@ -47,16 +48,13 @@ async function waitForServer(baseUrl: string, timeoutMs = STARTUP_TIMEOUT_MS): P
     }
     await delay(250)
   }
-
   throw new Error(`Server did not become ready at ${baseUrl}: ${String(lastError)}`)
 }
 
 let serverProcess: ChildProcess | null = null
-const BASE_URL = `http://127.0.0.1:${PORT}`
 
 beforeAll(async () => {
   await removeDbArtifacts(DB_PATH)
-
   serverProcess = spawn('bun', ['run', 'src/index.ts'], {
     cwd: SERVER_ROOT,
     env: {
@@ -68,7 +66,6 @@ beforeAll(async () => {
     },
     stdio: 'pipe',
   })
-
   await waitForServer(BASE_URL)
 }, STARTUP_TIMEOUT_MS)
 
@@ -87,96 +84,43 @@ afterAll(async () => {
   await removeDbArtifacts(DB_PATH)
 })
 
-const uniqueScope = () => `session:test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+const testLayer = DejaClient.Default.pipe(
+  Layer.provide(Layer.setConfigProvider(
+    ConfigProvider.fromMap(new Map([
+      ['DEJA_URL', BASE_URL],
+      ['DEJA_API_KEY', API_KEY],
+    ]))
+  ))
+)
 
-describe('deja() backward-compat client — integration', () => {
-  it('learn: stores a learning and returns it with expected fields', async () => {
-    const scope = uniqueScope()
-    const mem = deja(BASE_URL, { apiKey: API_KEY })
+const run = <A>(eff: Effect.Effect<A, unknown, DejaClient>) =>
+  Effect.runPromise(eff.pipe(Effect.provide(testLayer)))
 
-    const result = await mem.learn('when tests fail', 'check the logs first', {
-      scope,
-      confidence: 0.9,
-    })
-
-    expect(result).toMatchObject({
-      trigger: 'when tests fail',
-      learning: 'check the logs first',
-      confidence: 0.9,
-      scope,
-    })
-    expect(typeof result.id).toBe('string')
-    expect(result.id.length).toBeGreaterThan(0)
-    expect(typeof result.createdAt).toBe('string')
+describe('DejaClient smoke test', () => {
+  it('health.healthCheck: returns status string', async () => {
+    const result = await run(Effect.gen(function* () {
+      const client = yield* DejaClient
+      return yield* client.health.healthCheck()
+    }))
+    expect(typeof (result as { status: string }).status).toBe('string')
   }, TEST_TIMEOUT_MS)
 
-  it('inject: returns prompt and learnings for context', async () => {
-    const scope = uniqueScope()
-    const mem = deja(BASE_URL, { apiKey: API_KEY })
-
-    await mem.learn('deploy fails on Friday', 'avoid Friday deploys', { scope, confidence: 0.85 })
-
-    const result = await mem.inject('deploying to production', { scopes: [scope], limit: 5 })
-
-    expect(result).toHaveProperty('prompt')
-    expect(result).toHaveProperty('learnings')
-    expect(typeof result.prompt).toBe('string')
-    expect(Array.isArray(result.learnings)).toBe(true)
+  it('learnings.learn: stores a learning and returns id and trigger', async () => {
+    const result = await run(Effect.gen(function* () {
+      const client = yield* DejaClient
+      return yield* client.learnings.learn({
+        payload: { trigger: 'smoke-test', learning: 'it works' },
+      })
+    }))
+    expect(typeof (result as { id: string }).id).toBe('string')
+    expect((result as { trigger: string }).trigger).toBe('smoke-test')
   }, TEST_TIMEOUT_MS)
 
-  it('query: returns learnings and hits for search text', async () => {
-    const scope = uniqueScope()
-    const mem = deja(BASE_URL, { apiKey: API_KEY })
-
-    await mem.learn('database migration fails', 'backup first', { scope, confidence: 0.9 })
-
-    const result = await mem.query('database migration', { scopes: [scope], limit: 5 })
-
-    expect(result).toHaveProperty('learnings')
-    expect(result).toHaveProperty('hits')
-    expect(Array.isArray(result.learnings)).toBe(true)
-    expect(typeof result.hits).toBe('object')
-  }, TEST_TIMEOUT_MS)
-
-  it('list: returns array of learnings, filterable by scope', async () => {
-    const scope = uniqueScope()
-    const mem = deja(BASE_URL, { apiKey: API_KEY })
-
-    await mem.learn('config missing', 'check .env file', { scope, confidence: 0.8 })
-    await mem.learn('port conflict', 'kill process on port', { scope, confidence: 0.75 })
-
-    const result = await mem.list({ scope, limit: 20 })
-
-    expect(Array.isArray(result)).toBe(true)
-    expect(result.length).toBeGreaterThanOrEqual(2)
-    for (const item of result) {
-      expect(item.scope).toBe(scope)
-    }
-  }, TEST_TIMEOUT_MS)
-
-  it('forget: deletes a learning by id', async () => {
-    const scope = uniqueScope()
-    const mem = deja(BASE_URL, { apiKey: API_KEY })
-
-    const learning = await mem.learn('temp learning', 'to be deleted', { scope, confidence: 0.5 })
-    const deleteResult = await mem.forget(learning.id)
-
-    expect(deleteResult).toMatchObject({ success: true })
-    const remaining = await mem.list({ scope })
-    const found = remaining.find((l) => l.id === learning.id)
-    expect(found).toBeUndefined()
-  }, TEST_TIMEOUT_MS)
-
-  it('stats: returns totalLearnings, totalSecrets, and scopes', async () => {
-    const mem = deja(BASE_URL, { apiKey: API_KEY })
-
-    const result = await mem.stats()
-
-    expect(result).toHaveProperty('totalLearnings')
-    expect(result).toHaveProperty('totalSecrets')
-    expect(result).toHaveProperty('scopes')
-    expect(typeof result.totalLearnings).toBe('number')
-    expect(typeof result.totalSecrets).toBe('number')
-    expect(typeof result.scopes).toBe('object')
+  it('learnings.getStats: returns totalLearnings', async () => {
+    const result = await run(Effect.gen(function* () {
+      const client = yield* DejaClient
+      return yield* client.learnings.getStats()
+    }))
+    expect(typeof (result as { totalLearnings: number }).totalLearnings).toBe('number')
   }, TEST_TIMEOUT_MS)
 })

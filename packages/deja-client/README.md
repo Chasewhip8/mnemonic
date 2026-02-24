@@ -1,6 +1,6 @@
 # deja-client
 
-Thin client for [deja](https://github.com/acoyfellow/deja) — persistent memory for agents.
+Effect-based client for [deja](https://github.com/acoyfellow/deja) — persistent memory for agents.
 
 ## Install
 
@@ -12,141 +12,140 @@ bun add deja-client
 
 ## Usage
 
+`DejaClient` is an [Effect Service](https://effect.website/docs/guides/context-management/services). Use it inside `Effect.gen`:
+
 ```ts
-import deja from 'deja-client'
+import { DejaClient } from 'deja-client'
+import { Effect } from 'effect'
 
-const mem = deja('https://deja.coey.dev')
+const program = Effect.gen(function* () {
+  const client = yield* DejaClient
 
-// Store a learning
-await mem.learn('deploy failed', 'check wrangler.toml first')
+  // Store a learning
+  yield* client.learnings.learn({
+    payload: { trigger: 'deploy failed', learning: 'check wrangler.toml' },
+  })
 
-// Get relevant memories before a task
-const { prompt, learnings } = await mem.inject('deploying to production')
+  // Get relevant memories for context
+  const result = yield* client.learnings.inject({
+    payload: { context: 'deploying to production' },
+  })
 
-// Search memories
-const results = await mem.query('wrangler config')
+  return result
+})
 
-// List all memories
-const all = await mem.list()
-
-// Delete a memory
-await mem.forget('1234567890-abc123def')
-
-// Get stats
-const stats = await mem.stats()
+Effect.runPromise(
+  program.pipe(Effect.provide(DejaClient.Default))
+)
 ```
+
+## Config
+
+Config is read from environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `DEJA_URL` | `http://localhost:8787` | Base URL of your deja instance |
+| `DEJA_API_KEY` | _(none)_ | Bearer token for authenticated endpoints |
+
+To override in tests or scripts, use `ConfigProvider.fromMap`:
+
+```ts
+import { ConfigProvider, Layer } from 'effect'
+
+const testConfig = Layer.setConfigProvider(
+  ConfigProvider.fromMap(new Map([
+    ['DEJA_URL', 'https://deja.example.com'],
+    ['DEJA_API_KEY', 'my-secret-key'],
+  ]))
+)
+
+Effect.runPromise(
+  program.pipe(
+    Effect.provide(DejaClient.Default),
+    Effect.provide(testConfig),
+  )
+)
+```
+
+## Method Pattern
+
+All methods take a single options object:
+
+```ts
+client.{group}.{method}({
+  payload?,    // request body
+  path?,       // path params, e.g. { id: "abc123" }
+  urlParams?,  // query string params
+})
+```
+
+## Endpoints
+
+### `client.learnings.*`
+
+| Method | Description |
+|---|---|
+| `learn({ payload })` | Store a learning |
+| `inject({ payload })` | Get relevant memories for context |
+| `injectTrace({ payload })` | Inject with debug trace |
+| `query({ payload })` | Semantic search |
+| `getLearnings({ urlParams? })` | List all learnings |
+| `deleteLearnings({ urlParams })` | Bulk delete (requires at least one filter: `confidence_lt`, `not_recalled_in_days`, or `scope`) |
+| `deleteLearning({ path })` | Delete by ID |
+| `getLearningNeighbors({ path })` | Find similar learnings |
+| `getStats()` | Get statistics |
+
+### `client.state.*`
+
+| Method | Description |
+|---|---|
+| `getState({ path })` | Get working state for a run |
+| `upsertState({ path, payload })` | Create or replace state |
+| `patchState({ path, payload })` | Partial update |
+| `addStateEvent({ path, payload })` | Append an event |
+| `resolveState({ path, payload })` | Mark run resolved |
+
+### `client.secrets.*`
+
+| Method | Description |
+|---|---|
+| `setSecret({ payload })` | Store a secret |
+| `getSecret({ path })` | Retrieve by name |
+| `deleteSecret({ path })` | Delete by name |
+| `listSecrets()` | List all secret names |
+
+### `client.health.*`
+
+| Method | Description |
+|---|---|
+| `healthCheck()` | Health check (no auth required) |
+| `cleanup({ payload? })` | Clean up old learnings (requires auth) |
 
 ## Types
 
-All types are exported for use in your application:
-
 ```ts
-import deja, { type Learning, type InjectResult, type QueryResult, type Stats } from 'deja-client'
+import {
+  type Learning,
+  type Secret,
+  type WorkingStatePayload,
+  type WorkingStateResponse,
+  type InjectResult,
+  type InjectTraceResult,
+  type QueryResult,
+  type Stats,
+  // error types
+  type DatabaseError,
+  type EmbeddingError,
+  type NotFoundError,
+  type Unauthorized,
+  type ValidationError,
+  // for building custom clients
+  type Api,
+} from 'deja-client'
 ```
 
-### `Learning`
-
-The core memory type returned by most methods:
-
-```ts
-interface Learning {
-  id: string          // Unique identifier
-  trigger: string     // When this memory applies
-  learning: string    // What was learned
-  reason?: string     // Why this was learned
-  confidence: number  // 0-1 confidence score
-  source?: string     // Source identifier
-  scope: string       // "shared", "agent:<id>", or "session:<id>"
-  createdAt: string   // ISO timestamp
-}
-```
-
-### `InjectResult`
-
-Returned by `mem.inject()`:
-
-```ts
-interface InjectResult {
-  prompt: string        // Formatted prompt text
-  learnings: Learning[] // Raw learnings
-}
-```
-
-### `QueryResult`
-
-Returned by `mem.query()`:
-
-```ts
-interface QueryResult {
-  learnings: Learning[]
-  hits: Record<string, number> // Hits per scope
-}
-```
-
-### `Stats`
-
-Returned by `mem.stats()`:
-
-```ts
-interface Stats {
-  totalLearnings: number
-  totalSecrets: number
-  scopes: Record<string, { learnings: number; secrets: number }>
-}
-```
-
-## API
-
-### `deja(url, options?)`
-
-Create a client instance.
-
-- `url` — Your deja instance URL
-- `options.apiKey` — API key for authenticated endpoints
-- `options.fetch` — Custom fetch implementation
-
-### `mem.learn(trigger, learning, options?)`
-
-Store a learning for future recall.
-
-- `trigger` — When this learning applies
-- `learning` — What was learned
-- `options.confidence` — 0-1 (default: 0.8)
-- `options.scope` — `shared`, `agent:<id>`, or `session:<id>` (default: `shared`)
-- `options.reason` — Why this was learned
-- `options.source` — Source identifier
-
-### `mem.inject(context, options?)`
-
-Get relevant memories for current context.
-
-- `context` — Current task or situation
-- `options.scopes` — Scopes to search (default: `['shared']`)
-- `options.limit` — Max memories (default: 5)
-- `options.format` — `'prompt'` or `'learnings'` (default: `'prompt'`)
-
-### `mem.query(text, options?)`
-
-Search memories semantically.
-
-- `text` — Search query
-- `options.scopes` — Scopes to search (default: `['shared']`)
-- `options.limit` — Max results (default: 10)
-
-### `mem.list(options?)`
-
-List all memories.
-
-- `options.scope` — Filter by scope
-- `options.limit` — Max results
-
-### `mem.forget(id)`
-
-Delete a specific memory by ID.
-
-### `mem.stats()`
-
-Get memory statistics.
+All types are derived from Effect schemas — no manual interfaces.
 
 ## License
 
