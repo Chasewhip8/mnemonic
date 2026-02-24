@@ -1,0 +1,18 @@
+api.ts
+cleanup.ts
+config.ts
+database.ts
+domain.ts
+embeddings.ts
+errors.ts
+health
+http.ts
+learnings
+mcp
+schema.ts
+secrets
+security.ts
+services.ts
+state
+Deleted: src/index.ts, src/service.ts, src/db.ts
+Created: src/services.ts, src/http.ts, src/mcp/live.ts (stub)
