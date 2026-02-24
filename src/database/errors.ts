@@ -52,18 +52,14 @@ function getInnerCause(error: unknown): unknown {
 
 function getSqliteCode(error: unknown): string | null {
 	const cause = getInnerCause(error)
-	if (typeof cause !== 'object' || cause === null) {
-		return null
-	}
-
-	const code = (cause as { code?: unknown }).code
-	return typeof code === 'string' ? code.toUpperCase() : null
+	const code = (typeof cause === 'object' && cause !== null && 'code' in cause && typeof cause.code === 'string') ? cause.code.toUpperCase() : null
+	return code
 }
 
 export function classifySqliteError(error: unknown) {
 	const code = getSqliteCode(error)
 	if (code === null) {
-		throw error
+		return DatabaseAvailabilityError.make({ cause: error })
 	}
 
 	if (CONSTRAINT_CODES.has(code)) {
@@ -82,5 +78,5 @@ export function classifySqliteError(error: unknown) {
 		return DatabaseAvailabilityError.make({ cause: error })
 	}
 
-	throw error
+	return DatabaseAvailabilityError.make({ cause: error })
 }
