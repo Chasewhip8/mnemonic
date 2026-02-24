@@ -21,6 +21,11 @@ export class RetryableDatabaseError extends Schema.TaggedError<RetryableDatabase
 	{ cause: Schema.Unknown },
 ) {}
 
+export class DatabaseMigrationError extends Schema.TaggedError<DatabaseMigrationError>()(
+	'DatabaseMigrationError',
+	{ cause: Schema.Unknown },
+) {}
+
 const CONSTRAINT_CODES = new Set([
 	'SQLITE_CONSTRAINT',
 	'SQLITE_CONSTRAINT_UNIQUE',

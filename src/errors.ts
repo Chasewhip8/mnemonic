@@ -2,11 +2,11 @@ import { HttpApiSchema } from '@effect/platform'
 import { Schema } from 'effect'
 
 export class DatabaseError extends Schema.TaggedError<DatabaseError>()('DatabaseError', {
-	cause: Schema.Defect,
+	cause: Schema.Unknown,
 }) {}
 
 export class EmbeddingError extends Schema.TaggedError<EmbeddingError>()('EmbeddingError', {
-	cause: Schema.Defect,
+	cause: Schema.Unknown,
 }) {}
 
 export class NotFoundError extends Schema.TaggedError<NotFoundError>()(

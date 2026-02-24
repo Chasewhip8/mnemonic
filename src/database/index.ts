@@ -6,15 +6,10 @@ import { LibsqlClient } from '@effect/sql-libsql'
 import { createClient } from '@libsql/client'
 import { drizzle as drizzleClient } from 'drizzle-orm/libsql'
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { Config, Duration, Effect, Layer, Schedule, Schema } from 'effect'
+import { Config, Duration, Effect, Layer, Schedule } from 'effect'
 import { isTagged } from 'effect/Predicate'
 import { AppConfig } from '../config'
-import { classifySqliteError, DatabaseAvailabilityError, RetryableDatabaseError } from './errors'
-
-export class DatabaseMigrationError extends Schema.TaggedError<DatabaseMigrationError>()(
-	'DatabaseMigrationError',
-	{ cause: Schema.Unknown },
-) {}
+import { classifySqliteError, DatabaseAvailabilityError, DatabaseMigrationError, RetryableDatabaseError } from './errors'
 
 const isTaggedRetryable = isTagged(RetryableDatabaseError._tag)
 
