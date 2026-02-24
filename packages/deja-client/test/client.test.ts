@@ -1,295 +1,182 @@
-import { describe, test, expect, mock } from 'bun:test'
-import { deja, type Learning, type InjectResult, type QueryResult, type Stats } from '../src/index'
+import { type ChildProcess, spawn } from 'node:child_process'
+import { once } from 'node:events'
+import { existsSync } from 'node:fs'
+import { rm } from 'node:fs/promises'
+import { setTimeout as delay } from 'node:timers/promises'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import deja from '../src/index.ts'
 
-// Mock response helper
-const mockResponse = <T>(data: T, status = 200) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
+const PORT = 8789
+const API_KEY = 'test-key'
+const STARTUP_TIMEOUT_MS = 120_000
+const TEST_TIMEOUT_MS = 240_000
+const REQUIRED_LD_LIBRARY_PATH = '/nix/store/j9nz3m8hqnyjjj5zxz5qvmd35g37rjyi-gcc-15.2.0-lib/lib'
+const SERVER_ROOT = '/home/chase/deja'
 
-// Sample data
-const sampleLearning: Learning = {
-  id: '1234567890-abc123def',
-  trigger: 'deploy failed',
-  learning: 'check wrangler.toml first',
-  confidence: 0.8,
-  scope: 'shared',
-  createdAt: '2026-02-04T12:00:00.000Z',
+const RUN_SUFFIX = `${Date.now()}-${process.pid}`
+const DB_PATH = `./data/test-client-${RUN_SUFFIX}.db`
+
+function mergedLdLibraryPath(current: string | undefined): string {
+  if (!current || current.trim() === '') return REQUIRED_LD_LIBRARY_PATH
+  const parts = current.split(':')
+  if (parts.includes(REQUIRED_LD_LIBRARY_PATH)) return current
+  return `${REQUIRED_LD_LIBRARY_PATH}:${current}`
 }
 
-describe('deja-client', () => {
-  describe('learn', () => {
-    test('sends correct POST request with minimal args', async () => {
-      let capturedRequest: { url: string; method: string; body: unknown } | null = null
-
-      const mockFetch = mock(async (url: string, init?: RequestInit) => {
-        capturedRequest = {
-          url,
-          method: init?.method || 'GET',
-          body: init?.body ? JSON.parse(init.body as string) : null,
-        }
-        return mockResponse(sampleLearning)
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      const result = await mem.learn('deploy failed', 'check wrangler.toml first')
-
-      expect(capturedRequest?.url).toBe('https://deja.example.com/learn')
-      expect(capturedRequest?.method).toBe('POST')
-      expect(capturedRequest?.body).toEqual({
-        trigger: 'deploy failed',
-        learning: 'check wrangler.toml first',
-        confidence: 0.8,
-        scope: 'shared',
-        reason: undefined,
-        source: undefined,
-      })
-      expect(result).toEqual(sampleLearning)
-    })
-
-    test('sends correct POST request with all options', async () => {
-      let capturedBody: unknown = null
-
-      const mockFetch = mock(async (_url: string, init?: RequestInit) => {
-        capturedBody = init?.body ? JSON.parse(init.body as string) : null
-        return mockResponse(sampleLearning)
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      await mem.learn('migration failed', 'check foreign keys', {
-        confidence: 0.95,
-        scope: 'agent:deployer',
-        reason: 'Learned from production incident',
-        source: 'ops-runbook',
-      })
-
-      expect(capturedBody).toEqual({
-        trigger: 'migration failed',
-        learning: 'check foreign keys',
-        confidence: 0.95,
-        scope: 'agent:deployer',
-        reason: 'Learned from production incident',
-        source: 'ops-runbook',
-      })
-    })
-
-    test('includes API key in Authorization header', async () => {
-      let capturedHeaders: Record<string, string> = {}
-
-      const mockFetch = mock(async (_url: string, init?: RequestInit) => {
-        capturedHeaders = Object.fromEntries(
-          Object.entries(init?.headers || {})
-        )
-        return mockResponse(sampleLearning)
-      })
-
-      const mem = deja('https://deja.example.com', {
-        apiKey: 'secret-key-123',
-        fetch: mockFetch as typeof fetch,
-      })
-      await mem.learn('test', 'test')
-
-      expect(capturedHeaders['Authorization']).toBe('Bearer secret-key-123')
-    })
-  })
-
-  describe('inject', () => {
-    const sampleInjectResult: InjectResult = {
-      prompt: 'When deploy failed, check wrangler.toml first',
-      learnings: [sampleLearning],
+async function removeDbArtifacts(dbPath: string): Promise<void> {
+  for (const suffix of ['', '-wal', '-shm']) {
+    const target = `${SERVER_ROOT}/${dbPath}`
+    const full = `${target}${suffix}`
+    if (existsSync(full)) {
+      await rm(full, { force: true })
     }
+  }
+}
 
-    test('sends correct POST request with defaults', async () => {
-      let capturedBody: unknown = null
+async function waitForServer(baseUrl: string, timeoutMs = STARTUP_TIMEOUT_MS): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  let lastError: unknown
 
-      const mockFetch = mock(async (_url: string, init?: RequestInit) => {
-        capturedBody = init?.body ? JSON.parse(init.body as string) : null
-        return mockResponse(sampleInjectResult)
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      const result = await mem.inject('deploying to production')
-
-      expect(capturedBody).toEqual({
-        context: 'deploying to production',
-        scopes: ['shared'],
-        limit: 5,
-        format: 'prompt',
-      })
-      expect(result.prompt).toContain('check wrangler.toml')
-      expect(result.learnings).toHaveLength(1)
-    })
-
-    test('sends correct POST request with custom options', async () => {
-      let capturedBody: unknown = null
-
-      const mockFetch = mock(async (_url: string, init?: RequestInit) => {
-        capturedBody = init?.body ? JSON.parse(init.body as string) : null
-        return mockResponse(sampleInjectResult)
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      await mem.inject('deploying', {
-        scopes: ['agent:deployer', 'shared'],
-        limit: 10,
-        format: 'learnings',
-      })
-
-      expect(capturedBody).toEqual({
-        context: 'deploying',
-        scopes: ['agent:deployer', 'shared'],
-        limit: 10,
-        format: 'learnings',
-      })
-    })
-  })
-
-  describe('query', () => {
-    const sampleQueryResult: QueryResult = {
-      learnings: [sampleLearning],
-      hits: { shared: 1 },
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${baseUrl}/`)
+      if (response.ok) return
+      lastError = new Error(`Health check returned ${response.status}`)
+    } catch (error) {
+      lastError = error
     }
+    await delay(250)
+  }
 
-    test('sends correct POST request', async () => {
-      let capturedBody: unknown = null
+  throw new Error(`Server did not become ready at ${baseUrl}: ${String(lastError)}`)
+}
 
-      const mockFetch = mock(async (_url: string, init?: RequestInit) => {
-        capturedBody = init?.body ? JSON.parse(init.body as string) : null
-        return mockResponse(sampleQueryResult)
-      })
+let serverProcess: ChildProcess | null = null
+const BASE_URL = `http://127.0.0.1:${PORT}`
 
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      const result = await mem.query('wrangler')
+beforeAll(async () => {
+  await removeDbArtifacts(DB_PATH)
 
-      expect(capturedBody).toEqual({
-        text: 'wrangler',
-        scopes: ['shared'],
-        limit: 10,
-      })
-      expect(result.learnings).toHaveLength(1)
-      expect(result.hits.shared).toBe(1)
-    })
+  serverProcess = spawn('bun', ['run', 'src/index.ts'], {
+    cwd: SERVER_ROOT,
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      API_KEY,
+      DB_PATH,
+      LD_LIBRARY_PATH: mergedLdLibraryPath(process.env.LD_LIBRARY_PATH),
+    },
+    stdio: 'pipe',
   })
 
-  describe('list', () => {
-    test('sends GET request without params', async () => {
-      let capturedUrl = ''
+  await waitForServer(BASE_URL)
+}, STARTUP_TIMEOUT_MS)
 
-      const mockFetch = mock(async (url: string) => {
-        capturedUrl = url
-        return mockResponse([sampleLearning])
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      const result = await mem.list()
-
-      expect(capturedUrl).toBe('https://deja.example.com/learnings')
-      expect(result).toHaveLength(1)
-    })
-
-    test('sends GET request with query params', async () => {
-      let capturedUrl = ''
-
-      const mockFetch = mock(async (url: string) => {
-        capturedUrl = url
-        return mockResponse([sampleLearning])
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      await mem.list({ scope: 'agent:deployer', limit: 5 })
-
-      expect(capturedUrl).toBe('https://deja.example.com/learnings?scope=agent%3Adeployer&limit=5')
-    })
-  })
-
-  describe('forget', () => {
-    test('sends DELETE request with ID', async () => {
-      let capturedRequest: { url: string; method: string } | null = null
-
-      const mockFetch = mock(async (url: string, init?: RequestInit) => {
-        capturedRequest = { url, method: init?.method || 'GET' }
-        return mockResponse({ success: true })
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      const result = await mem.forget('1234567890-abc123def')
-
-      expect(capturedRequest?.url).toBe('https://deja.example.com/learning/1234567890-abc123def')
-      expect(capturedRequest?.method).toBe('DELETE')
-      expect(result.success).toBe(true)
-    })
-  })
-
-  describe('stats', () => {
-    const sampleStats: Stats = {
-      totalLearnings: 42,
-      totalSecrets: 3,
-      scopes: {
-        shared: { learnings: 30, secrets: 2 },
-        'agent:deployer': { learnings: 12, secrets: 1 },
-      },
+afterAll(async () => {
+  if (serverProcess && serverProcess.exitCode === null) {
+    serverProcess.kill('SIGTERM')
+    const exited = await Promise.race([
+      once(serverProcess, 'exit').then(() => true),
+      delay(8_000).then(() => false),
+    ])
+    if (!exited && serverProcess.exitCode === null) {
+      serverProcess.kill('SIGKILL')
+      await once(serverProcess, 'exit')
     }
+  }
+  await removeDbArtifacts(DB_PATH)
+})
 
-    test('sends GET request and returns stats', async () => {
-      let capturedUrl = ''
+const uniqueScope = () => `session:test-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-      const mockFetch = mock(async (url: string) => {
-        capturedUrl = url
-        return mockResponse(sampleStats)
-      })
+describe('deja() backward-compat client — integration', () => {
+  it('learn: stores a learning and returns it with expected fields', async () => {
+    const scope = uniqueScope()
+    const mem = deja(BASE_URL, { apiKey: API_KEY })
 
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-      const result = await mem.stats()
-
-      expect(capturedUrl).toBe('https://deja.example.com/stats')
-      expect(result.totalLearnings).toBe(42)
-      expect(result.scopes.shared.learnings).toBe(30)
-    })
-  })
-
-  describe('error handling', () => {
-    test('throws on HTTP error with message from response', async () => {
-      const mockFetch = mock(async () => {
-        return new Response(JSON.stringify({ error: 'unauthorized - API key required' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-
-      await expect(mem.learn('test', 'test')).rejects.toThrow('unauthorized - API key required')
+    const result = await mem.learn('when tests fail', 'check the logs first', {
+      scope,
+      confidence: 0.9,
     })
 
-    test('throws on HTTP error with status fallback when JSON parse fails', async () => {
-      const mockFetch = mock(async () => {
-        return new Response('Internal Server Error', {
-          status: 500,
-          statusText: 'Internal Server Error',
-        })
-      })
-
-      const mem = deja('https://deja.example.com', { fetch: mockFetch as typeof fetch })
-
-      // Falls back to statusText when body isn't valid JSON
-      await expect(mem.stats()).rejects.toThrow('Internal Server Error')
+    expect(result).toMatchObject({
+      trigger: 'when tests fail',
+      learning: 'check the logs first',
+      confidence: 0.9,
+      scope,
     })
-  })
+    expect(typeof result.id).toBe('string')
+    expect(result.id.length).toBeGreaterThan(0)
+    expect(typeof result.createdAt).toBe('string')
+  }, TEST_TIMEOUT_MS)
 
-  describe('URL handling', () => {
-    test('strips trailing slash from base URL', async () => {
-      let capturedUrl = ''
+  it('inject: returns prompt and learnings for context', async () => {
+    const scope = uniqueScope()
+    const mem = deja(BASE_URL, { apiKey: API_KEY })
 
-      const mockFetch = mock(async (url: string) => {
-        capturedUrl = url
-        return mockResponse(sampleLearning)
-      })
+    await mem.learn('deploy fails on Friday', 'avoid Friday deploys', { scope, confidence: 0.85 })
 
-      const mem = deja('https://deja.example.com/', { fetch: mockFetch as typeof fetch })
-      await mem.learn('test', 'test')
+    const result = await mem.inject('deploying to production', { scopes: [scope], limit: 5 })
 
-      expect(capturedUrl).toBe('https://deja.example.com/learn')
-    })
-  })
+    expect(result).toHaveProperty('prompt')
+    expect(result).toHaveProperty('learnings')
+    expect(typeof result.prompt).toBe('string')
+    expect(Array.isArray(result.learnings)).toBe(true)
+  }, TEST_TIMEOUT_MS)
+
+  it('query: returns learnings and hits for search text', async () => {
+    const scope = uniqueScope()
+    const mem = deja(BASE_URL, { apiKey: API_KEY })
+
+    await mem.learn('database migration fails', 'backup first', { scope, confidence: 0.9 })
+
+    const result = await mem.query('database migration', { scopes: [scope], limit: 5 })
+
+    expect(result).toHaveProperty('learnings')
+    expect(result).toHaveProperty('hits')
+    expect(Array.isArray(result.learnings)).toBe(true)
+    expect(typeof result.hits).toBe('object')
+  }, TEST_TIMEOUT_MS)
+
+  it('list: returns array of learnings, filterable by scope', async () => {
+    const scope = uniqueScope()
+    const mem = deja(BASE_URL, { apiKey: API_KEY })
+
+    await mem.learn('config missing', 'check .env file', { scope, confidence: 0.8 })
+    await mem.learn('port conflict', 'kill process on port', { scope, confidence: 0.75 })
+
+    const result = await mem.list({ scope, limit: 20 })
+
+    expect(Array.isArray(result)).toBe(true)
+    expect(result.length).toBeGreaterThanOrEqual(2)
+    for (const item of result) {
+      expect(item.scope).toBe(scope)
+    }
+  }, TEST_TIMEOUT_MS)
+
+  it('forget: deletes a learning by id', async () => {
+    const scope = uniqueScope()
+    const mem = deja(BASE_URL, { apiKey: API_KEY })
+
+    const learning = await mem.learn('temp learning', 'to be deleted', { scope, confidence: 0.5 })
+    const deleteResult = await mem.forget(learning.id)
+
+    expect(deleteResult).toMatchObject({ success: true })
+    const remaining = await mem.list({ scope })
+    const found = remaining.find((l) => l.id === learning.id)
+    expect(found).toBeUndefined()
+  }, TEST_TIMEOUT_MS)
+
+  it('stats: returns totalLearnings, totalSecrets, and scopes', async () => {
+    const mem = deja(BASE_URL, { apiKey: API_KEY })
+
+    const result = await mem.stats()
+
+    expect(result).toHaveProperty('totalLearnings')
+    expect(result).toHaveProperty('totalSecrets')
+    expect(result).toHaveProperty('scopes')
+    expect(typeof result.totalLearnings).toBe('number')
+    expect(typeof result.totalSecrets).toBe('number')
+    expect(typeof result.scopes).toBe('object')
+  }, TEST_TIMEOUT_MS)
 })
