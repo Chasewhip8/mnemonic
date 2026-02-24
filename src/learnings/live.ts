@@ -1,21 +1,16 @@
 import { HttpApiBuilder } from '@effect/platform';
-import { Context, Effect } from 'effect';
+import { Effect } from 'effect';
 import { Api } from '../api';
 import type { Learning, WorkingStateResponse } from '../domain';
 import { DatabaseError, ValidationError } from '../errors';
+import { StateRepo } from '../state/repo';
 import { LearningsRepo } from './repo';
-
-type StateRepoService = {
-	getState: (runId: string) => Effect.Effect<WorkingStateResponse | null>;
-};
 
 type MutableInjectResult = {
 	prompt: string;
 	learnings: Array<Learning>;
 	state?: WorkingStateResponse;
 };
-
-const StateRepo = Context.GenericTag<StateRepoService>('StateRepo');
 
 function formatStatePrompt(state: WorkingStateResponse): string {
 	const lines: string[] = [];
@@ -50,7 +45,7 @@ function maybeAttachState(
 	includeState: unknown,
 	runId: unknown,
 	format: string,
-): Effect.Effect<void, never, StateRepoService> {
+): Effect.Effect<void, never, StateRepo> {
 	return Effect.gen(function* () {
 		if (!(includeState && typeof runId === 'string' && runId.trim())) {
 			return;

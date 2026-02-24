@@ -1,5 +1,5 @@
 import { HttpApiBuilder, HttpMiddleware, HttpServer } from '@effect/platform';
-import { BunHttpServer } from '@effect/platform-bun';
+import * as BunHttpServer from '@effect/platform-bun/BunHttpServer';
 import { Effect, Layer } from 'effect';
 import { Api } from './api';
 import { AppConfig } from './config';
