@@ -8,11 +8,12 @@ import {
 	inArray,
 	type SQL,
 } from "drizzle-orm";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Schema } from "effect";
 import { AppConfig } from "../config";
 import { DatabaseLive } from "../database";
 import { Learning } from "../domain";
 import { EmbeddingService } from "../embeddings";
+import { DatabaseError } from "../errors";
 import * as schema from "../schema";
 
 type InjectFormat = "prompt" | "learnings";
@@ -39,6 +40,8 @@ type LearningRow = {
 	recallCount?: unknown;
 	distance?: unknown;
 };
+
+const EmbeddingJson = Schema.parseJson(Schema.Array(Schema.Number));
 
 function filterScopesByPriority(scopes: ReadonlyArray<string>): string[] {
 	const priority = ["session:", "agent:", "shared"];
@@ -102,6 +105,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 					const textForEmbedding = `When ${trigger}, ${learning}`;
 					const embedding = yield* embeddings.embed(textForEmbedding);
+					const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(
+						Effect.orDie,
+					);
 					const createdAt = new Date().toISOString();
 
 					yield* sql.unsafe(
@@ -115,7 +121,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 							confidence,
 							source ?? null,
 							scope,
-							JSON.stringify(embedding),
+							embeddingJson,
 							createdAt,
 							0,
 						],
@@ -147,6 +153,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					}
 
 					const embedding = yield* embeddings.embed(context);
+					const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(
+						Effect.orDie,
+					);
 					const placeholders = filteredScopes.map(() => "?").join(",");
 					const rows = yield* sql.unsafe<LearningRow>(
 						`SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
@@ -154,7 +163,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					 WHERE scope IN (${placeholders})
 					 ORDER BY distance ASC
 					 LIMIT ?`,
-						[JSON.stringify(embedding), ...filteredScopes, limit],
+						[embeddingJson, ...filteredScopes, limit],
 					);
 
 					const learnings = rows
@@ -167,22 +176,20 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 
 					if (learnings.length > 0) {
 						const now = new Date().toISOString();
-						yield* Effect.tryPromise({
-							try: () =>
-								db
-									.update(schema.learnings)
-									.set({
-										lastRecalledAt: now,
-										recallCount: drizzleSql`COALESCE(${schema.learnings.recallCount}, 0) + 1`,
-									})
-									.where(
-										inArray(
-											schema.learnings.id,
-											learnings.map((learning) => learning.id),
-										),
+						yield* Effect.promise(() =>
+							db
+								.update(schema.learnings)
+								.set({
+									lastRecalledAt: now,
+									recallCount: drizzleSql`COALESCE(${schema.learnings.recallCount}, 0) + 1`,
+								})
+								.where(
+									inArray(
+										schema.learnings.id,
+										learnings.map((learning) => learning.id),
 									),
-							catch: (error) => error,
-						});
+								),
+						);
 					}
 
 					if (format === "prompt") {
@@ -238,6 +245,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					}
 
 					const embedding = yield* embeddings.embed(context);
+					const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(
+						Effect.orDie,
+					);
 					const placeholders = filteredScopes.map(() => "?").join(",");
 					const candidateLimit = Math.max(limit * 3, 20);
 
@@ -247,7 +257,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					 WHERE scope IN (${placeholders})
 					 ORDER BY distance ASC
 					 LIMIT ?`,
-						[JSON.stringify(embedding), ...filteredScopes, candidateLimit],
+						[embeddingJson, ...filteredScopes, candidateLimit],
 					);
 
 					const byId = new Map<string, Learning>();
@@ -332,6 +342,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					}
 
 					const embedding = yield* embeddings.embed(text);
+					const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(
+						Effect.orDie,
+					);
 					const placeholders = filteredScopes.map(() => "?").join(",");
 					const rows = yield* sql.unsafe<LearningRow>(
 						`SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
@@ -339,7 +352,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					 WHERE scope IN (${placeholders})
 					 ORDER BY distance ASC
 					 LIMIT ?`,
-						[JSON.stringify(embedding), ...filteredScopes, limit],
+						[embeddingJson, ...filteredScopes, limit],
 					);
 
 					const learnings = rows
@@ -371,15 +384,13 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 				limit: number = 10,
 			) =>
 				Effect.gen(function* () {
-					const row = yield* Effect.tryPromise({
-						try: () =>
-							db
-								.select({ id: schema.learnings.id })
-								.from(schema.learnings)
-								.where(eq(schema.learnings.id, id))
-								.limit(1),
-						catch: (error) => error,
-					});
+					const row = yield* Effect.promise(() =>
+						db
+							.select({ id: schema.learnings.id })
+							.from(schema.learnings)
+							.where(eq(schema.learnings.id, id))
+							.limit(1),
+					);
 
 					if (row.length === 0) {
 						return [] as Array<Learning & { similarity_score: number }>;
@@ -423,7 +434,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 
 					const results = yield* Effect.tryPromise({
 						try: () => queryBuilder.orderBy(desc(schema.learnings.createdAt)),
-						catch: (error) => error,
+						catch: (cause) => new DatabaseError({ cause }),
 					});
 
 					return results.map((row) =>
@@ -443,7 +454,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 					yield* Effect.tryPromise({
 						try: () =>
 							db.delete(schema.learnings).where(eq(schema.learnings.id, id)),
-						catch: (error) => error,
+						catch: (cause) => new DatabaseError({ cause }),
 					});
 
 					return { success: true } as { success: boolean; error?: string };
@@ -494,24 +505,19 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 
 					const whereClause =
 						conditions.length === 1 ? conditions[0] : and(...conditions);
-					const toDelete = yield* Effect.tryPromise({
-						try: () =>
-							db
-								.select({ id: schema.learnings.id })
-								.from(schema.learnings)
-								.where(whereClause),
-						catch: (error) => error,
-					});
+					const toDelete = yield* Effect.promise(() =>
+						db
+							.select({ id: schema.learnings.id })
+							.from(schema.learnings)
+							.where(whereClause),
+					);
 
 					const ids = toDelete.map((row) => row.id);
 					if (ids.length === 0) {
 						return { deleted: 0, ids: [] as Array<string> };
 					}
 
-					yield* Effect.tryPromise({
-						try: () => db.delete(schema.learnings).where(whereClause),
-						catch: (error) => error,
-					});
+					yield* Effect.promise(() => db.delete(schema.learnings).where(whereClause));
 
 					return { deleted: ids.length, ids };
 				});
@@ -523,7 +529,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 							db
 								.select({ count: drizzleSql<number>`count(*)` })
 								.from(schema.learnings),
-						catch: (error) => error,
+						catch: (cause) => new DatabaseError({ cause }),
 					});
 
 					const secretCountResult = yield* Effect.tryPromise({
@@ -531,7 +537,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 							db
 								.select({ count: drizzleSql<number>`count(*)` })
 								.from(schema.secrets),
-						catch: (error) => error,
+						catch: (cause) => new DatabaseError({ cause }),
 					});
 
 					const learningByScope = yield* Effect.tryPromise({
@@ -543,7 +549,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()(
 								})
 								.from(schema.learnings)
 								.groupBy(schema.learnings.scope),
-						catch: (error) => error,
+						catch: (cause) => new DatabaseError({ cause }),
 					});
 
 					return {

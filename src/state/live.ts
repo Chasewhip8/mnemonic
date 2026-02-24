@@ -11,7 +11,7 @@ export const StateApiLive = HttpApiBuilder.group(Api, 'state', (handlers) =>
 				const repo = yield* StateRepo;
 				const result = yield* repo.getState(path.runId);
 				if (!result) {
-					return yield* Effect.fail(new NotFoundError({ message: 'not found' }));
+					return yield* new NotFoundError({ message: 'not found' });
 				}
 				return result;
 			})
@@ -60,7 +60,7 @@ export const StateApiLive = HttpApiBuilder.group(Api, 'state', (handlers) =>
 				};
 				const result = yield* repo.resolveState(path.runId, opts);
 				if (!result) {
-					return yield* Effect.fail(new NotFoundError({ message: 'not found' }));
+					return yield* new NotFoundError({ message: 'not found' });
 				}
 				return result;
 			})

@@ -1,6 +1,6 @@
 import { SqliteDrizzle } from '@effect/sql-drizzle/Sqlite';
 import { eq } from 'drizzle-orm';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { WorkingStatePayload, WorkingStateResponse } from '../domain';
 import { LearningsRepo } from '../learnings/repo';
 import * as schema from '../schema';
@@ -60,6 +60,8 @@ function normalizeWorkingStatePayload(payload: unknown) {
 	};
 }
 
+const WorkingStatePayloadJson = Schema.parseJson(WorkingStatePayload);
+
 export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 	effect: Effect.gen(function* () {
 		const drizzle = yield* SqliteDrizzle;
@@ -76,9 +78,9 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 				);
 				const current = rows[0];
 				if (!current) return null;
-				const decodedState = new WorkingStatePayload(
-					JSON.parse(current.stateJson || '{}') as Record<string, unknown>
-				);
+				const decodedState = yield* Schema.decodeUnknown(WorkingStatePayloadJson)(
+					current.stateJson || '{}',
+				).pipe(Effect.orDie);
 				return new WorkingStateResponse({
 					runId: current.runId,
 					revision: current.revision,
@@ -100,9 +102,12 @@ export class StateRepo extends Effect.Service<StateRepo>()('StateRepo', {
 			Effect.gen(function* () {
 				const now = new Date().toISOString();
 				const normalized = normalizeWorkingStatePayload(payload);
+				const normalizedState = new WorkingStatePayload(normalized);
 				const existing = yield* getState(runId);
 				const nextRevision = (existing?.revision ?? 0) + 1;
-				const stateJson = JSON.stringify(normalized);
+				const stateJson = yield* Schema.encode(WorkingStatePayloadJson)(normalizedState).pipe(
+					Effect.orDie,
+				);
 
 				if (existing) {
 					yield* Effect.promise(() =>

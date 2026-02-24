@@ -8,6 +8,8 @@
         "start": "bun run src/index.ts",
         "prepare": "effect-language-service patch",
         "db:generate": "drizzle-kit generate",
+        "lint": "biome lint .",
+        "format": "biome format --write .",
         "test": "vitest",
         "typecheck": "tsc --noEmit",
         "gates": "bun run prd.ts"
@@ -22,6 +24,7 @@
     "author": "",
     "license": "MIT",
     "devDependencies": {
+        "@biomejs/biome": "^2.4.4",
         "@effect/language-service": "^0.75.1",
         "@effect/vitest": "^0.20.0",
         "@types/node": "^25.1.0",
