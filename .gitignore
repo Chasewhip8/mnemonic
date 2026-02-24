@@ -6,3 +6,4 @@ dist/
 .direnv/
 .reference/
 *.tsbuildinfo
+data/*.db
