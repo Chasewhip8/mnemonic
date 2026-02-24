@@ -1,0 +1,34 @@
+# Learnings — test-audit-fixes
+
+## Initial State
+- Test dir: `test/deja.test.ts` (17 tests, 1 failing), `test/environment.js`
+- `vitest.config.ts`: minimal config, no pool settings
+- Plan: 8 implementation tasks + 4 final verification agents
+- Evidence dir: `.sisyphus/evidence/`
+
+## [2026-02-24] Task 1: Helpers Extracted
+- test/helpers.ts exports: RunningServer type, STARTUP_TIMEOUT_MS, TEST_TIMEOUT_MS, REQUIRED_LD_LIBRARY_PATH, API_KEY, mergedLdLibraryPath, removeDbArtifacts, waitForServer, stopServer, startServer, httpJson (with optional apiKey in options), asRecord, asArray, parseMcpToolResult, parseMcpError, unique, memoryScope
+- httpJson signature: options.apiKey overrides default API_KEY for auth header
+- parseMcpError: extracts { code, message } from body.error
+- vitest config: pool: 'forks', poolOptions.forks.singleFork: true — prevents port conflicts
+- Baseline: 16 pass, 1 fail (auth rejection test fails — expects 401, gets 200)
+- State endpoints: record actual status codes from diagnostic run
+
+## [2026-02-24] Task 7: Negative/Error Paths
+- test/negative.test.ts created, port 8794
+- Missing required fields returns 400
+- Nonexistent learning delete is idempotent (returns 200 {success:true})
+- Wrong API key returns 401
+- POST /cleanup with confidence<0.3 learning: learning is deleted
+
+## [2026-02-24] Task 2: Auth + State Assertions
+- Auth test was already passing (17/17) — security.ts correctly enforces bearer token
+- State assertions changed from permissive [200,500] to strict toBe(200)
+- All 17 tests pass after changes
+
+## [2026-02-24] Task 4: Secrets Extended
+- test/secrets-extended.test.ts created, port 8791
+- Upsert confirmed: POST with same name+scope overwrites value (ON CONFLICT DO UPDATE)
+- 404 for non-existent secret confirmed
+- Scope priority: session:X beats shared
+- GET /secrets (no scope) returns all secrets
