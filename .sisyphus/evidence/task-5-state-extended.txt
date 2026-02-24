@@ -1,0 +1,15 @@
+
+ RUN  v3.2.4 /home/chase/deja
+
+ ✓ test/state-extended.test.ts > state extended edge cases > GET non-existent state returns 404 7ms
+ ✓ test/state-extended.test.ts > state extended edge cases > revision tracking increments for PUT + PATCH + PATCH 70ms
+ ✓ test/state-extended.test.ts > state extended edge cases > multiple patches accumulate merged state fields 48ms
+ ✓ test/state-extended.test.ts > state extended edge cases > resolving an already resolved state returns 200 again 125ms
+ ✓ test/state-extended.test.ts > state extended edge cases > persistToLearn=false does not create a learning 25ms
+ ✓ test/state-extended.test.ts > state extended edge cases > events creation returns unique ids 33ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:00:04
+   Duration  1.01s (transform 37ms, setup 0ms, collect 35ms, tests 861ms, environment 0ms, prepare 36ms)
+

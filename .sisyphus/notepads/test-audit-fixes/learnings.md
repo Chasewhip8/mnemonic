@@ -32,3 +32,11 @@
 - 404 for non-existent secret confirmed
 - Scope priority: session:X beats shared
 - GET /secrets (no scope) returns all secrets
+
+## [2026-02-24] Task 5: State Extended
+- test/state-extended.test.ts created, port 8792
+- GET non-existent state returns 404 confirmed
+- Revision increments correctly: PUT=1, PATCH=2, PATCH=3
+- Patches accumulate (merge semantics)
+- Double-resolve: second resolve also returns 200 (no error)
+- persistToLearn=false: no learning created
