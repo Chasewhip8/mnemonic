@@ -21,38 +21,9 @@ export class Secret extends Schema.Class<Secret>('Secret')({
 	updatedAt: Schema.String,
 }) {}
 
-const Decision = Schema.Struct({
-	id: Schema.optional(Schema.String),
-	text: Schema.String,
-	status: Schema.optional(Schema.String),
-})
-
-export class WorkingStatePayload extends Schema.Class<WorkingStatePayload>('WorkingStatePayload')({
-	goal: Schema.optional(Schema.String),
-	assumptions: Schema.optional(Schema.Array(Schema.String)),
-	decisions: Schema.optional(Schema.Array(Decision)),
-	open_questions: Schema.optional(Schema.Array(Schema.String)),
-	next_actions: Schema.optional(Schema.Array(Schema.String)),
-	confidence: Schema.optional(Schema.Number),
-}) {}
-
-export class WorkingStateResponse extends Schema.Class<WorkingStateResponse>(
-	'WorkingStateResponse',
-)({
-	runId: Schema.String,
-	revision: Schema.Number,
-	status: Schema.String,
-	state: WorkingStatePayload,
-	updatedBy: Schema.optional(Schema.String),
-	createdAt: Schema.String,
-	updatedAt: Schema.String,
-	resolvedAt: Schema.optional(Schema.String),
-}) {}
-
 export class InjectResult extends Schema.Class<InjectResult>('InjectResult')({
 	prompt: Schema.String,
 	learnings: Schema.Array(Learning),
-	state: Schema.optional(WorkingStateResponse),
 }) {}
 
 const InjectTraceCandidate = Schema.Struct({

@@ -1,9 +1,3 @@
-import type { Config } from 'drizzle-kit'
+import config from './src/database/drizzle.config'
 
-export default {
-	schema: './src/schema.ts',
-	out: './drizzle',
-	dialect: 'sqlite',
-	strict: true,
-	verbose: true,
-} satisfies Config
+export default config

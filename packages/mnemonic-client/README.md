@@ -96,16 +96,6 @@ client.{group}.{method}({
 | `getLearningNeighbors({ path })` | Find similar learnings |
 | `getStats()` | Get statistics |
 
-### `client.state.*`
-
-| Method | Description |
-|---|---|
-| `getState({ path })` | Get working state for a run |
-| `upsertState({ path, payload })` | Create or replace state |
-| `patchState({ path, payload })` | Partial update |
-| `addStateEvent({ path, payload })` | Append an event |
-| `resolveState({ path, payload })` | Mark run resolved |
-
 ### `client.secrets.*`
 
 | Method | Description |
@@ -128,8 +118,6 @@ client.{group}.{method}({
 import {
   type Learning,
   type Secret,
-  type WorkingStatePayload,
-  type WorkingStateResponse,
   type InjectResult,
   type InjectTraceResult,
   type QueryResult,

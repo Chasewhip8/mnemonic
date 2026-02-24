@@ -7,13 +7,11 @@
 		"human:dev": "bun run src/index.ts --watch",
 		"start": "bun run src/index.ts",
 		"prepare": "effect-language-service patch",
-		"db:generate": "drizzle-kit generate",
+		"db:generate": "drizzle-kit generate --config src/database/drizzle.config.ts",
 		"lint": "biome lint .",
 		"format": "biome format --write .",
-		"test": "vitest run test/smoke.test.ts",
-		"test:full": "vitest run",
-		"typecheck": "tsc --noEmit",
-		"gates": "bun run prd.ts"
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
 	},
 	"keywords": [
 		"ai",

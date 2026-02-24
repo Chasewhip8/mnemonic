@@ -1,9 +1,9 @@
-import { SqlClient } from '@effect/sql'
-import { SqliteDrizzle } from '@effect/sql-drizzle/Sqlite'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { Effect } from 'effect'
+import { Database } from '../database'
+import { upsertSecretRaw } from '../database/queries/secrets'
+import * as schema from '../database/schema'
 import { Secret } from '../domain'
-import * as schema from '../schema'
 
 function filterScopesByPriority(scopes: string[]): string[] {
 	const priority = ['session:', 'agent:', 'shared']
@@ -20,8 +20,7 @@ function filterScopesByPriority(scopes: string[]): string[] {
 
 export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 	effect: Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient
-		const drizzle = yield* SqliteDrizzle
+		const database = yield* Database
 
 		return {
 			getSecret: (scopes: string[], name: string): Effect.Effect<string | null> =>
@@ -36,9 +35,10 @@ export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 						inArray(schema.secrets.scope, filteredScopes),
 					)
 
-					const results = yield* Effect.tryPromise(() =>
-						drizzle.select().from(schema.secrets).where(whereClause).limit(1),
-					)
+					const results = yield* database.withDb({
+						context: 'secrets.getSecret',
+						run: (db) => db.select().from(schema.secrets).where(whereClause).limit(1),
+					})
 
 					return results[0]?.value ?? null
 				}).pipe(
@@ -57,12 +57,10 @@ export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 			): Effect.Effect<{ success: boolean; error?: string }> =>
 				Effect.gen(function* () {
 					const now = new Date().toISOString()
-
-					yield* sql.unsafe(
-						`INSERT INTO secrets (name, value, scope, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
-						ON CONFLICT(name) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`,
-						[name, value, scope, now, now],
-					)
+					yield* database.withDb({
+						context: 'secrets.setSecret',
+						run: (db) => upsertSecretRaw(db, { scope, name, value, now }),
+					})
 
 					return { success: true } as { success: boolean; error?: string }
 				}).pipe(
@@ -82,11 +80,13 @@ export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 				name: string,
 			): Effect.Effect<{ success: boolean; error?: string }> =>
 				Effect.gen(function* () {
-					yield* Effect.tryPromise(() =>
-						drizzle
-							.delete(schema.secrets)
-							.where(and(eq(schema.secrets.name, name), eq(schema.secrets.scope, scope))),
-					)
+					yield* database.withDb({
+						context: 'secrets.deleteSecret',
+						run: (db) =>
+							db
+								.delete(schema.secrets)
+								.where(and(eq(schema.secrets.name, name), eq(schema.secrets.scope, scope))),
+					})
 
 					return { success: true } as { success: boolean; error?: string }
 				}).pipe(
@@ -103,15 +103,17 @@ export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 
 			listSecrets: (scope?: string): Effect.Effect<Secret[]> =>
 				Effect.gen(function* () {
-					const rows = yield* Effect.tryPromise(() =>
-						scope
-							? drizzle
-									.select()
-									.from(schema.secrets)
-									.where(eq(schema.secrets.scope, scope))
-									.orderBy(desc(schema.secrets.updatedAt))
-							: drizzle.select().from(schema.secrets).orderBy(desc(schema.secrets.updatedAt)),
-					)
+					const rows = yield* database.withDb({
+						context: 'secrets.listSecrets',
+						run: (db) =>
+							scope
+								? db
+										.select()
+										.from(schema.secrets)
+										.where(eq(schema.secrets.scope, scope))
+										.orderBy(desc(schema.secrets.updatedAt))
+								: db.select().from(schema.secrets).orderBy(desc(schema.secrets.updatedAt)),
+					})
 
 					return rows.map(
 						(row) =>

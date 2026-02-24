@@ -1,13 +1,15 @@
-import { SqlClient } from '@effect/sql'
-import { SqliteDrizzle } from '@effect/sql-drizzle/Sqlite'
 import { and, desc, sql as drizzleSql, eq, inArray, type SQL } from 'drizzle-orm'
 import { Effect, Layer, Schema } from 'effect'
 import { AppConfig } from '../config'
-import { DatabaseLive } from '../database'
+import { Database, DatabaseLive } from '../database'
+import {
+	insertLearningRaw,
+	queryLearningNeighborsRaw,
+	queryLearningsByEmbeddingRaw,
+} from '../database/queries/learnings'
+import * as schema from '../database/schema'
 import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
-import { DatabaseError } from '../errors'
-import * as schema from '../schema'
 
 type InjectFormat = 'prompt' | 'learnings'
 
@@ -34,6 +36,28 @@ type LearningRow = {
 	distance?: unknown
 }
 
+function normalizeLearningRow(row: LearningRow): LearningRow {
+	const maybeArray = row as unknown
+	if (!Array.isArray(maybeArray)) {
+		return row
+	}
+
+	const values = maybeArray as Array<unknown>
+	return {
+		id: values[0],
+		trigger: values[1],
+		learning: values[2],
+		reason: values[3],
+		confidence: values[4],
+		source: values[5],
+		scope: values[6],
+		created_at: values[8],
+		last_recalled_at: values[9],
+		recall_count: values[10],
+		distance: values[11],
+	}
+}
+
 const EmbeddingJson = Schema.parseJson(Schema.Array(Schema.Number))
 
 function filterScopesByPriority(scopes: ReadonlyArray<string>): string[] {
@@ -50,38 +74,38 @@ function filterScopesByPriority(scopes: ReadonlyArray<string>): string[] {
 }
 
 function convertSqlLearningRow(row: LearningRow): Learning {
-	const reason = row.reason != null ? String(row.reason) : undefined
-	const source = row.source != null ? String(row.source) : undefined
+	const normalized = normalizeLearningRow(row)
+	const reason = normalized.reason != null ? String(normalized.reason) : undefined
+	const source = normalized.source != null ? String(normalized.source) : undefined
 	const lastRecalledAt =
-		row.last_recalled_at != null
-			? String(row.last_recalled_at)
-			: row.lastRecalledAt != null
-				? String(row.lastRecalledAt)
+		normalized.last_recalled_at != null
+			? String(normalized.last_recalled_at)
+			: normalized.lastRecalledAt != null
+				? String(normalized.lastRecalledAt)
 				: undefined
 
 	return new Learning({
-		id: String(row.id),
-		trigger: String(row.trigger),
-		learning: String(row.learning),
+		id: String(normalized.id),
+		trigger: String(normalized.trigger),
+		learning: String(normalized.learning),
 		...(reason !== undefined ? { reason } : {}),
-		confidence: row.confidence != null ? Number(row.confidence) : 0,
+		confidence: normalized.confidence != null ? Number(normalized.confidence) : 0,
 		...(source !== undefined ? { source } : {}),
-		scope: String(row.scope),
-		createdAt: String(row.created_at ?? row.createdAt),
+		scope: String(normalized.scope),
+		createdAt: String(normalized.created_at ?? normalized.createdAt),
 		...(lastRecalledAt !== undefined ? { lastRecalledAt } : {}),
 		recallCount:
-			row.recall_count != null
-				? Number(row.recall_count)
-				: row.recallCount != null
-					? Number(row.recallCount)
+			normalized.recall_count != null
+				? Number(normalized.recall_count)
+				: normalized.recallCount != null
+					? Number(normalized.recallCount)
 					: 0,
 	})
 }
 
 export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRepo', {
 	effect: Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient
-		const db = yield* SqliteDrizzle
+		const database = yield* Database
 		const embeddings = yield* EmbeddingService
 
 		const learn = (
@@ -99,22 +123,21 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
 				const createdAt = new Date().toISOString()
 
-				yield* sql.unsafe(
-					`INSERT INTO learnings (id, trigger, learning, reason, confidence, source, scope, embedding, created_at, recall_count)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, vector32(?), ?, ?)`,
-					[
-						id,
-						trigger,
-						learning,
-						reason ?? null,
-						confidence,
-						source ?? null,
-						scope,
-						embeddingJson,
-						createdAt,
-						0,
-					],
-				)
+				yield* database.withDb({
+					context: 'learnings.learn.insert',
+					run: (db) =>
+						insertLearningRaw(db, {
+							id,
+							trigger,
+							learning,
+							reason: reason ?? null,
+							confidence,
+							source: source ?? null,
+							scope,
+							embeddingJson,
+							createdAt,
+						}),
+				})
 
 				return convertSqlLearningRow({
 					id,
@@ -143,40 +166,40 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				const embedding = yield* embeddings.embed(context)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
-				const placeholders = filteredScopes.map(() => '?').join(',')
-				const rows = yield* sql.unsafe<LearningRow>(
-					`SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
-					 FROM learnings
-					 WHERE scope IN (${placeholders})
-					 ORDER BY distance ASC
-					 LIMIT ?`,
-					[embeddingJson, ...filteredScopes, limit],
-				)
+				const rows = yield* database.withDb({
+					context: 'learnings.inject.search',
+					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, limit),
+				})
 
 				const learnings = rows
-					.map((row) => ({
-						learning: convertSqlLearningRow(row),
-						similarity: 1 - Number(row.distance ?? 0),
-					}))
+					.map((row) => {
+						const normalized = normalizeLearningRow(row)
+						return {
+							learning: convertSqlLearningRow(normalized),
+							similarity: 1 - Number(normalized.distance ?? 0),
+						}
+					})
 					.filter((entry) => Number.isFinite(entry.similarity))
 					.map((entry) => entry.learning)
 
 				if (learnings.length > 0) {
 					const now = new Date().toISOString()
-					yield* Effect.promise(() =>
-						db
-							.update(schema.learnings)
-							.set({
-								lastRecalledAt: now,
-								recallCount: drizzleSql`COALESCE(${schema.learnings.recallCount}, 0) + 1`,
-							})
-							.where(
-								inArray(
-									schema.learnings.id,
-									learnings.map((learning) => learning.id),
+					yield* database.withDb({
+						context: 'learnings.inject.bumpRecall',
+						run: (db) =>
+							db
+								.update(schema.learnings)
+								.set({
+									lastRecalledAt: now,
+									recallCount: drizzleSql`COALESCE(${schema.learnings.recallCount}, 0) + 1`,
+								})
+								.where(
+									inArray(
+										schema.learnings.id,
+										learnings.map((learning) => learning.id),
+									),
 								),
-							),
-					)
+					})
 				}
 
 				if (format === 'prompt') {
@@ -231,17 +254,12 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				const embedding = yield* embeddings.embed(context)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
-				const placeholders = filteredScopes.map(() => '?').join(',')
 				const candidateLimit = Math.max(limit * 3, 20)
-
-				const rows = yield* sql.unsafe<LearningRow>(
-					`SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
-					 FROM learnings
-					 WHERE scope IN (${placeholders})
-					 ORDER BY distance ASC
-					 LIMIT ?`,
-					[embeddingJson, ...filteredScopes, candidateLimit],
-				)
+				const rows = yield* database.withDb({
+					context: 'learnings.injectTrace.search',
+					run: (db) =>
+						queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, candidateLimit),
+				})
 
 				const byId = new Map<string, Learning>()
 				for (const row of rows) {
@@ -250,11 +268,12 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				const candidates = rows.map((row) => {
-					const similarity = 1 - Number(row.distance ?? 0)
+					const normalized = normalizeLearningRow(row)
+					const similarity = 1 - Number(normalized.distance ?? 0)
 					return {
-						id: String(row.id),
-						trigger: String(row.trigger),
-						learning: String(row.learning),
+						id: String(normalized.id),
+						trigger: String(normalized.trigger),
+						learning: String(normalized.learning),
 						similarity_score: similarity,
 						passed_threshold: similarity >= threshold,
 					}
@@ -320,21 +339,19 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				const embedding = yield* embeddings.embed(text)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
-				const placeholders = filteredScopes.map(() => '?').join(',')
-				const rows = yield* sql.unsafe<LearningRow>(
-					`SELECT *, vector_distance_cos(embedding, vector32(?)) as distance
-					 FROM learnings
-					 WHERE scope IN (${placeholders})
-					 ORDER BY distance ASC
-					 LIMIT ?`,
-					[embeddingJson, ...filteredScopes, limit],
-				)
+				const rows = yield* database.withDb({
+					context: 'learnings.query.search',
+					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, limit),
+				})
 
 				const learnings = rows
-					.map((row) => ({
-						learning: convertSqlLearningRow(row),
-						similarity: 1 - Number(row.distance ?? 0),
-					}))
+					.map((row) => {
+						const normalized = normalizeLearningRow(row)
+						return {
+							learning: convertSqlLearningRow(normalized),
+							similarity: 1 - Number(normalized.distance ?? 0),
+						}
+					})
 					.filter((entry) => Number.isFinite(entry.similarity))
 					.map((entry) => entry.learning)
 
@@ -355,26 +372,25 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 		const getLearningNeighbors = (id: string, threshold: number = 0.85, limit: number = 10) =>
 			Effect.gen(function* () {
-				const row = yield* Effect.promise(() =>
-					db
-						.select({ id: schema.learnings.id })
-						.from(schema.learnings)
-						.where(eq(schema.learnings.id, id))
-						.limit(1),
-				)
+				const row = yield* database.withDb({
+					context: 'learnings.getLearningNeighbors.exists',
+					run: (db) =>
+						db
+							.select({ id: schema.learnings.id })
+							.from(schema.learnings)
+							.where(eq(schema.learnings.id, id))
+							.limit(1),
+				})
 
 				if (row.length === 0) {
 					return [] as Array<Learning & { similarity_score: number }>
 				}
 
 				const candidateLimit = Math.max(limit * 3, 20)
-				const rows = yield* sql.unsafe<LearningRow>(
-					`SELECT l2.*, vector_distance_cos(l2.embedding, l1.embedding) as distance
-					 FROM learnings l1 JOIN learnings l2 ON l1.id = ? AND l2.id != ?
-					 ORDER BY distance ASC
-					 LIMIT ?`,
-					[id, id, candidateLimit],
-				)
+				const rows = yield* database.withDb({
+					context: 'learnings.getLearningNeighbors.search',
+					run: (db) => queryLearningNeighborsRaw(db, id, candidateLimit),
+				})
 
 				return rows
 					.map((queryRow) => {
@@ -392,15 +408,16 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 		const getLearnings = (filter?: { scope?: string; limit?: number }) =>
 			Effect.gen(function* () {
-				const scopedQuery = filter?.scope
-					? db.select().from(schema.learnings).where(eq(schema.learnings.scope, filter.scope))
-					: db.select().from(schema.learnings)
+				const results = yield* database.withDb({
+					context: 'learnings.getLearnings',
+					run: (db) => {
+						const scopedQuery = filter?.scope
+							? db.select().from(schema.learnings).where(eq(schema.learnings.scope, filter.scope))
+							: db.select().from(schema.learnings)
 
-				const queryBuilder = filter?.limit ? scopedQuery.limit(filter.limit) : scopedQuery
-
-				const results = yield* Effect.tryPromise({
-					try: () => queryBuilder.orderBy(desc(schema.learnings.createdAt)),
-					catch: (cause) => new DatabaseError({ cause }),
+						const queryBuilder = filter?.limit ? scopedQuery.limit(filter.limit) : scopedQuery
+						return queryBuilder.orderBy(desc(schema.learnings.createdAt))
+					},
 				})
 
 				return results.map((row) => convertSqlLearningRow(row as unknown as LearningRow))
@@ -415,9 +432,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 		const deleteLearning = (id: string) =>
 			Effect.gen(function* () {
-				yield* Effect.tryPromise({
-					try: () => db.delete(schema.learnings).where(eq(schema.learnings.id, id)),
-					catch: (cause) => new DatabaseError({ cause }),
+				yield* database.withDb({
+					context: 'learnings.deleteLearning',
+					run: (db) => db.delete(schema.learnings).where(eq(schema.learnings.id, id)),
 				})
 
 				return { success: true } as { success: boolean; error?: string }
@@ -463,34 +480,40 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions)
-				const toDelete = yield* Effect.promise(() =>
-					db.select({ id: schema.learnings.id }).from(schema.learnings).where(whereClause),
-				)
+				const toDelete = yield* database.withDb({
+					context: 'learnings.deleteLearnings.select',
+					run: (db) =>
+						db.select({ id: schema.learnings.id }).from(schema.learnings).where(whereClause),
+				})
 
 				const ids = toDelete.map((row) => row.id)
 				if (ids.length === 0) {
 					return { deleted: 0, ids: [] as Array<string> }
 				}
 
-				yield* Effect.promise(() => db.delete(schema.learnings).where(whereClause))
+				yield* database.withDb({
+					context: 'learnings.deleteLearnings.delete',
+					run: (db) => db.delete(schema.learnings).where(whereClause),
+				})
 
 				return { deleted: ids.length, ids }
 			})
 
 		const getStats = () =>
 			Effect.gen(function* () {
-				const learningCountResult = yield* Effect.tryPromise({
-					try: () => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.learnings),
-					catch: (cause) => new DatabaseError({ cause }),
+				const learningCountResult = yield* database.withDb({
+					context: 'learnings.getStats.learningCount',
+					run: (db) => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.learnings),
 				})
 
-				const secretCountResult = yield* Effect.tryPromise({
-					try: () => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.secrets),
-					catch: (cause) => new DatabaseError({ cause }),
+				const secretCountResult = yield* database.withDb({
+					context: 'learnings.getStats.secretCount',
+					run: (db) => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.secrets),
 				})
 
-				const learningByScope = yield* Effect.tryPromise({
-					try: () =>
+				const learningByScope = yield* database.withDb({
+					context: 'learnings.getStats.byScope',
+					run: (db) =>
 						db
 							.select({
 								scope: schema.learnings.scope,
@@ -498,7 +521,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 							})
 							.from(schema.learnings)
 							.groupBy(schema.learnings.scope),
-					catch: (cause) => new DatabaseError({ cause }),
 				})
 
 				return {

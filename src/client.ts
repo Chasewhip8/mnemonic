@@ -4,22 +4,20 @@ import { Api } from './api'
 
 export { Api } from './api'
 export {
-	DatabaseError,
-	EmbeddingError,
-	NotFoundError,
-	Unauthorized,
-	ValidationError,
-} from './errors'
-export {
 	InjectResult,
 	InjectTraceResult,
 	Learning,
 	QueryResult,
 	Secret,
 	Stats,
-	WorkingStatePayload,
-	WorkingStateResponse,
 } from './domain'
+export {
+	DatabaseError,
+	EmbeddingError,
+	NotFoundError,
+	Unauthorized,
+	ValidationError,
+} from './errors'
 
 export class MnemonicClient extends Effect.Service<MnemonicClient>()('MnemonicClient', {
 	effect: Effect.gen(function* () {

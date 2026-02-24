@@ -1,71 +1,13 @@
 import { HttpApiBuilder } from '@effect/platform'
 import { Effect } from 'effect'
 import { Api } from '../api'
-import type { Learning, WorkingStateResponse } from '../domain'
+import type { Learning } from '../domain'
 import { DatabaseError, ValidationError } from '../errors'
-import { StateRepo } from '../state/repo'
 import { LearningsRepo } from './repo'
 
 type MutableInjectResult = {
 	prompt: string
 	learnings: Array<Learning>
-	state?: WorkingStateResponse
-}
-
-function formatStatePrompt(state: WorkingStateResponse): string {
-	const lines: string[] = []
-	lines.push('Working state (live):')
-	if (state.state.goal) lines.push(`Goal: ${state.state.goal}`)
-	if (state.state.assumptions?.length) {
-		lines.push('Assumptions:')
-		for (const assumption of state.state.assumptions) lines.push(`- ${assumption}`)
-	}
-	if (state.state.decisions?.length) {
-		lines.push('Decisions:')
-		for (const decision of state.state.decisions) {
-			lines.push(`- ${decision.text}${decision.status ? ` (${decision.status})` : ''}`)
-		}
-	}
-	if (state.state.open_questions?.length) {
-		lines.push('Open questions:')
-		for (const openQuestion of state.state.open_questions) lines.push(`- ${openQuestion}`)
-	}
-	if (state.state.next_actions?.length) {
-		lines.push('Next actions:')
-		for (const nextAction of state.state.next_actions) lines.push(`- ${nextAction}`)
-	}
-	if (typeof state.state.confidence === 'number') {
-		lines.push(`Confidence: ${state.state.confidence}`)
-	}
-	return lines.join('\n')
-}
-
-function maybeAttachState(
-	result: MutableInjectResult,
-	includeState: unknown,
-	runId: unknown,
-	format: string,
-): Effect.Effect<void, never, StateRepo> {
-	return Effect.gen(function* () {
-		if (!(includeState && typeof runId === 'string' && runId.trim())) {
-			return
-		}
-
-		const stateRepo = yield* StateRepo
-		const state = yield* stateRepo.getState(runId.trim())
-		if (!state) {
-			return
-		}
-
-		const statePrompt = formatStatePrompt(state)
-		if (result.prompt) {
-			result.prompt = `${statePrompt}\n\n${result.prompt}`
-		} else if ((format || 'prompt') === 'prompt') {
-			result.prompt = statePrompt
-		}
-
-		result.state = state
-	})
 }
 
 export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers) =>
@@ -99,8 +41,6 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 					prompt: injected.prompt,
 					learnings: [...injected.learnings],
 				}
-
-				yield* maybeAttachState(result, payload.includeState, payload.runId, format)
 				return result
 			}),
 		)
