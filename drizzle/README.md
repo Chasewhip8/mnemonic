@@ -11,5 +11,5 @@ bunx drizzle-kit generate
 ## Apply (Cloudflare D1 target, existing repo pattern)
 
 ```bash
-wrangler d1 execute deja-db --file=drizzle/0000_live_working_state.sql --remote
+wrangler d1 execute mnemonic-db --file=drizzle/0000_live_working_state.sql --remote
 ```

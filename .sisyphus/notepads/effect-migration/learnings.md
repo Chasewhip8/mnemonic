@@ -1,7 +1,7 @@
 # Effect Migration - Learnings
 
 ## Project Overview
-- Working dir: /home/chase/deja
+- Working dir: /home/chase/mnemonic
 - Reference repo: /home/chase/sft-chain-transfer/api/src/
 - Effect version: ^3.19.19 (already in deps)
 - @effect/platform: ^0.94.5 (already in deps)
@@ -27,14 +27,14 @@
 
 ## Current Source Files (to replace)
 - src/index.ts - Hono monolith (~900 lines) - DELETE after migration
-- src/service.ts - DejaService class - DELETE after migration
+- src/service.ts - MnemonicService class - DELETE after migration
 - src/db.ts - Database init - DELETE after migration
 - src/cleanup.ts - node-cron wrapper - REPLACE with Effect.Schedule version
 - src/embeddings.ts - REPLACE with Effect.Service version
 - src/schema.ts - KEEP (drizzle table definitions)
 
 ## DB Configuration
-- Default DB_PATH: ./data/deja.db
+- Default DB_PATH: ./data/mnemonic.db
 - URL format: `file:${dbPath}` for LibsqlClient
 
 ## Existing DB Schema (DDL from src/db.ts)
@@ -66,7 +66,7 @@
 - MCP endpoints: Schema.Unknown for both payload and success (JSON-RPC dynamic dispatch)
 - Schema.Struct spread: `...WorkingStatePayload.fields` works to extend domain types with extra fields
 - `Learning.fields` is accessible on Schema.Class instances for field spreading
-- Root API: `HttpApi.make('deja').add(Group1).add(Group2)...` composes all groups
+- Root API: `HttpApi.make('mnemonic').add(Group1).add(Group2)...` composes all groups
 - Pre-existing tsc errors in database.ts and index.ts — no errors in new API files
 
 ## Task 8: LearningsRepo + LearningsApiLive
@@ -102,10 +102,10 @@
 - `exactOptionalPropertyTypes` requires building optional filter/options objects incrementally instead of passing `{ key: maybeUndefined }`.
 - Biome `noSwitchDeclarations` applies to `switch` cases in handlers; wrap declaration-heavy cases with `{ ... }` blocks.
 
-## Task 13: deja-client Effect Migration
+## Task 13: mnemonic-client Effect Migration
 - `Effect.Service<Self>()('key', { effect: Effect.gen(...) })` works for service definition in client package
-- `DejaClient.Default` layer requires `HttpClient.HttpClient` and Config — provided by `FetchHttpClient.layer` + `ConfigProvider.fromMap`
-- `DejaClient.use((c) => c.method(...))` is the cleanest way to access service methods from outside Effect context
+- `MnemonicClient.Default` layer requires `HttpClient.HttpClient` and Config — provided by `FetchHttpClient.layer` + `ConfigProvider.fromMap`
+- `MnemonicClient.use((c) => c.method(...))` is the cleanest way to access service methods from outside Effect context
 - `Effect.runPromiseExit` + `Cause.squash` gives clean error extraction for backward-compat wrapper (avoids FiberFailure wrapping)
 - `HttpClientRequest.bodyJson(body)` returns `Effect<HttpClientRequest, HttpBodyError>` — must be in Effect pipeline
 - `HttpClientRequest.bearerToken(req, token)` accepts `string | Redacted` — use `Redacted.value(key)` to extract
@@ -124,7 +124,7 @@
 - `learnings/live.ts` had `Context.GenericTag<StateRepoService>('StateRepo')` which is type-incompatible with `Effect.Service<StateRepo>()('StateRepo')` from state/repo.ts — fixed by importing StateRepo directly
 - LD_LIBRARY_PATH needed for sharp (huggingface dep): `/nix/store/j9nz3m8hqnyjjj5zxz5qvmd35g37rjyi-gcc-15.2.0-lib/lib`
 
-## Task 16: HTTP Integration Test Suite (test/deja.test.ts)
+## Task 16: HTTP Integration Test Suite (test/mnemonic.test.ts)
 
 - Integration tests should start the real server with `DB_PATH` pointing to a temp file and clean up `db`, `db-wal`, and `db-shm` in `afterAll`.
 - Scope filtering for retrieval endpoints only honors `session:*`, `agent:*`, and `shared`; tests using custom scopes must use one of these prefixes.
@@ -133,13 +133,13 @@
 - State PUT/PATCH/resolve endpoints can return 500 due `WorkingStateResponse` decoding around `state` payload construction; tests should still exercise lifecycle endpoints and assert events path separately.
 
 
-## Task 17: deja-client integration tests
+## Task 17: mnemonic-client integration tests
 
 - The existing `test/client.test.ts` used `bun:test` mocks but the package runs `vitest` — they're incompatible; replaced with real integration tests
-- `bun test` in `packages/deja-client/` uses bun's test runner (not vitest), despite `vitest.config.ts` existing — bun picks up test files automatically
+- `bun test` in `packages/mnemonic-client/` uses bun's test runner (not vitest), despite `vitest.config.ts` existing — bun picks up test files automatically
 - Server startup is fast when already warmed up (~800ms total for 6 tests including server start)
 - Use `session:*` scopes with `uniqueScope()` per test to avoid cross-test pollution
-- The `deja()` default export wraps Effect-based `DejaClient` in Promise-based API — works seamlessly with plain vitest/bun:test
+- The `mnemonic()` default export wraps Effect-based `MnemonicClient` in Promise-based API — works seamlessly with plain vitest/bun:test
 - `removeDbArtifacts` must use absolute path (`${SERVER_ROOT}/${dbPath}`) since DB_PATH is relative to server cwd
 - All 6 methods tested: learn, inject, query, list, forget, stats — 6 pass, 0 fail
 

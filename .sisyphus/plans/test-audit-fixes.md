@@ -30,7 +30,7 @@ Audit and ensure the integration tests are accurate and enough to catch most bug
 - Negative tests: user wants error path coverage (400, 404, validation errors)
 
 **Audit Findings**:
-- 2 test files: `test/deja.test.ts` (17 tests, 1 failing), `packages/deja-client/test/client.test.ts` (6 tests)
+- 2 test files: `test/mnemonic.test.ts` (17 tests, 1 failing), `packages/mnemonic-client/test/client.test.ts` (6 tests)
 - Auth rejection test expects 401, gets 200 — auth enforcement may be broken
 - 4 state assertions accept HTTP 500 as passing — masks server crashes
 - 11/13 MCP tools have zero coverage via `/mcp` endpoint
@@ -56,7 +56,7 @@ Fix existing test bugs and expand integration test coverage to catch regressions
 
 ### Concrete Deliverables
 - `test/helpers.ts` — shared test server management + HTTP utilities
-- Fixed `test/deja.test.ts` — auth test passes, state assertions strict, imports helpers
+- Fixed `test/mnemonic.test.ts` — auth test passes, state assertions strict, imports helpers
 - `test/learnings-extended.test.ts` — bulk delete, scope priority, recall tracking, inject variations
 - `test/secrets-extended.test.ts` — upsert, 404, list without scope
 - `test/state-extended.test.ts` — 404, revision tracking, patches, resolve edge cases
@@ -66,7 +66,7 @@ Fix existing test bugs and expand integration test coverage to catch regressions
 
 ### Definition of Done
 - [ ] `bun vitest --reporter=verbose` → 0 failures, ≥45 tests
-- [ ] `grep -c 'expect(\[200' test/deja.test.ts` → 0 (no permissive assertions)
+- [ ] `grep -c 'expect(\[200' test/mnemonic.test.ts` → 0 (no permissive assertions)
 - [ ] Auth rejection test asserts specific 401 status
 - [ ] All 13 MCP tools have at least 1 `tools/call` test
 
@@ -81,7 +81,7 @@ Fix existing test bugs and expand integration test coverage to catch regressions
 ### Must NOT Have (Guardrails)
 - No mocking of any kind — not Effect services, not HTTP, not DB, not embeddings
 - No `beforeEach`/`afterEach` cleanup — UUID isolation is sufficient
-- No changes to `packages/deja-client/test/client.test.ts` — out of scope
+- No changes to `packages/mnemonic-client/test/client.test.ts` — out of scope
 - No refactoring of existing passing tests beyond the 4 state assertion fixes + helper extraction
 - No `vitest globals: true` — keep explicit imports
 - No `@effect/vitest` adoption — it's unused and out of scope
@@ -119,7 +119,7 @@ Wave 1 (Foundation — sequential):
 ├── Task 1: Diagnostic + extract helpers + vitest config [deep]
 
 Wave 2 (Parallel — bug fixes + new test files):
-├── Task 2: Fix auth + state assertions in deja.test.ts [deep]
+├── Task 2: Fix auth + state assertions in mnemonic.test.ts [deep]
 ├── Task 3: test/learnings-extended.test.ts [unspecified-high]
 ├── Task 4: test/secrets-extended.test.ts [quick]
 ├── Task 5: test/state-extended.test.ts [unspecified-high]
@@ -161,20 +161,20 @@ Max Concurrent: 6 (Wave 2)
 
   **What to do**:
   - Run `bun vitest --reporter=verbose` and capture FULL output including stderr. Record exact status codes from state lifecycle tests (are they 200 or 500?). Record auth rejection test failure details.
-  - Create `test/helpers.ts` extracting ALL shared utilities from `test/deja.test.ts`:
+  - Create `test/helpers.ts` extracting ALL shared utilities from `test/mnemonic.test.ts`:
     - Types: `RunningServer`
     - Constants: `STARTUP_TIMEOUT_MS`, `TEST_TIMEOUT_MS`, `REQUIRED_LD_LIBRARY_PATH`
     - Functions: `mergedLdLibraryPath`, `removeDbArtifacts`, `waitForServer`, `stopServer`, `startServer`, `httpJson` (parameterize `apiKey` — add optional `apiKey` field to options), `asRecord`, `asArray`, `parseMcpToolResult`, `unique`, `memoryScope`
     - NEW function: `parseMcpError(body)` — extracts `{ code, message }` from JSON-RPC error responses (shape: `{ jsonrpc, id, error: { code, message } }`)
   - Update `vitest.config.ts`: add `pool: 'forks'` and `poolOptions: { forks: { singleFork: true } }` to force sequential test file execution (prevents port conflicts when multiple test files exist)
-  - Update `test/deja.test.ts` to import all utilities from `./helpers` instead of defining them inline. Keep test logic unchanged. Remove duplicated function/type/constant definitions.
-  - Verify: run `bun vitest test/deja.test.ts --reporter=verbose` — same 16 pass / 1 fail as before (no behavioral change from refactoring)
+  - Update `test/mnemonic.test.ts` to import all utilities from `./helpers` instead of defining them inline. Keep test logic unchanged. Remove duplicated function/type/constant definitions.
+  - Verify: run `bun vitest test/mnemonic.test.ts --reporter=verbose` — same 16 pass / 1 fail as before (no behavioral change from refactoring)
 
   **Must NOT do**:
   - Do not fix any test failures in this task — only extract and refactor
   - Do not change any test logic or assertions
   - Do not add new tests
-  - Do not modify `packages/deja-client/test/client.test.ts`
+  - Do not modify `packages/mnemonic-client/test/client.test.ts`
 
   **Recommended Agent Profile**:
   - **Category**: `deep`
@@ -190,9 +190,9 @@ Max Concurrent: 6 (Wave 2)
   **References**:
 
   **Pattern References**:
-  - `test/deja.test.ts:1-192` — All shared utilities to extract (types, constants, functions)
-  - `test/deja.test.ts:193-206` — beforeAll/afterAll pattern that stays in test file
-  - `packages/deja-client/test/client.test.ts:19-52` — Similar helpers (for reference only, do NOT modify)
+  - `test/mnemonic.test.ts:1-192` — All shared utilities to extract (types, constants, functions)
+  - `test/mnemonic.test.ts:193-206` — beforeAll/afterAll pattern that stays in test file
+  - `packages/mnemonic-client/test/client.test.ts:19-52` — Similar helpers (for reference only, do NOT modify)
 
   **API/Type References**:
   - `vitest.config.ts` — Current config to update with pool settings
@@ -201,7 +201,7 @@ Max Concurrent: 6 (Wave 2)
   - Vitest docs: pool configuration for sequential file execution
 
   **WHY Each Reference Matters**:
-  - Lines 1-192 of deja.test.ts contain every function that needs extraction — the boundary between "shared utility" and "test-specific code" is at line 192 (where beforeAll starts)
+  - Lines 1-192 of mnemonic.test.ts contain every function that needs extraction — the boundary between "shared utility" and "test-specific code" is at line 192 (where beforeAll starts)
   - The client test has similar helpers showing what other files will need to import
   - vitest pool config prevents port conflicts when multiple test files share ports sequentially
 
@@ -214,14 +214,14 @@ Max Concurrent: 6 (Wave 2)
     Tool: Bash
     Preconditions: Clean working tree
     Steps:
-      1. Run: bun vitest test/deja.test.ts --reporter=verbose 2>&1
+      1. Run: bun vitest test/mnemonic.test.ts --reporter=verbose 2>&1
       2. Count passing tests in output
       3. Verify 16 passed, 1 failed (same as baseline)
       4. Verify test/helpers.ts exists and exports: startServer, stopServer, httpJson, asRecord, asArray, parseMcpToolResult, parseMcpError, unique, memoryScope
-      5. Verify test/deja.test.ts imports from './helpers'
-      6. Grep test/deja.test.ts for duplicated function definitions (should find none that exist in helpers)
-    Expected Result: 16 passed, 1 failed. helpers.ts exists with all exports. deja.test.ts imports from helpers.
-    Failure Indicators: Different pass/fail count than baseline. Missing exports from helpers.ts. Duplicated definitions remain in deja.test.ts.
+      5. Verify test/mnemonic.test.ts imports from './helpers'
+      6. Grep test/mnemonic.test.ts for duplicated function definitions (should find none that exist in helpers)
+    Expected Result: 16 passed, 1 failed. helpers.ts exists with all exports. mnemonic.test.ts imports from helpers.
+    Failure Indicators: Different pass/fail count than baseline. Missing exports from helpers.ts. Duplicated definitions remain in mnemonic.test.ts.
     Evidence: .sisyphus/evidence/task-1-helpers-extracted.txt
 
   Scenario: Vitest config updated for sequential execution
@@ -246,8 +246,8 @@ Max Concurrent: 6 (Wave 2)
 
   **Commit**: YES
   - Message: `test: extract shared helpers and configure sequential vitest execution`
-  - Files: `test/helpers.ts`, `test/deja.test.ts`, `vitest.config.ts`
-  - Pre-commit: `bun vitest test/deja.test.ts --reporter=verbose`
+  - Files: `test/helpers.ts`, `test/mnemonic.test.ts`, `vitest.config.ts`
+  - Pre-commit: `bun vitest test/mnemonic.test.ts --reporter=verbose`
 
 - [ ] 2. Fix Auth Rejection Test + State Assertion Strictness
 
@@ -292,8 +292,8 @@ Max Concurrent: 6 (Wave 2)
   - `src/health/api.ts:16-26` — HealthApi group: `GET /` has NO auth, `POST /cleanup` has per-endpoint auth
 
   **API/Type References**:
-  - `test/deja.test.ts:545,551,564,601,615` — The 4-5 lines with permissive `expect([200, 500])` assertions to fix
-  - `test/deja.test.ts:751-756` — The failing auth rejection test
+  - `test/mnemonic.test.ts:545,551,564,601,615` — The 4-5 lines with permissive `expect([200, 500])` assertions to fix
+  - `test/mnemonic.test.ts:751-756` — The failing auth rejection test
 
   **External References**:
   - `@effect/platform` HttpApiSecurity.bearer — understand when middleware is invoked vs skipped
@@ -312,7 +312,7 @@ Max Concurrent: 6 (Wave 2)
     Tool: Bash
     Preconditions: T1 complete, helpers extracted
     Steps:
-      1. Run: bun vitest test/deja.test.ts -t 'auth rejected' --reporter=verbose 2>&1
+      1. Run: bun vitest test/mnemonic.test.ts -t 'auth rejected' --reporter=verbose 2>&1
       2. Check test result
     Expected Result: Test passes (either 401 is correctly returned, or test updated to match actual framework behavior with explanatory comment)
     Failure Indicators: Test still fails
@@ -322,9 +322,9 @@ Max Concurrent: 6 (Wave 2)
     Tool: Bash
     Preconditions: T1 diagnostic confirmed state endpoints return 200
     Steps:
-      1. Run: grep -n 'expect(\[200' test/deja.test.ts
+      1. Run: grep -n 'expect(\[200' test/mnemonic.test.ts
       2. Verify 0 matches
-      3. Run: bun vitest test/deja.test.ts -t 'state lifecycle' --reporter=verbose 2>&1
+      3. Run: bun vitest test/mnemonic.test.ts -t 'state lifecycle' --reporter=verbose 2>&1
       4. Verify both state tests pass
     Expected Result: Zero permissive assertions. Both state tests pass with strict 200 checks.
     Failure Indicators: grep finds matches. State tests fail (would mean endpoints actually return 500 — escalate).
@@ -333,7 +333,7 @@ Max Concurrent: 6 (Wave 2)
   Scenario: Full existing suite still works
     Tool: Bash
     Steps:
-      1. Run: bun vitest test/deja.test.ts --reporter=verbose 2>&1
+      1. Run: bun vitest test/mnemonic.test.ts --reporter=verbose 2>&1
       2. Verify 17 passed, 0 failed
     Expected Result: All 17 tests pass (including previously failing auth test)
     Failure Indicators: Any test fails
@@ -342,8 +342,8 @@ Max Concurrent: 6 (Wave 2)
 
   **Commit**: YES
   - Message: `fix: auth rejection test and strict state assertions`
-  - Files: `test/deja.test.ts`, possibly `src/security.ts`
-  - Pre-commit: `bun vitest test/deja.test.ts --reporter=verbose`
+  - Files: `test/mnemonic.test.ts`, possibly `src/security.ts`
+  - Pre-commit: `bun vitest test/mnemonic.test.ts --reporter=verbose`
 
 - [ ] 3. Learnings Extended Tests (Bulk Delete, Scope Priority, Recall Tracking, Inject Variations)
 
@@ -386,9 +386,9 @@ Max Concurrent: 6 (Wave 2)
   **References**:
 
   **Pattern References**:
-  - `test/deja.test.ts:193-206` — beforeAll/afterAll server lifecycle pattern to replicate (use port 8790, unique DB path)
-  - `test/deja.test.ts:350-409` — Existing bulk delete test (confidence_lt) to follow as pattern for new filter tests
-  - `test/deja.test.ts:208-246` — learn + inject round-trip pattern to follow
+  - `test/mnemonic.test.ts:193-206` — beforeAll/afterAll server lifecycle pattern to replicate (use port 8790, unique DB path)
+  - `test/mnemonic.test.ts:350-409` — Existing bulk delete test (confidence_lt) to follow as pattern for new filter tests
+  - `test/mnemonic.test.ts:208-246` — learn + inject round-trip pattern to follow
 
   **API/Type References**:
   - `src/learnings/repo.ts:36-47` — `filterScopesByPriority()` — the exact priority logic being tested: session > agent > shared
@@ -469,7 +469,7 @@ Max Concurrent: 6 (Wave 2)
   **References**:
 
   **Pattern References**:
-  - `test/deja.test.ts:494-528` — Existing secrets CRUD test to follow as pattern
+  - `test/mnemonic.test.ts:494-528` — Existing secrets CRUD test to follow as pattern
 
   **API/Type References**:
   - `src/secrets/api.ts:1-58` — Full SecretsApi definition: setSecret, getSecret, deleteSecret, listSecrets endpoints + schema
@@ -549,7 +549,7 @@ Max Concurrent: 6 (Wave 2)
   **References**:
 
   **Pattern References**:
-  - `test/deja.test.ts:531-629` — Existing state lifecycle tests to follow as pattern
+  - `test/mnemonic.test.ts:531-629` — Existing state lifecycle tests to follow as pattern
 
   **API/Type References**:
   - `src/state/api.ts:1-78` — Full StateApi: getState, upsertState, patchState, addStateEvent, resolveState
@@ -628,7 +628,7 @@ Max Concurrent: 6 (Wave 2)
 
   **MCP protocol (2 tests):**
   - `notifications/initialized`: Send notification. Expect 204 status (null response handled by server).
-  - `GET /mcp` info endpoint: Send GET to `/mcp`. Verify response has `name: 'deja'`, `version`, `tools` array with 13 tool names.
+  - `GET /mcp` info endpoint: Send GET to `/mcp`. Verify response has `name: 'mnemonic'`, `version`, `tools` array with 13 tool names.
 
   **Must NOT do**:
   - Do not test `format:'learnings'` via MCP (handler hardcodes 'prompt')
@@ -649,9 +649,9 @@ Max Concurrent: 6 (Wave 2)
   **References**:
 
   **Pattern References**:
-  - `test/deja.test.ts:632-740` — Existing MCP tests showing JSON-RPC request pattern and `parseMcpToolResult` usage
-  - `test/deja.test.ts:672-698` — `tools/call learn` test — exact pattern to replicate for other tools
-  - `test/deja.test.ts:700-739` — `tools/call inject` test — shows learn-then-inject pattern
+  - `test/mnemonic.test.ts:632-740` — Existing MCP tests showing JSON-RPC request pattern and `parseMcpToolResult` usage
+  - `test/mnemonic.test.ts:672-698` — `tools/call learn` test — exact pattern to replicate for other tools
+  - `test/mnemonic.test.ts:700-739` — `tools/call inject` test — shows learn-then-inject pattern
 
   **API/Type References**:
   - `src/mcp/tools.ts:1-259` — All 13 MCP tool definitions with names, descriptions, inputSchemas. Shows required fields for each tool.
@@ -694,7 +694,7 @@ Max Concurrent: 6 (Wave 2)
     Tool: Bash
     Steps:
       1. Verify test sends GET to /mcp
-      2. Assert response has name: 'deja' and tools array with 13 entries
+      2. Assert response has name: 'mnemonic' and tools array with 13 entries
     Expected Result: Info endpoint returns correct metadata
     Evidence: .sisyphus/evidence/task-6-mcp-info.txt
   ```
@@ -746,7 +746,7 @@ Max Concurrent: 6 (Wave 2)
   **References**:
 
   **Pattern References**:
-  - `test/deja.test.ts:742-783` — Existing auth tests to follow as pattern
+  - `test/mnemonic.test.ts:742-783` — Existing auth tests to follow as pattern
 
   **API/Type References**:
   - `src/learnings/api.ts:13-20` — `LearnBody` schema: `trigger` and `learning` are required strings
@@ -899,7 +899,7 @@ Max Concurrent: 6 (Wave 2)
   Output: `Scenarios [N/N pass] | Test Count [N] | MCP Tools [13/13] | VERDICT`
 
 - [ ] F4. **Scope Fidelity Check** — `deep`
-  For each task: read "What to do", read actual files created. Verify 1:1 — everything in spec was built, nothing beyond spec. Check no changes to `packages/deja-client/`. Check no changes to server source code beyond auth fix (if needed). Check no test file spawns more than 1 server. Flag unaccounted changes.
+  For each task: read "What to do", read actual files created. Verify 1:1 — everything in spec was built, nothing beyond spec. Check no changes to `packages/mnemonic-client/`. Check no changes to server source code beyond auth fix (if needed). Check no test file spawns more than 1 server. Flag unaccounted changes.
   Output: `Tasks [N/N compliant] | Scope [CLEAN/N issues] | VERDICT`
 
 ---

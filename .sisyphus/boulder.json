@@ -1,9 +1,9 @@
 {
-  "active_plan": "/home/chase/deja/.sisyphus/plans/deja-client-rewrite.md",
+  "active_plan": "/home/chase/mnemonic/.sisyphus/plans/mnemonic-client-rewrite.md",
   "started_at": "2026-02-24T18:22:29.510Z",
   "session_ids": [
     "ses_36f1c93bbffepPhzMv7y9WnMa7"
   ],
-  "plan_name": "deja-client-rewrite",
+  "plan_name": "mnemonic-client-rewrite",
   "agent": "atlas"
 }

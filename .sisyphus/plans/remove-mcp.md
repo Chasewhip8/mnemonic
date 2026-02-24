@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-> **Quick Summary**: Remove the hand-rolled MCP (JSON-RPC 2.0) server and all related tests from deja. MCP is cleanly isolated — one-way dependency on core repos, no SDK packages, no shared utilities at risk.
+> **Quick Summary**: Remove the hand-rolled MCP (JSON-RPC 2.0) server and all related tests from mnemonic. MCP is cleanly isolated — one-way dependency on core repos, no SDK packages, no shared utilities at risk.
 > 
 > **Deliverables**:
 > - `src/mcp/` directory deleted (4 files)
@@ -46,7 +46,7 @@ Remove the MCP server and MCP-related tests from the project.
 ## Work Objectives
 
 ### Core Objective
-Remove all MCP server code, MCP tests, and MCP documentation references so deja is purely a REST memory layer.
+Remove all MCP server code, MCP tests, and MCP documentation references so mnemonic is purely a REST memory layer.
 
 ### Concrete Deliverables
 - `src/mcp/` directory removed
@@ -54,7 +54,7 @@ Remove all MCP server code, MCP tests, and MCP documentation references so deja 
 - `src/api.ts` no longer references McpApi
 - `src/http.ts` no longer references McpApiLive
 - `test/helpers.ts` no longer exports parseMcpToolResult or parseMcpError
-- `test/deja.test.ts` no longer has describe("mcp") block
+- `test/mnemonic.test.ts` no longer has describe("mcp") block
 - `README.md` updated: no MCP mentions in tagline or API docs
 
 ### Definition of Done
@@ -152,7 +152,7 @@ Critical Path: Task 1 → Task 2 → Final
      - Remove `parseMcpToolResult` function (lines 172-182)
      - Remove `parseMcpError` function (lines 184-198)
      - These are at end-of-file; file should end cleanly around line 170
-  6. Edit `test/deja.test.ts`:
+  6. Edit `test/mnemonic.test.ts`:
      - Remove `parseMcpToolResult,` from the destructured import on line 8
      - Remove the entire `describe("mcp", ...)` block (lines 544-670)
      - Clean up blank lines between the preceding describe block and the following describe("health + auth") block — should be one blank line, not a void
@@ -196,8 +196,8 @@ Critical Path: Task 1 → Task 2 → Final
   - `src/http.ts:10` — `import { McpApiLive } from './mcp/live'` — remove this line
   - `src/http.ts:17` — `Layer.provide(McpApiLive),` — remove this from the layer composition
   - `test/helpers.ts:172-198` — `parseMcpToolResult` and `parseMcpError` functions — remove both (end of file)
-  - `test/deja.test.ts:8` — `parseMcpToolResult,` in import — remove just this token
-  - `test/deja.test.ts:544-670` — `describe("mcp", ...)` block — remove entirely
+  - `test/mnemonic.test.ts:8` — `parseMcpToolResult,` in import — remove just this token
+  - `test/mnemonic.test.ts:544-670` — `describe("mcp", ...)` block — remove entirely
 
   **WHY Each Reference Matters**:
   - The src/mcp/ files are the MCP implementation — deleting them is the core objective
@@ -246,7 +246,7 @@ Critical Path: Task 1 → Task 2 → Final
 
   **Commit**: YES
   - Message: `refactor: remove MCP server and related tests`
-  - Files: `src/mcp/` (deleted), `test/mcp-tools.test.ts` (deleted), `src/api.ts`, `src/http.ts`, `test/helpers.ts`, `test/deja.test.ts`, `README.md`
+  - Files: `src/mcp/` (deleted), `test/mcp-tools.test.ts` (deleted), `src/api.ts`, `src/http.ts`, `test/helpers.ts`, `test/mnemonic.test.ts`, `README.md`
   - Pre-commit: `bun run check && bun test`
 
 ---
@@ -364,7 +364,7 @@ Critical Path: Task 1 → Task 2 → Final
 
 ## Commit Strategy
 
-- **Task 1**: `refactor: remove MCP server and related tests` — src/mcp/ (deleted), test/mcp-tools.test.ts (deleted), src/api.ts, src/http.ts, test/helpers.ts, test/deja.test.ts, README.md
+- **Task 1**: `refactor: remove MCP server and related tests` — src/mcp/ (deleted), test/mcp-tools.test.ts (deleted), src/api.ts, src/http.ts, test/helpers.ts, test/mnemonic.test.ts, README.md
   - Pre-commit: `bun run check && bun test`
 
 ---
@@ -382,7 +382,7 @@ ls src/mcp/             # Expected: No such file or directory
 
 ### Final Checklist
 - [ ] All 5 MCP files deleted
-- [ ] All 4 mixed files edited (api.ts, http.ts, helpers.ts, deja.test.ts)
+- [ ] All 4 mixed files edited (api.ts, http.ts, helpers.ts, mnemonic.test.ts)
 - [ ] README.md updated (tagline + MCP config section removed)
 - [ ] Zero compile errors
 - [ ] Zero test failures

@@ -2,26 +2,26 @@
 Date: Tue Feb 24 11:27:22 AM MST 2026
 
 --- OLD API REFERENCES (should be 0) ---
-grep 'deja()': 0
+grep 'mnemonic()': 0
 0
 grep 'mem\.learn': 0
 0
 grep 'await mem': 0
 0
 grep 'Promise': 2
-grep 'import deja': 0
+grep 'import mnemonic': 0
 0
 
 --- NEW API REFERENCES (should be >0) ---
-grep 'DejaClient': 5
+grep 'MnemonicClient': 5
 grep 'Effect.gen': 2
 grep 'client.learnings': 3
 grep 'client.state': 1
 grep 'client.secrets': 1
 grep 'client.health': 1
-grep 'DEJA_URL': 2
-grep 'DEJA_API_KEY': 2
-grep 'DejaClient.Default': 2
+grep 'MNEMONIC_URL': 2
+grep 'MNEMONIC_API_KEY': 2
+grep 'MnemonicClient.Default': 2
 
 --- ENDPOINT COVERAGE ---
   learn: 9
@@ -62,4 +62,4 @@ grep 'DejaClient.Default': 2
   Api: 1
 
 --- LINE COUNT ---
-152 /home/chase/deja/packages/deja-client/README.md
+152 /home/chase/mnemonic/packages/mnemonic-client/README.md

@@ -1,25 +1,25 @@
-# deja-client
+# mnemonic-client
 
-Effect-based client for [deja](https://github.com/acoyfellow/deja) — persistent memory for agents.
+Effect-based client for [mnemonic](https://github.com/acoyfellow/mnemonic) — persistent memory for agents.
 
 ## Install
 
 ```bash
-npm install deja-client
+npm install mnemonic-client
 # or
-bun add deja-client
+bun add mnemonic-client
 ```
 
 ## Usage
 
-`DejaClient` is an [Effect Service](https://effect.website/docs/guides/context-management/services). Use it inside `Effect.gen`:
+`MnemonicClient` is an [Effect Service](https://effect.website/docs/guides/context-management/services). Use it inside `Effect.gen`:
 
 ```ts
-import { DejaClient } from 'deja-client'
+import { MnemonicClient } from 'mnemonic-client'
 import { Effect } from 'effect'
 
 const program = Effect.gen(function* () {
-  const client = yield* DejaClient
+  const client = yield* MnemonicClient
 
   // Store a learning
   yield* client.learnings.learn({
@@ -35,7 +35,7 @@ const program = Effect.gen(function* () {
 })
 
 Effect.runPromise(
-  program.pipe(Effect.provide(DejaClient.Default))
+  program.pipe(Effect.provide(MnemonicClient.Default))
 )
 ```
 
@@ -45,8 +45,8 @@ Config is read from environment variables:
 
 | Variable | Default | Description |
 |---|---|---|
-| `DEJA_URL` | `http://localhost:8787` | Base URL of your deja instance |
-| `DEJA_API_KEY` | _(none)_ | Bearer token for authenticated endpoints |
+| `MNEMONIC_URL` | `http://localhost:8787` | Base URL of your mnemonic instance |
+| `MNEMONIC_API_KEY` | _(none)_ | Bearer token for authenticated endpoints |
 
 To override in tests or scripts, use `ConfigProvider.fromMap`:
 
@@ -55,14 +55,14 @@ import { ConfigProvider, Layer } from 'effect'
 
 const testConfig = Layer.setConfigProvider(
   ConfigProvider.fromMap(new Map([
-    ['DEJA_URL', 'https://deja.example.com'],
-    ['DEJA_API_KEY', 'my-secret-key'],
+    ['MNEMONIC_URL', 'https://mnemonic.example.com'],
+    ['MNEMONIC_API_KEY', 'my-secret-key'],
   ]))
 )
 
 Effect.runPromise(
   program.pipe(
-    Effect.provide(DejaClient.Default),
+    Effect.provide(MnemonicClient.Default),
     Effect.provide(testConfig),
   )
 )
@@ -142,7 +142,7 @@ import {
   type ValidationError,
   // for building custom clients
   type Api,
-} from 'deja-client'
+} from 'mnemonic-client'
 ```
 
 All types are derived from Effect schemas — no manual interfaces.

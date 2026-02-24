@@ -7,3 +7,4 @@ data/
 .reference/
 *.tsbuildinfo
 data/*.db
+.sisyphus

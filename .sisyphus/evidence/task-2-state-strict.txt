@@ -1,5 +1,5 @@
 Command:
-grep -n 'expect(\[200' test/deja.test.ts
+grep -n 'expect(\[200' test/mnemonic.test.ts
 
 Output:
 (no matches)

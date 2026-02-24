@@ -1,14 +1,14 @@
 # Learnings
 
 ## Codebase Summary
-- `src/do/DejaDO.ts` — Full DurableObject class (1362 lines). All business logic lives here.
+- `src/do/MnemonicDO.ts` — Full DurableObject class (1362 lines). All business logic lives here.
 - `src/index.ts` — CF Worker entrypoint: auth, routing, MCP handler. Proxies to DO via stub.fetch.
 - `src/cleanup.ts` — Calls DO via stub.fetch for cleanup.
 - `src/schema.ts` — Drizzle schema for 5 tables. embedding column is `text('embedding')`.
 - No state tables in DO constructor DDL — only learnings and secrets. State tables must be added.
 
 ## Key Architecture Notes
-- DejaDO constructor only creates learnings + secrets tables + ALTER TABLE migrations.
+- MnemonicDO constructor only creates learnings + secrets tables + ALTER TABLE migrations.
 - State tables (stateRuns, stateRevisions, stateEvents) are in schema.ts but NOT in DO constructor DDL.
 - db.ts initDb() must add DDL for ALL 5 tables.
 - score semantics: Vectorize returns similarity (0-1, higher=better); libSQL vector_distance_cos returns distance (0-2, lower=better). Conversion: similarity = 1 - distance.
@@ -58,7 +58,7 @@
 - `grep -c 'sqliteTable' src/schema.ts` returns 6 (1 import line + 5 table definitions) — not 5
 
 ## [2026-02-23] Task 6: vector methods in src/service.ts
-- All vector reads/writes in DejaService now use raw `this.db.execute()` with `vector32(?)`; no VECTORIZE in service.
+- All vector reads/writes in MnemonicService now use raw `this.db.execute()` with `vector32(?)`; no VECTORIZE in service.
 - Similarity conversion is explicit everywhere: `similarity = 1 - distance` where distance is from `vector_distance_cos(...)`.
 - Sorting is corrected for libSQL distance semantics: `ORDER BY distance ASC` in inject/query/trace/neighbors.
 - Threshold checks now use similarity form (`similarity >= threshold`) in injectTrace and neighbors.
@@ -67,8 +67,8 @@
 ## Task 7: cleanup.ts rewrite
 - Replaced CF cron trigger + DurableObject stub.fetch pattern with node-cron
 - node-cron@4.2.1 installed (note: v4 uses default import, not named)
-- `import type` needed for DejaService (type-only import)
-- `startCleanupCron(service: DejaService): void` schedules `'0 0 * * *'` daily
+- `import type` needed for MnemonicService (type-only import)
+- `startCleanupCron(service: MnemonicService): void` schedules `'0 0 * * *'` daily
 - Zero CF imports confirmed
 
 
@@ -86,13 +86,13 @@
 - Jest VM sandbox creates separate typed array constructors; onnxruntime-node returns Float32Array from main V8 context causing `instanceof` failures. Fix: custom test environment that injects real constructors into sandbox (`test/environment.js`).
 - `vector_to_json()` is NOT available in local libsql `@libsql/client` v0.17.0. Fixed `getLearningNeighbors` to use cross-join instead: `FROM learnings l2, learnings l1 WHERE l1.id = ? AND l2.id != ?`
 - secrets table has `name TEXT PRIMARY KEY` — same name in different scopes overwrites (not scoped). Tests must use different names per scope.
-- `packages/deja-client/test/client.test.ts` uses `bun:test` (incompatible with jest). Excluded `/packages/` in testPathIgnorePatterns.
+- `packages/mnemonic-client/test/client.test.ts` uses `bun:test` (incompatible with jest). Excluded `/packages/` in testPathIgnorePatterns.
 - Embedding model load takes ~1-2s; jest timeout set to 120000ms for safety.
 - DB singleton pattern in db.ts: set `process.env.DB_PATH` before first `getDb()` call. Cleanup between tests via `DELETE FROM` rather than DB recreation (avoids singleton reset).
-- Test DB files at `/tmp/deja-test-${process.pid}.db` — also clean up `-wal` and `-shm` suffixes in afterAll.
+- Test DB files at `/tmp/mnemonic-test-${process.pid}.db` — also clean up `-wal` and `-shm` suffixes in afterAll.
 
-## cleanup() method in DejaService (2026-02-23)
-- Added `cleanup()` to end of `DejaService` class in `src/service.ts` (before closing `}`)
+## cleanup() method in MnemonicService (2026-02-23)
+- Added `cleanup()` to end of `MnemonicService` class in `src/service.ts` (before closing `}`)
 - Uses existing imports: `like`, `sql`, `and` from `drizzle-orm` — no new imports needed
 - Deletes: session:* entries >7 days, agent:* entries >30 days, confidence <0.3 entries
 - `bun run typecheck` passes after insertion

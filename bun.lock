@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "deja",
+      "name": "mnemonic",
       "dependencies": {
         "@effect/cluster": "^0.56.4",
         "@effect/experimental": "^0.44.0",

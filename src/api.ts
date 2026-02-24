@@ -4,7 +4,7 @@ import { SecretsApi } from './secrets/api'
 import { StateApi } from './state/api'
 import { HealthApi } from './health/api'
 
-export class Api extends HttpApi.make('deja')
+export class Api extends HttpApi.make('mnemonic')
 	.add(LearningsApi)
 	.add(SecretsApi)
 	.add(StateApi)

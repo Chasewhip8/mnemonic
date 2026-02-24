@@ -1,4 +1,4 @@
-Auth assertion in test/deja.test.ts:
+Auth assertion in test/mnemonic.test.ts:
 expect(rejected.status).toBe(401);
 
 Why this passes:

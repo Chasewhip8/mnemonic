@@ -1,7 +1,7 @@
 # Learnings — test-audit-fixes
 
 ## Initial State
-- Test dir: `test/deja.test.ts` (17 tests, 1 failing), `test/environment.js`
+- Test dir: `test/mnemonic.test.ts` (17 tests, 1 failing), `test/environment.js`
 - `vitest.config.ts`: minimal config, no pool settings
 - Plan: 8 implementation tasks + 4 final verification agents
 - Evidence dir: `.sisyphus/evidence/`
@@ -52,5 +52,5 @@
 - test/mcp-tools.test.ts created, port 8793
 - All 13 MCP tools covered
 - Error codes: -32600 invalid request, -32601 method not found, -32603 tool error
-- GET /mcp returns info with name:'deja' and 13 tools
+- GET /mcp returns info with name:'mnemonic' and 13 tools
 - notifications/initialized returns 204

@@ -34,4 +34,4 @@ OK: FetchHttpClient.layer present
 OK: no forbidden imports
 
 === Line count ===
-30 /home/chase/deja/src/client.ts
+30 /home/chase/mnemonic/src/client.ts

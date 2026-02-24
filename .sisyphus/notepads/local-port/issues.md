@@ -9,4 +9,4 @@
 - DO constructor only inits learnings + secrets. initDb() must create ALL 5 tables.
 - setSecret rowsAffected check may differ in libSQL — use INSERT OR REPLACE or INSERT ON CONFLICT DO UPDATE.
 - convertDbLearning: embedding is now raw blob from F32_BLOB, not JSON string. Don't JSON.parse it.
-- getLearnings uses `this.convertDbLearning` with `this` binding — need to bind properly in DejaService.
+- getLearnings uses `this.convertDbLearning` with `this` binding — need to bind properly in MnemonicService.

@@ -1,6 +1,6 @@
 $ jest
 PASS test/secrets.test.ts
-PASS test/deja-do.test.ts
+PASS test/mnemonic-do.test.ts
   ● Console
 
     console.log
@@ -29,7 +29,7 @@ PASS test/deja-do.test.ts
       at loadItems (node_modules/@huggingface/transformers/dist/webpack:/@huggingface/transformers/src/pipelines.js:3572:1)
       at pipeline (node_modules/@huggingface/transformers/dist/webpack:/@huggingface/transformers/src/pipelines.js:3502:1)
       at initEmbeddings (src/embeddings.ts:8:17)
-      at Object.<anonymous> (test/deja-do.test.ts:17:3)
+      at Object.<anonymous> (test/mnemonic-do.test.ts:17:3)
 
     console.log
       Embedding model loaded

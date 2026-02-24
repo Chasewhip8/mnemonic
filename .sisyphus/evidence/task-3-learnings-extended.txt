@@ -1,4 +1,4 @@
-RUN  v3.2.4 /home/chase/deja
+RUN  v3.2.4 /home/chase/mnemonic
 
 ✓ test/learnings-extended.test.ts > bulk delete filters > not_recalled_in_days filter 243ms
 ✓ test/learnings-extended.test.ts > bulk delete filters > scope-only filter 111ms

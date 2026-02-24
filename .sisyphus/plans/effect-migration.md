@@ -1,13 +1,13 @@
-# Deja → Effect Migration
+# Mnemonic → Effect Migration
 
 ## TL;DR
 
-> **Quick Summary**: Complete rewrite of the deja persistent memory service from Hono/vanilla TypeScript to a clean Effect-based architecture using @effect/platform for HTTP, @effect/sql-libsql for database, and idiomatic Effect service/layer patterns. Preserves the existing HTTP API contract exactly.
+> **Quick Summary**: Complete rewrite of the mnemonic persistent memory service from Hono/vanilla TypeScript to a clean Effect-based architecture using @effect/platform for HTTP, @effect/sql-libsql for database, and idiomatic Effect service/layer patterns. Preserves the existing HTTP API contract exactly.
 > 
 > **Deliverables**:
 > - All src/ files replaced with Effect-idiomatic code (~20 new files)
 > - Jest → @effect/vitest migration
-> - deja-client package migrated to Effect HttpClient
+> - mnemonic-client package migrated to Effect HttpClient
 > - Hono, node-cron, zod removed; Effect ecosystem packages added
 > 
 > **Estimated Effort**: Large
@@ -19,7 +19,7 @@
 ## Context
 
 ### Original Request
-Migrate the deja repository to Effect and @effect/platform for HTTP server/client. Preserve existing HTTP API schema. No database migrations. Clean rewrite — delete old code. Create lightweight Effect services for external libs without Effect support. Follow patterns from sft-chain-transfer/api/src/postgres for DB interactions.
+Migrate the mnemonic repository to Effect and @effect/platform for HTTP server/client. Preserve existing HTTP API schema. No database migrations. Clean rewrite — delete old code. Create lightweight Effect services for external libs without Effect support. Follow patterns from sft-chain-transfer/api/src/postgres for DB interactions.
 
 ### Interview Summary
 **Key Discussions**:
@@ -57,7 +57,7 @@ Replace all existing Hono/vanilla code with idiomatic Effect architecture while 
 ### Concrete Deliverables
 - `src/` — ~20 new Effect-based source files organized by domain
 - `test/` — Migrated integration tests using @effect/vitest
-- `packages/deja-client/` — Effect HttpClient-based client package
+- `packages/mnemonic-client/` — Effect HttpClient-based client package
 - Updated package.json, tsconfig.json, vitest.config.ts
 - Removed: hono, node-cron, zod, jest deps; jest.config.js
 
@@ -66,7 +66,7 @@ Replace all existing Hono/vanilla code with idiomatic Effect architecture while 
 - [ ] `bun run prd.ts` passes all 6 smoke gates against running server
 - [ ] `bunx tsc --noEmit` exits 0
 - [ ] `bun test` passes all integration tests
-- [ ] `cd packages/deja-client && bun run build && bun test` passes
+- [ ] `cd packages/mnemonic-client && bun run build && bun test` passes
 
 ### Must Have
 - All 20+ HTTP endpoints with identical method/path/request/response contracts
@@ -138,7 +138,7 @@ Wave 3 (After Wave 2 — domain services + handlers, 4 parallel):
 
 Wave 4 (After Wave 3 — integration, 3 parallel):
 ├── Task 12: MCP handler (depends: 8, 9, 10, 11) [deep]
-├── Task 13: deja-client migration (depends: 7) [unspecified-high]
+├── Task 13: mnemonic-client migration (depends: 7) [unspecified-high]
 └── Task 14: Delete old files + service composition (depends: 8-11) [quick]
 
 Wave 5 (After Wave 4 — server wiring, 1 task):
@@ -255,7 +255,7 @@ Max Concurrent: 5 (Wave 1)
 - [ ] 2. AppConfig + Error Types
 
   **What to do**:
-  - Create `src/config.ts`: Define `AppConfig` as `Effect.Service` (following `sft-chain-transfer/api/src/config.ts` pattern). Read `PORT` (integer, default 8787), `API_KEY` (optional redacted string), `DB_PATH` (string, default `./data/deja.db`). Use `Config.integer`, `Config.option(Config.redacted(...))`, `Config.string` with `Config.withDefault`.
+  - Create `src/config.ts`: Define `AppConfig` as `Effect.Service` (following `sft-chain-transfer/api/src/config.ts` pattern). Read `PORT` (integer, default 8787), `API_KEY` (optional redacted string), `DB_PATH` (string, default `./data/mnemonic.db`). Use `Config.integer`, `Config.option(Config.redacted(...))`, `Config.string` with `Config.withDefault`.
   - Create `src/errors.ts`: Define all error types as `Schema.TaggedError` classes:
     - `DatabaseError` — wraps SQL failures, `{ cause: Schema.Defect }`
     - `EmbeddingError` — wraps embedding generation failures, `{ cause: Schema.Defect }`
@@ -285,7 +285,7 @@ Max Concurrent: 5 (Wave 1)
   - `sft-chain-transfer/api/src/security.ts:9-13` — Unauthorized error with HttpApiSchema.annotations
   - `src/index.ts:632-641` — Current auth logic (API_KEY from env, optional)
   - `src/index.ts:901` — Current PORT default (8787)
-  - `src/db.ts:13` — Current DB_PATH default (./data/deja.db)
+  - `src/db.ts:13` — Current DB_PATH default (./data/mnemonic.db)
   - Run `bunx effect-solutions show config error-handling`
 
   **Acceptance Criteria**:
@@ -341,7 +341,7 @@ Max Concurrent: 5 (Wave 1)
   **References**:
   - `src/schema.ts` — Current drizzle table definitions (PRESERVE)
   - `src/service.ts:10-94` — Current TypeScript interfaces for all domain types
-  - `packages/deja-client/src/index.ts:22-47` — Client-facing type shapes
+  - `packages/mnemonic-client/src/index.ts:22-47` — Client-facing type shapes
   - Run `bunx effect-solutions show data-modeling`
 
   **Acceptance Criteria**:
@@ -589,12 +589,12 @@ Max Concurrent: 5 (Wave 1)
     - `POST /state/:runId/events` - body: `{ eventType?, payload?, createdBy? }`, response: `{ success, id }`
     - `POST /state/:runId/resolve` - body: `{ persistToLearn?, scope?, summaryStyle?, updatedBy? }`, response: `WorkingStateResponse` or 404
   - **`src/health/api.ts`**: Define `HealthApi` HttpApiGroup:
-    - `GET /` - response: `{ status: 'ok', service: 'deja' }` - **NO AUTH** (exempt from middleware)
+    - `GET /` - response: `{ status: 'ok', service: 'mnemonic' }` - **NO AUTH** (exempt from middleware)
     - `POST /cleanup` - response: `{ deleted, reasons }`
   - **`src/mcp/api.ts`**: Define `McpApi` HttpApiGroup:
     - `POST /mcp` - body: raw JSON (JSON-RPC), response: raw JSON
     - `GET /mcp` - response: `{ name, version, description, protocol, endpoint, tools }`
-  - **`src/api.ts`**: Create root `Api` by composing all groups: `HttpApi.make('deja').add(LearningsApi).add(SecretsApi).add(StateApi).add(HealthApi).add(McpApi)`
+  - **`src/api.ts`**: Create root `Api` by composing all groups: `HttpApi.make('mnemonic').add(LearningsApi).add(SecretsApi).add(StateApi).add(HealthApi).add(McpApi)`
   - **CRITICAL**: Import domain types from `src/domain.ts` for all request/response schemas.
   - **CRITICAL**: For `POST /mcp`, the body/response cannot be fully typed with Effect Schema (it's JSON-RPC with dynamic dispatch). Use `Schema.Unknown` or `Schema.JsonFromSelf` for body/response, and handle typing inside the handler.
   - **CRITICAL**: `GET /` must NOT have the `Authorization` middleware. Define the health group WITHOUT middleware and apply middleware to the other groups via `.middleware(Authorization)` at group level.
@@ -1038,7 +1038,7 @@ Max Concurrent: 5 (Wave 1)
     - The scheduled cleanup should run as a background fiber (forked on layer construction)
     - Log cleanup results via `Effect.logInfo`
   - Create `src/health/live.ts`: Implement handlers:
-    - `GET /` handler: return `{ status: 'ok', service: 'deja' }` - no DB check, no auth
+    - `GET /` handler: return `{ status: 'ok', service: 'mnemonic' }` - no DB check, no auth
     - `POST /cleanup` handler: call `CleanupService.runCleanup()`, return result
 
   **Must NOT do**:
@@ -1061,9 +1061,9 @@ Max Concurrent: 5 (Wave 1)
 
   **Source-of-Truth References**:
   - `src/index.ts:363-429` - runCleanup(): exact thresholds, select-then-delete pattern, reason strings
-  - `src/service.ts:846-903` - DejaService.cleanup(): same logic (duplicated in index.ts)
+  - `src/service.ts:846-903` - MnemonicService.cleanup(): same logic (duplicated in index.ts)
   - `src/cleanup.ts` - Current node-cron wrapper (replace with Effect.Schedule)
-  - `src/index.ts:652` - GET / handler: exact response `{ status: 'ok', service: 'deja' }`
+  - `src/index.ts:652` - GET / handler: exact response `{ status: 'ok', service: 'mnemonic' }`
   - `src/index.ts:873-875` - POST /cleanup handler
 
   **External References**:
@@ -1075,7 +1075,7 @@ Max Concurrent: 5 (Wave 1)
   - [ ] `src/health/live.ts` exports handler registration for GET / and POST /cleanup
   - [ ] Cleanup thresholds: 7 days (session), 30 days (agent), 0.3 (confidence)
   - [ ] Uses Effect.Schedule.cron, NOT node-cron
-  - [ ] GET / returns exactly `{ status: 'ok', service: 'deja' }`
+  - [ ] GET / returns exactly `{ status: 'ok', service: 'mnemonic' }`
   - [ ] `bunx tsc --noEmit` passes
 
   **QA Scenarios:**
@@ -1115,7 +1115,7 @@ Max Concurrent: 5 (Wave 1)
     - Parse incoming body as JSON-RPC: extract `jsonrpc`, `id`, `method`, `params`
     - Validate `jsonrpc === '2.0'`, return error code -32600 if not
     - Route by method:
-      - `initialize` -> return `{ protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'deja', version: '1.0.0' } }`
+      - `initialize` -> return `{ protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'mnemonic', version: '1.0.0' } }`
       - `tools/list` -> return `{ tools: MCP_TOOLS }` (the full tool definitions array)
       - `tools/call` -> dispatch to tool handler by `params.name`, wrap result in `{ content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }`
       - `notifications/initialized`, `notifications/cancelled` -> return 204 No Content (no body)
@@ -1140,7 +1140,7 @@ Max Concurrent: 5 (Wave 1)
     - Unknown tool -> throw Error for -32603 catch
   - Create `src/mcp/live.ts`: Implement handlers for McpApi group:
     - `POST /mcp` -> call MCP handler dispatch, handle 204 for notifications (use raw `HttpServerResponse.empty({ status: 204 })` or similar)
-    - `GET /mcp` -> return `{ name: 'deja', version: '1.0.0', description: '...', protocol: 'mcp', endpoint: '${url.origin}/mcp', tools: MCP_TOOLS.map(t => t.name) }`
+    - `GET /mcp` -> return `{ name: 'mnemonic', version: '1.0.0', description: '...', protocol: 'mcp', endpoint: '${url.origin}/mcp', tools: MCP_TOOLS.map(t => t.name) }`
       - Need to extract request URL origin for the endpoint field
 
   **Must NOT do**:
@@ -1213,27 +1213,27 @@ Max Concurrent: 5 (Wave 1)
   - Message: `feat(mcp): implement MCP JSON-RPC handler with all 13 tools`
   - Files: `src/mcp/tools.ts`, `src/mcp/handler.ts`, `src/mcp/live.ts`
 
-- [ ] 13. deja-client Migration to Effect HttpClient
+- [ ] 13. mnemonic-client Migration to Effect HttpClient
 
   **What to do**:
-  - Rewrite `packages/deja-client/src/index.ts` using Effect HttpClient:
-    - Export `DejaClient` as an Effect service (`Effect.Service`) with all current methods (learn, inject, query, list, forget, stats) returning Effects instead of Promises: `class DejaClient extends Effect.Service<DejaClient>()('DejaClient', { ... }) {}`
-    - Export `DejaClient.Default` layer constructor that takes `{ url: string, apiKey?: string }` and provides `HttpClient.HttpClient` layer
+  - Rewrite `packages/mnemonic-client/src/index.ts` using Effect HttpClient:
+    - Export `MnemonicClient` as an Effect service (`Effect.Service`) with all current methods (learn, inject, query, list, forget, stats) returning Effects instead of Promises: `class MnemonicClient extends Effect.Service<MnemonicClient>()('MnemonicClient', { ... }) {}`
+    - Export `MnemonicClient.Default` layer constructor that takes `{ url: string, apiKey?: string }` and provides `HttpClient.HttpClient` layer
     - Each method: use `HttpClientRequest.post/get/del` + `HttpClientResponse.json` pattern
     - Preserve all type exports: Learning, InjectResult, QueryResult, Stats, LearnOptions, InjectOptions, etc.
-    - Keep Effect as a peer dependency in `packages/deja-client/package.json`
-    - **ALSO** export a `deja()` convenience function that wraps the Effect client in `Effect.runPromise` for backward compat:
-      - This maintains the current API: `const mem = deja('url', { apiKey }); await mem.learn(...)`
+    - Keep Effect as a peer dependency in `packages/mnemonic-client/package.json`
+    - **ALSO** export a `mnemonic()` convenience function that wraps the Effect client in `Effect.runPromise` for backward compat:
+      - This maintains the current API: `const mem = mnemonic('url', { apiKey }); await mem.learn(...)`
       - Internally creates the Effect runtime, constructs layers, runs each method call through `Effect.runPromise`
-    - Update `packages/deja-client/tsconfig.json` if needed for Effect types
-    - Update `packages/deja-client/package.json`: add `effect`, `@effect/platform` as peer deps
+    - Update `packages/mnemonic-client/tsconfig.json` if needed for Effect types
+    - Update `packages/mnemonic-client/package.json`: add `effect`, `@effect/platform` as peer deps
   - Preserve exact method signatures and option types from current client
   - Preserve error handling: HTTP errors throw with error.message or `HTTP ${status}`
 
   **Must NOT do**:
   - Do not change method names or option shapes
   - Do not add new client methods not in current interface
-  - Do not remove the default export `deja()` function (backward compat)
+  - Do not remove the default export `mnemonic()` function (backward compat)
   - Do not add logging, retry, or caching to client
 
   **Recommended Agent Profile**:
@@ -1250,51 +1250,51 @@ Max Concurrent: 5 (Wave 1)
   **References**:
 
   **Source-of-Truth References**:
-  - `packages/deja-client/src/index.ts` - Current client implementation (all methods, types, error handling)
-  - `packages/deja-client/package.json` - Current deps and build config
-  - `packages/deja-client/tsconfig.json` - Current TypeScript config
+  - `packages/mnemonic-client/src/index.ts` - Current client implementation (all methods, types, error handling)
+  - `packages/mnemonic-client/package.json` - Current deps and build config
+  - `packages/mnemonic-client/tsconfig.json` - Current TypeScript config
 
   **External References**:
   - Effect HttpClient patterns from `@effect/platform`
   - Run `bunx effect-solutions show basics` for Effect.runPromise patterns
 
   **Acceptance Criteria**:
-  - [ ] Client exports both Effect-based `DejaClient` service AND backward-compat `deja()` function
+  - [ ] Client exports both Effect-based `MnemonicClient` service AND backward-compat `mnemonic()` function
   - [ ] All current methods preserved: learn, inject, query, list, forget, stats
   - [ ] All current types preserved and exported
-  - [ ] `cd packages/deja-client && bunx tsc --noEmit` passes
-  - [ ] `cd packages/deja-client && bun run build` succeeds
+  - [ ] `cd packages/mnemonic-client && bunx tsc --noEmit` passes
+  - [ ] `cd packages/mnemonic-client && bun run build` succeeds
 
   **QA Scenarios:**
   ```
   Scenario: Client package builds
     Tool: Bash
-    Preconditions: packages/deja-client exists
+    Preconditions: packages/mnemonic-client exists
     Steps:
-      1. Run `bunx tsc --noEmit` in packages/deja-client
-      2. Run `bun run build` in packages/deja-client
+      1. Run `bunx tsc --noEmit` in packages/mnemonic-client
+      2. Run `bun run build` in packages/mnemonic-client
     Expected Result: Type check clean, build succeeds
     Evidence: .sisyphus/evidence/task-13-build.txt
 
-  Scenario: Backward-compat deja() function exported
+  Scenario: Backward-compat mnemonic() function exported
     Tool: Bash
     Steps:
-      1. Grep packages/deja-client/src/index.ts for 'export default deja' or 'export function deja'
-      2. Grep for 'DejaClient' export
-    Expected Result: Both deja function and DejaClient type exported
+      1. Grep packages/mnemonic-client/src/index.ts for 'export default mnemonic' or 'export function mnemonic'
+      2. Grep for 'MnemonicClient' export
+    Expected Result: Both mnemonic function and MnemonicClient type exported
     Evidence: .sisyphus/evidence/task-13-exports.txt
   ```
 
   **Commit**: YES
-  - Message: `feat(client): migrate deja-client to Effect HttpClient with backward compat`
-  - Files: `packages/deja-client/src/index.ts`, `packages/deja-client/package.json`, `packages/deja-client/tsconfig.json`
+  - Message: `feat(client): migrate mnemonic-client to Effect HttpClient with backward compat`
+  - Files: `packages/mnemonic-client/src/index.ts`, `packages/mnemonic-client/package.json`, `packages/mnemonic-client/tsconfig.json`
 
 - [ ] 14. Delete Old Files + Service/Layer Composition
 
   **What to do**:
   - **Delete old source files**:
     - `src/index.ts` (old Hono monolith - replaced by new entrypoint)
-    - `src/service.ts` (old DejaService class - replaced by repos)
+    - `src/service.ts` (old MnemonicService class - replaced by repos)
     - `src/db.ts` (old database init - replaced by database.ts)
     - `src/cleanup.ts` will be OVERWRITTEN by Task 11 (not deleted, just confirming)
     - `src/embeddings.ts` will be OVERWRITTEN by Task 4 (not deleted, just confirming)
@@ -1448,7 +1448,7 @@ Max Concurrent: 5 (Wave 1)
       3. curl -s http://localhost:8787/
       4. Assert response contains '"status":"ok"'
       5. Kill background server
-    Expected Result: Server starts, health returns { status: 'ok', service: 'deja' }
+    Expected Result: Server starts, health returns { status: 'ok', service: 'mnemonic' }
     Evidence: .sisyphus/evidence/task-15-health.txt
 
   Scenario: Auth works - rejected without key
@@ -1483,7 +1483,7 @@ Max Concurrent: 5 (Wave 1)
 - [ ] 16. Integration Tests
 
   **What to do**:
-  - Create `test/deja.test.ts` (replaces `test/deja-do.test.ts`) using `@effect/vitest`:
+  - Create `test/mnemonic.test.ts` (replaces `test/mnemonic-do.test.ts`) using `@effect/vitest`:
     - Test the full stack by starting the server and making HTTP requests
     - Cover the critical paths:
       1. **Learn + Inject round-trip**: POST /learn, then POST /inject with matching context, verify learning returned
@@ -1505,7 +1505,7 @@ Max Concurrent: 5 (Wave 1)
       17. **Auth bypass**: When API_KEY unset, requests succeed without auth
     - Use `beforeAll` to start server, `afterAll` to kill it
     - Use real libsql database (in-memory or temp file) and real embedding model
-    - Keep tests similar in spirit to current `test/deja-do.test.ts` but adapted for new structure
+    - Keep tests similar in spirit to current `test/mnemonic-do.test.ts` but adapted for new structure
 
   **Must NOT do**:
   - Do not mock the database or embedding service (use real ones like current tests)
@@ -1526,12 +1526,12 @@ Max Concurrent: 5 (Wave 1)
   **References**:
 
   **Source-of-Truth References**:
-  - `test/deja-do.test.ts` - Current test file (adapt patterns, not copy verbatim)
+  - `test/mnemonic-do.test.ts` - Current test file (adapt patterns, not copy verbatim)
   - All route handlers in current index.ts - expected request/response shapes
   - Run `bunx effect-solutions show testing` for @effect/vitest patterns
 
   **Acceptance Criteria**:
-  - [ ] `test/deja.test.ts` exists with 15+ test cases covering all domains
+  - [ ] `test/mnemonic.test.ts` exists with 15+ test cases covering all domains
   - [ ] `bun test` passes all tests
   - [ ] Tests use real libsql + real embedding model (no mocks)
 
@@ -1540,7 +1540,7 @@ Max Concurrent: 5 (Wave 1)
   Scenario: Integration tests pass
     Tool: Bash
     Steps:
-      1. Run `bun test test/deja.test.ts`
+      1. Run `bun test test/mnemonic.test.ts`
       2. Check exit code is 0
       3. Verify no test failures in output
     Expected Result: All tests pass
@@ -1549,27 +1549,27 @@ Max Concurrent: 5 (Wave 1)
 
   **Commit**: YES
   - Message: `test: add integration tests with @effect/vitest`
-  - Files: `test/deja.test.ts`
+  - Files: `test/mnemonic.test.ts`
 
 - [ ] 17. Client Tests
 
   **What to do**:
-  - Create `packages/deja-client/test/client.test.ts` using @effect/vitest or vitest:
-    - Test the backward-compat `deja()` function against a running server:
+  - Create `packages/mnemonic-client/test/client.test.ts` using @effect/vitest or vitest:
+    - Test the backward-compat `mnemonic()` function against a running server:
       1. `learn()` returns a Learning object with expected fields
       2. `inject()` returns InjectResult with prompt and learnings
       3. `query()` returns QueryResult with learnings and hits
       4. `list()` returns Learning array
       5. `forget()` returns { success: true }
       6. `stats()` returns Stats object with correct shape
-    - Also test the Effect-based DejaClient service (if different API):
+    - Also test the Effect-based MnemonicClient service (if different API):
       1. Each method returns an Effect that can be run
       2. Error cases (e.g., invalid URL) produce expected errors
-    - Tests need a running deja server - either:
+    - Tests need a running mnemonic server - either:
       a. Start server in beforeAll (preferred), OR
       b. Use test server from Task 16's setup
-  - Update `packages/deja-client/package.json` scripts: `"test": "vitest"`
-  - Create `packages/deja-client/vitest.config.ts` if not using root config
+  - Update `packages/mnemonic-client/package.json` scripts: `"test": "vitest"`
+  - Create `packages/mnemonic-client/vitest.config.ts` if not using root config
 
   **Must NOT do**:
   - Do not mock the HTTP server (use real requests)
@@ -1589,27 +1589,27 @@ Max Concurrent: 5 (Wave 1)
   **References**:
 
   **Source-of-Truth References**:
-  - `packages/deja-client/src/index.ts` - Client API to test
-  - `packages/deja-client/README.md` - Usage examples
+  - `packages/mnemonic-client/src/index.ts` - Client API to test
+  - `packages/mnemonic-client/README.md` - Usage examples
 
   **Acceptance Criteria**:
-  - [ ] `packages/deja-client/test/client.test.ts` exists with tests for all 6 client methods
-  - [ ] `cd packages/deja-client && bun test` passes
+  - [ ] `packages/mnemonic-client/test/client.test.ts` exists with tests for all 6 client methods
+  - [ ] `cd packages/mnemonic-client && bun test` passes
 
   **QA Scenarios:**
   ```
   Scenario: Client tests pass
     Tool: Bash
     Steps:
-      1. Run `cd packages/deja-client && bun test`
+      1. Run `cd packages/mnemonic-client && bun test`
       2. Check exit code is 0
     Expected Result: All client tests pass
     Evidence: .sisyphus/evidence/task-17-tests.txt
   ```
 
   **Commit**: YES
-  - Message: `test: add deja-client integration tests`
-  - Files: `packages/deja-client/test/client.test.ts`, `packages/deja-client/vitest.config.ts`
+  - Message: `test: add mnemonic-client integration tests`
+  - Files: `packages/mnemonic-client/test/client.test.ts`, `packages/mnemonic-client/vitest.config.ts`
 
 ---
 
@@ -1618,7 +1618,7 @@ Max Concurrent: 5 (Wave 1)
 > 4 review agents run in PARALLEL. ALL must APPROVE. Rejection → fix → re-run.
 
 - [ ] F1. **Plan Compliance Audit** — `oracle`
-  Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, curl endpoint, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against plan. Run `DEJA_URL=http://localhost:8787 DEJA_API_KEY=test-key bun run prd.ts` and assert 6/6 pass.
+  Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, curl endpoint, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against plan. Run `MNEMONIC_URL=http://localhost:8787 MNEMONIC_API_KEY=test-key bun run prd.ts` and assert 6/6 pass.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
 - [ ] F2. **Code Quality Review** — `unspecified-high`
@@ -1640,7 +1640,7 @@ Max Concurrent: 5 (Wave 1)
 After each wave completes:
 - Wave 1-2: `feat(infra): add Effect foundation — config, errors, database, embedding services`
 - Wave 3: `feat(domain): implement learnings, secrets, state, cleanup services with handlers`
-- Wave 4: `feat(mcp): add MCP JSON-RPC handler and migrate deja-client to Effect`
+- Wave 4: `feat(mcp): add MCP JSON-RPC handler and migrate mnemonic-client to Effect`
 - Wave 5: `feat(server): wire root API, HTTP server, and entrypoint`
 - Wave 6: `test: migrate integration and client tests to @effect/vitest`
 - Final cleanup: `chore: remove old Hono/Jest/node-cron code`
@@ -1658,13 +1658,13 @@ bunx tsc --noEmit  # Expected: exit 0
 API_KEY=test-key bun run src/index.ts &  # Expected: "Server running on port 8787"
 
 # Smoke gates
-DEJA_URL=http://localhost:8787 DEJA_API_KEY=test-key bun run prd.ts  # Expected: 6 passed, 0 failed
+MNEMONIC_URL=http://localhost:8787 MNEMONIC_API_KEY=test-key bun run prd.ts  # Expected: 6 passed, 0 failed
 
 # Integration tests
 bun test  # Expected: all pass
 
 # Client build + test
-cd packages/deja-client && bun run build && bun test  # Expected: exit 0
+cd packages/mnemonic-client && bun run build && bun test  # Expected: exit 0
 ```
 
 ### Final Checklist

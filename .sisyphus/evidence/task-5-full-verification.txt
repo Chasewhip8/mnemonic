@@ -2,15 +2,15 @@ TASK 5: FULL VERIFICATION SUITE
 Date: 2026-02-24
 =================================
 
-## STEP 1: bunx tsc --noEmit (from /home/chase/deja)
+## STEP 1: bunx tsc --noEmit (from /home/chase/mnemonic)
 EXIT_CODE: 1 (due to pre-existing Effect linter warnings in repo.ts/live.ts — NOT errors)
 ACTUAL ERRORS: 0
-- No errors in src/client.ts or packages/deja-client/
+- No errors in src/client.ts or packages/mnemonic-client/
 - Warnings are TS44 (preferSchemaOverJson), TS31 (unknownInEffectCatch), TS29 (unnecessaryFailYieldableError)
 - These are pre-existing in repo.ts and live.ts, not in our implementation
 RESULT: PASS (0 actual TypeScript errors)
 
-## STEP 2: bun run build (from packages/deja-client/)
+## STEP 2: bun run build (from packages/mnemonic-client/)
 EXIT_CODE: 0
 Output:
   CLI Building entry: ../../src/client.ts
@@ -34,11 +34,11 @@ Files present:
 RESULT: PASS (all 4 expected files present)
 
 ## STEP 4: No server-only deps in bundle
-grep -rl 'drizzle|libsql|huggingface|@effect/sql' packages/deja-client/dist/
+grep -rl 'drizzle|libsql|huggingface|@effect/sql' packages/mnemonic-client/dist/
 GREP_EXIT: 1 (no matches = clean)
 RESULT: PASS
 
-## STEP 5: bun test (from packages/deja-client/)
+## STEP 5: bun test (from packages/mnemonic-client/)
 EXIT_CODE: 0
 Output:
   bun test v1.3.9 (cf6cdbbb)
@@ -50,17 +50,17 @@ Tests: health.healthCheck, learnings.learn, learnings.getStats
 RESULT: PASS
 
 ## STEP 6: Source file cleanliness
-packages/deja-client/src/index.ts contents:
+packages/mnemonic-client/src/index.ts contents:
   export * from '../../../src/client'
   (single line, no manual interfaces)
 
 src/client.ts contents:
   - 30 lines
   - Uses HttpApiClient.make(Api, ...) with effect: not scoped:
-  - No export function deja
+  - No export function mnemonic
   - No Promise wrapper
   - No manual interface definitions
-  - Exports: DejaClient class, Api, error types, domain types
+  - Exports: MnemonicClient class, Api, error types, domain types
 RESULT: PASS
 
 ## SUMMARY
@@ -69,4 +69,4 @@ All 6 verification steps: PASS
 - build: exit 0, all 4 dist files present
 - no server deps in bundle
 - tests: 3/3 pass
-- source: clean (no manual interfaces, no deja function wrapper)
+- source: clean (no manual interfaces, no mnemonic function wrapper)

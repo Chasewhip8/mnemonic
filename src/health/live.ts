@@ -6,7 +6,7 @@ import { CleanupService } from '../cleanup'
 export const HealthHandlers = HttpApiBuilder.group(Api, 'health', (handlers) =>
 	handlers
 		.handle('healthCheck', () =>
-			Effect.succeed({ status: 'ok' as const, service: 'deja' as const }),
+			Effect.succeed({ status: 'ok' as const, service: 'mnemonic' as const }),
 		)
 		.handle('cleanup', () =>
 			Effect.gen(function* () {

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "deja-client",
+      "name": "mnemonic-client",
       "devDependencies": {
         "@types/bun": "latest",
         "tsup": "^8.0.0",

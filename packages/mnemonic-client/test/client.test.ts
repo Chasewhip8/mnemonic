@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { DejaClient } from '../src/index.ts'
+import { MnemonicClient } from '../src/index.ts'
 import { ConfigProvider, Effect, Layer } from 'effect'
 
 const PORT = 8789
@@ -12,7 +12,7 @@ const API_KEY = 'test-key'
 const STARTUP_TIMEOUT_MS = 120_000
 const TEST_TIMEOUT_MS = 240_000
 const REQUIRED_LD_LIBRARY_PATH = '/nix/store/j9nz3m8hqnyjjj5zxz5qvmd35g37rjyi-gcc-15.2.0-lib/lib'
-const SERVER_ROOT = '/home/chase/deja'
+const SERVER_ROOT = '/home/chase/mnemonic'
 
 const RUN_SUFFIX = `${Date.now()}-${process.pid}`
 const DB_PATH = `./data/test-client-${RUN_SUFFIX}.db`
@@ -84,29 +84,29 @@ afterAll(async () => {
 	await removeDbArtifacts(DB_PATH)
 })
 
-const testLayer = DejaClient.Default.pipe(
+const testLayer = MnemonicClient.Default.pipe(
 	Layer.provide(
 		Layer.setConfigProvider(
 			ConfigProvider.fromMap(
 				new Map([
-					['DEJA_URL', BASE_URL],
-					['DEJA_API_KEY', API_KEY],
+					['MNEMONIC_URL', BASE_URL],
+					['MNEMONIC_API_KEY', API_KEY],
 				]),
 			),
 		),
 	),
 )
 
-const run = <A>(eff: Effect.Effect<A, unknown, DejaClient>) =>
+const run = <A>(eff: Effect.Effect<A, unknown, MnemonicClient>) =>
 	Effect.runPromise(eff.pipe(Effect.provide(testLayer)))
 
-describe('DejaClient smoke test', () => {
+describe('MnemonicClient smoke test', () => {
 	it(
 		'health.healthCheck: returns status string',
 		async () => {
 			const result = await run(
 				Effect.gen(function* () {
-					const client = yield* DejaClient
+					const client = yield* MnemonicClient
 					return yield* client.health.healthCheck()
 				}),
 			)
@@ -120,7 +120,7 @@ describe('DejaClient smoke test', () => {
 		async () => {
 			const result = await run(
 				Effect.gen(function* () {
-					const client = yield* DejaClient
+					const client = yield* MnemonicClient
 					return yield* client.learnings.learn({
 						payload: { trigger: 'smoke-test', learning: 'it works' },
 					})
@@ -137,7 +137,7 @@ describe('DejaClient smoke test', () => {
 		async () => {
 			const result = await run(
 				Effect.gen(function* () {
-					const client = yield* DejaClient
+					const client = yield* MnemonicClient
 					return yield* client.learnings.getStats()
 				}),
 			)

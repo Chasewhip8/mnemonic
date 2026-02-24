@@ -1,5 +1,5 @@
 {
-	"name": "deja",
+	"name": "mnemonic",
 	"version": "0.1.0",
 	"description": "Persistent memory for agents",
 	"main": "src/index.ts",
@@ -10,7 +10,8 @@
 		"db:generate": "drizzle-kit generate",
 		"lint": "biome lint .",
 		"format": "biome format --write .",
-		"test": "vitest",
+		"test": "vitest run test/smoke.test.ts",
+		"test:full": "vitest run",
 		"typecheck": "tsc --noEmit",
 		"gates": "bun run prd.ts"
 	},

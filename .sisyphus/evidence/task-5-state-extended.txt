@@ -1,5 +1,5 @@
 
- RUN  v3.2.4 /home/chase/deja
+ RUN  v3.2.4 /home/chase/mnemonic
 
  ✓ test/state-extended.test.ts > state extended edge cases > GET non-existent state returns 404 7ms
  ✓ test/state-extended.test.ts > state extended edge cases > revision tracking increments for PUT + PATCH + PATCH 70ms

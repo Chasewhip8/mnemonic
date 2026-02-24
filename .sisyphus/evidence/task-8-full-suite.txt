@@ -1,23 +1,23 @@
 
- RUN  v3.2.4 /home/chase/deja
+ RUN  v3.2.4 /home/chase/mnemonic
 
- ✓ test/deja.test.ts > learn + inject/query/trace > learn + inject round-trip 67ms
- ✓ test/deja.test.ts > learn + inject/query/trace > learn + query 43ms
- ✓ test/deja.test.ts > learn + inject/query/trace > inject trace 52ms
- ✓ test/deja.test.ts > learning endpoints > learning CRUD (learn, list, delete by id) 44ms
- ✓ test/deja.test.ts > learning endpoints > bulk delete (confidence_lt filter) 108ms
- ✓ test/deja.test.ts > learning endpoints > learning neighbors 47ms
- ✓ test/deja.test.ts > learning endpoints > stats 72ms
- ✓ test/deja.test.ts > secrets > secrets CRUD (set, get, delete) 22ms
- ✓ test/deja.test.ts > state lifecycle > state lifecycle (PUT, GET, PATCH, POST events) 30ms
- ✓ test/deja.test.ts > state lifecycle > state resolve with persistToLearn=true 72ms
- ✓ test/deja.test.ts > mcp > MCP initialize 4ms
- ✓ test/deja.test.ts > mcp > MCP tools/list 2ms
- ✓ test/deja.test.ts > mcp > MCP tools/call learn 30ms
- ✓ test/deja.test.ts > mcp > MCP tools/call inject 49ms
- ✓ test/deja.test.ts > health + auth > health GET / 3ms
- ✓ test/deja.test.ts > health + auth > auth rejected (no bearer -> 401) 2ms
- ✓ test/deja.test.ts > health + auth > auth bypass (no API_KEY env -> all pass) 547ms
+ ✓ test/mnemonic.test.ts > learn + inject/query/trace > learn + inject round-trip 67ms
+ ✓ test/mnemonic.test.ts > learn + inject/query/trace > learn + query 43ms
+ ✓ test/mnemonic.test.ts > learn + inject/query/trace > inject trace 52ms
+ ✓ test/mnemonic.test.ts > learning endpoints > learning CRUD (learn, list, delete by id) 44ms
+ ✓ test/mnemonic.test.ts > learning endpoints > bulk delete (confidence_lt filter) 108ms
+ ✓ test/mnemonic.test.ts > learning endpoints > learning neighbors 47ms
+ ✓ test/mnemonic.test.ts > learning endpoints > stats 72ms
+ ✓ test/mnemonic.test.ts > secrets > secrets CRUD (set, get, delete) 22ms
+ ✓ test/mnemonic.test.ts > state lifecycle > state lifecycle (PUT, GET, PATCH, POST events) 30ms
+ ✓ test/mnemonic.test.ts > state lifecycle > state resolve with persistToLearn=true 72ms
+ ✓ test/mnemonic.test.ts > mcp > MCP initialize 4ms
+ ✓ test/mnemonic.test.ts > mcp > MCP tools/list 2ms
+ ✓ test/mnemonic.test.ts > mcp > MCP tools/call learn 30ms
+ ✓ test/mnemonic.test.ts > mcp > MCP tools/call inject 49ms
+ ✓ test/mnemonic.test.ts > health + auth > health GET / 3ms
+ ✓ test/mnemonic.test.ts > health + auth > auth rejected (no bearer -> 401) 2ms
+ ✓ test/mnemonic.test.ts > health + auth > auth bypass (no API_KEY env -> all pass) 547ms
  ✓ test/learnings-extended.test.ts > bulk delete filters > not_recalled_in_days filter 236ms
  ✓ test/learnings-extended.test.ts > bulk delete filters > scope-only filter 111ms
  ✓ test/learnings-extended.test.ts > bulk delete filters > combined filters (confidence_lt + scope) 165ms

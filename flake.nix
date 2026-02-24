@@ -1,5 +1,5 @@
 {
-  description = "deja development environment and service module";
+  description = "mnemonic development environment and service module";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,8 +14,8 @@
             inherit system;
           };
 
-          dejaPackage = pkgs.writeShellApplication {
-            name = "deja";
+          mnemonicPackage = pkgs.writeShellApplication {
+            name = "mnemonic";
             runtimeInputs = [
               pkgs.bun
               pkgs.coreutils
@@ -24,9 +24,9 @@
               set -euo pipefail
 
               source_snapshot="${self}"
-              state_dir="''${STATE_DIRECTORY:-/var/lib/deja}"
+              state_dir="''${STATE_DIRECTORY:-/var/lib/mnemonic}"
               app_dir="$state_dir/app"
-              marker_file="$app_dir/.deja-source-store-path"
+              marker_file="$app_dir/.mnemonic-source-store-path"
 
               mkdir -p "$state_dir"
 
@@ -45,7 +45,7 @@
               fi
 
               export PORT="''${PORT:-8787}"
-              export DB_PATH="''${DB_PATH:-$state_dir/deja.db}"
+              export DB_PATH="''${DB_PATH:-$state_dir/mnemonic.db}"
               export HF_HOME="''${HF_HOME:-$state_dir/.cache/huggingface}"
               export TRANSFORMERS_CACHE="''${TRANSFORMERS_CACHE:-$HF_HOME}"
               mkdir -p "$(dirname "$DB_PATH")" "$HF_HOME"
@@ -54,11 +54,11 @@
             '';
           };
         in {
-          packages.default = dejaPackage;
+          packages.default = mnemonicPackage;
 
           apps.default = {
             type = "app";
-            program = "${dejaPackage}/bin/deja";
+            program = "${mnemonicPackage}/bin/mnemonic";
           };
 
           devShells.default = pkgs.mkShell {
@@ -80,6 +80,6 @@
         });
     in
     eachSystem // {
-      nixosModules.default = import ./nix/modules/deja.nix { inherit self; };
+      nixosModules.default = import ./nix/modules/mnemonic.nix { inherit self; };
     };
 }

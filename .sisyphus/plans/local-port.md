@@ -1,4 +1,4 @@
-# Port deja to fully local (no Cloudflare)
+# Port mnemonic to fully local (no Cloudflare)
 
 ## TL;DR
 
@@ -20,7 +20,7 @@
 ## Context
 
 ### Original Request
-Port the deja application (Cloudflare Workers-based agent memory layer for AI agents) to run fully locally with zero Cloudflare dependency. Preserve all features and API interfaces. User suggested libSQL for vector+relational storage.
+Port the mnemonic application (Cloudflare Workers-based agent memory layer for AI agents) to run fully locally with zero Cloudflare dependency. Preserve all features and API interfaces. User suggested libSQL for vector+relational storage.
 
 ### Interview Summary
 **Key Discussions**:
@@ -48,11 +48,11 @@ Port the deja application (Cloudflare Workers-based agent memory layer for AI ag
 ## Work Objectives
 
 ### Core Objective
-Replace all Cloudflare runtime dependencies with local equivalents so deja runs as a standalone Bun process with zero cloud dependency, preserving the exact API contract.
+Replace all Cloudflare runtime dependencies with local equivalents so mnemonic runs as a standalone Bun process with zero cloud dependency, preserving the exact API contract.
 
 ### Concrete Deliverables
 - `src/index.ts` — Bun/Hono HTTP server (replaces CF Worker export)
-- `src/service.ts` — Business logic class (replaces DejaDO without DurableObject base)
+- `src/service.ts` — Business logic class (replaces MnemonicDO without DurableObject base)
 - `src/db.ts` — libSQL client singleton + Drizzle init + schema migration
 - `src/embeddings.ts` — Transformers.js wrapper with model lifecycle
 - `src/schema.ts` — Updated with F32_BLOB custom type
@@ -87,7 +87,7 @@ Replace all Cloudflare runtime dependencies with local equivalents so deja runs 
 - No multi-tenant complexity (single DB, single API key)
 - No new routes, tools, or features beyond current API surface
 - No Docker, PM2, dotenv, or deployment tooling
-- No changes to marketing/ or packages/deja-client/
+- No changes to marketing/ or packages/mnemonic-client/
 - No excessive comments, JSDoc, or documentation generation
 - No premature abstraction (e.g., "provider pattern" for embeddings — just use Transformers.js)
 - No changing Drizzle table/column names (only embedding column type changes)
@@ -206,11 +206,11 @@ Max Concurrent: 4 (Wave 1)
   **References**:
 
   **Pattern References**:
-  - `src/do/DejaDO.ts:171-188` — Current `createEmbedding()` method showing how AI.run is called and output consumed
-  - `src/do/DejaDO.ts:340-343` — Current Vectorize.query() call showing topK, returnValues params
+  - `src/do/MnemonicDO.ts:171-188` — Current `createEmbedding()` method showing how AI.run is called and output consumed
+  - `src/do/MnemonicDO.ts:340-343` — Current Vectorize.query() call showing topK, returnValues params
 
   **API/Type References**:
-  - `src/do/DejaDO.ts:14-16` — Env interface showing VectorizeIndex and Ai types to replace
+  - `src/do/MnemonicDO.ts:14-16` — Env interface showing VectorizeIndex and Ai types to replace
 
   **External References**:
   - `@huggingface/transformers` pipeline API: `pipeline('feature-extraction', 'onnx-community/bge-small-en-v1.5-ONNX')` — produces Tensor with dims [1, 384]
@@ -218,7 +218,7 @@ Max Concurrent: 4 (Wave 1)
   - `@libsql/client` createClient: `createClient({ url: 'file:./path.db' })`
 
   **WHY Each Reference Matters**:
-  - DejaDO.ts:171-188 shows the exact model name and how response.data[0] is extracted — the Transformers.js equivalent must return an array-like of 384 floats
+  - MnemonicDO.ts:171-188 shows the exact model name and how response.data[0] is extracted — the Transformers.js equivalent must return an array-like of 384 floats
   - The libSQL vector API uses different function names than Vectorize — vector32() for encoding, vector_distance_cos() for search
 
   **Acceptance Criteria**:
@@ -259,16 +259,16 @@ Max Concurrent: 4 (Wave 1)
 
   **What to do**:
   - Create `src/db.ts` that exports:
-    1. `getDb()` — returns a singleton `@libsql/client` Client connected to `file:${DB_PATH}` (env var, default `./data/deja.db`)
+    1. `getDb()` — returns a singleton `@libsql/client` Client connected to `file:${DB_PATH}` (env var, default `./data/mnemonic.db`)
     2. `getDrizzle()` — returns Drizzle instance using `drizzle-orm/libsql` driver wrapping the client
-    3. `initDb()` — runs all schema DDL (CREATE TABLE IF NOT EXISTS for all 5 tables + indexes), matching current DejaDO constructor DDL at `DejaDO.ts:113-148`. Add the new `embedding F32_BLOB(384)` column instead of `embedding TEXT`.
+    3. `initDb()` — runs all schema DDL (CREATE TABLE IF NOT EXISTS for all 5 tables + indexes), matching current MnemonicDO constructor DDL at `MnemonicDO.ts:113-148`. Add the new `embedding F32_BLOB(384)` column instead of `embedding TEXT`.
     4. Ensure `./data/` directory is created if it doesn't exist (use `fs.mkdirSync` with recursive)
   - DDL must include ALL tables: learnings, secrets, state_runs, state_revisions, state_events
   - DDL must include ALL indexes from current code: idx_learnings_trigger, idx_learnings_confidence, idx_learnings_created_at, idx_learnings_scope, idx_learnings_last_recalled_at, idx_secrets_scope
   - Include the ALTER TABLE migrations for last_recalled_at and recall_count (wrapped in try/catch like current code)
 
   **Must NOT do**:
-  - Do not create DiskANN vector index (not needed at deja's scale)
+  - Do not create DiskANN vector index (not needed at mnemonic's scale)
   - Do not add connection pooling or caching
   - Do not add migration framework — keep raw DDL like the current code
 
@@ -286,18 +286,18 @@ Max Concurrent: 4 (Wave 1)
   **References**:
 
   **Pattern References**:
-  - `src/do/DejaDO.ts:110-150` — Current constructor DDL with blockConcurrencyWhile, all CREATE TABLE/INDEX statements, ALTER TABLE migrations
-  - `src/do/DejaDO.ts:155-166` — Current initDB() showing Drizzle initialization with durable-sqlite driver
+  - `src/do/MnemonicDO.ts:110-150` — Current constructor DDL with blockConcurrencyWhile, all CREATE TABLE/INDEX statements, ALTER TABLE migrations
+  - `src/do/MnemonicDO.ts:155-166` — Current initDB() showing Drizzle initialization with durable-sqlite driver
 
   **API/Type References**:
   - `src/schema.ts:1-56` — Full Drizzle schema (5 tables) — DDL must create tables matching these column names exactly
 
   **External References**:
-  - `@libsql/client` createClient API: `createClient({ url: 'file:./data/deja.db' })` — returns Client with .execute(), .batch(), .transaction()
+  - `@libsql/client` createClient API: `createClient({ url: 'file:./data/mnemonic.db' })` — returns Client with .execute(), .batch(), .transaction()
   - `drizzle-orm/libsql` driver: `drizzle(client, { schema })` — wraps @libsql/client for typed queries
 
   **WHY Each Reference Matters**:
-  - DejaDO.ts:110-150 contains the EXACT DDL that must be replicated — missing a table or index breaks queries
+  - MnemonicDO.ts:110-150 contains the EXACT DDL that must be replicated — missing a table or index breaks queries
   - schema.ts defines the Drizzle types that service.ts will import for typed queries
 
   **Acceptance Criteria**:
@@ -343,7 +343,7 @@ Max Concurrent: 4 (Wave 1)
     2. `createEmbedding(text: string): Promise<number[]>` — generates a 384-dim embedding from text. Calls the pipeline with `{ pooling: 'cls', normalize: true }`, extracts the float array, returns as `number[]`.
   - Log model loading progress: `console.log('Loading embedding model...')` on init, `console.log('Embedding model loaded')` on completion
   - Model is cached to `~/.cache/huggingface` automatically by Transformers.js after first download
-  - The function signature must match the current `createEmbedding` in DejaDO.ts:171-188 — takes a string, returns `Promise<number[]>`
+  - The function signature must match the current `createEmbedding` in MnemonicDO.ts:171-188 — takes a string, returns `Promise<number[]>`
 
   **Must NOT do**:
   - Do not add provider abstraction (no "EmbeddingProvider" interface)
@@ -364,14 +364,14 @@ Max Concurrent: 4 (Wave 1)
   **References**:
 
   **Pattern References**:
-  - `src/do/DejaDO.ts:171-188` — Current `createEmbedding()` method — shows input (text string), output (number[]), error handling pattern (try/catch, console.error, throw)
+  - `src/do/MnemonicDO.ts:171-188` — Current `createEmbedding()` method — shows input (text string), output (number[]), error handling pattern (try/catch, console.error, throw)
 
   **External References**:
   - `@huggingface/transformers` feature-extraction pipeline: `pipeline('feature-extraction', modelName)` returns an async function that takes string/string[] and returns Tensor
   - ONNX model: `onnx-community/bge-small-en-v1.5-ONNX` — produces dims [1, 384] with cls pooling + normalize
 
   **WHY Each Reference Matters**:
-  - DejaDO.ts:171-188 shows the exact API contract (text → number[]) that all consumers expect
+  - MnemonicDO.ts:171-188 shows the exact API contract (text → number[]) that all consumers expect
   - The Transformers.js pipeline returns a Tensor object, not a plain array — must convert via `.tolist()` or `Array.from(tensor.data)`
 
   **Acceptance Criteria**:
@@ -486,9 +486,9 @@ Max Concurrent: 4 (Wave 1)
 - [ ] 5. Port Non-Vector Service Methods (src/service.ts — part 1)
 
   **What to do**:
-  - Create `src/service.ts` with a `DejaService` class (plain class, NOT extending DurableObject)
+  - Create `src/service.ts` with a `MnemonicService` class (plain class, NOT extending DurableObject)
   - Constructor takes `db` (libSQL Client) and `drizzle` instance as parameters
-  - Port these methods from `DejaDO` with ZERO logic changes:
+  - Port these methods from `MnemonicDO` with ZERO logic changes:
     - `filterScopesByPriority(scopes)` — private, pure logic, copy as-is
     - `convertDbLearning(dbLearning)` — adapt: embedding is now raw blob, not JSON string
     - `getLearnings(filter?)` — Drizzle only
@@ -520,14 +520,14 @@ Max Concurrent: 4 (Wave 1)
   **References**:
 
   **Pattern References**:
-  - `src/do/DejaDO.ts:194-207` — filterScopesByPriority, copy as-is
-  - `src/do/DejaDO.ts:212-226` — convertDbLearning, adapt embedding parsing
-  - `src/do/DejaDO.ts:232-312` — cleanup(), remove VECTORIZE.deleteByIds at lines 261, 287, 304
-  - `src/do/DejaDO.ts:658-738` — getLearnings, deleteLearning, deleteLearnings
-  - `src/do/DejaDO.ts:746-835` — secrets methods (setSecret line 797: rowsAffected → upsert)
-  - `src/do/DejaDO.ts:841-890` — getStats
-  - `src/do/DejaDO.ts:892-1101` — working state methods
-  - `src/do/DejaDO.ts:20-104` — TypeScript interfaces
+  - `src/do/MnemonicDO.ts:194-207` — filterScopesByPriority, copy as-is
+  - `src/do/MnemonicDO.ts:212-226` — convertDbLearning, adapt embedding parsing
+  - `src/do/MnemonicDO.ts:232-312` — cleanup(), remove VECTORIZE.deleteByIds at lines 261, 287, 304
+  - `src/do/MnemonicDO.ts:658-738` — getLearnings, deleteLearning, deleteLearnings
+  - `src/do/MnemonicDO.ts:746-835` — secrets methods (setSecret line 797: rowsAffected → upsert)
+  - `src/do/MnemonicDO.ts:841-890` — getStats
+  - `src/do/MnemonicDO.ts:892-1101` — working state methods
+  - `src/do/MnemonicDO.ts:20-104` — TypeScript interfaces
 
   **API/Type References**:
   - `src/schema.ts` — all 5 table schemas
@@ -539,7 +539,7 @@ Max Concurrent: 4 (Wave 1)
   - rowsAffected at line 797 may differ in libSQL — use INSERT ON CONFLICT
 
   **Acceptance Criteria**:
-  - [ ] `src/service.ts` exports DejaService with all listed methods + interfaces
+  - [ ] `src/service.ts` exports MnemonicService with all listed methods + interfaces
   - [ ] No imports from `cloudflare:workers` or `drizzle-orm/durable-sqlite`
   - [ ] setSecret uses INSERT ON CONFLICT pattern
   - [ ] Zero VECTORIZE references
@@ -565,13 +565,13 @@ Max Concurrent: 4 (Wave 1)
   ```
 
   **Commit**: YES (group with Wave 2)
-  - Message: `refactor(service): port non-vector methods from DejaDO to plain DejaService`
+  - Message: `refactor(service): port non-vector methods from MnemonicDO to plain MnemonicService`
   - Files: `src/service.ts`
 
 - [ ] 6. Port Vector Methods with Score Inversion (src/service.ts — part 2)
 
   **What to do**:
-  - Add vector-dependent methods to DejaService (created in Task 5):
+  - Add vector-dependent methods to MnemonicService (created in Task 5):
     - `learn(scope, trigger, learning, confidence, reason?, source?)` — generates embedding via `createEmbedding()` from src/embeddings.ts. Inserts via RAW SQL: `INSERT INTO learnings (..., embedding, ...) VALUES (..., vector32(?), ...)` where `?` is JSON string of float array
     - `inject(scopes, context, limit, format)` — raw SQL: `SELECT *, vector_distance_cos(embedding, vector32(?)) as distance FROM learnings WHERE scope IN (?) ORDER BY distance ASC LIMIT ?`. Convert: `similarity = 1 - distance`
     - `injectTrace(scopes, context, limit, threshold)` — same vector query, returns debug info. Score = 1 - distance. passed_threshold = similarity >= threshold
@@ -607,11 +607,11 @@ Max Concurrent: 4 (Wave 1)
   **References**:
 
   **Pattern References**:
-  - `src/do/DejaDO.ts:507-561` — `learn()`: Drizzle insert + VECTORIZE.insert → raw SQL with vector32()
-  - `src/do/DejaDO.ts:326-387` — `inject()`: VECTORIZE.query() → vector_distance_cos
-  - `src/do/DejaDO.ts:392-495` — `injectTrace()`: scoreById → distance-based
-  - `src/do/DejaDO.ts:595-651` — `query()`: VECTORIZE.query() + scope filtering
-  - `src/do/DejaDO.ts:566-586` — `getLearningNeighbors()`: threshold filtering
+  - `src/do/MnemonicDO.ts:507-561` — `learn()`: Drizzle insert + VECTORIZE.insert → raw SQL with vector32()
+  - `src/do/MnemonicDO.ts:326-387` — `inject()`: VECTORIZE.query() → vector_distance_cos
+  - `src/do/MnemonicDO.ts:392-495` — `injectTrace()`: scoreById → distance-based
+  - `src/do/MnemonicDO.ts:595-651` — `query()`: VECTORIZE.query() + scope filtering
+  - `src/do/MnemonicDO.ts:566-586` — `getLearningNeighbors()`: threshold filtering
 
   **External References**:
   - libSQL: `SELECT *, vector_distance_cos(embedding, vector32(?)) as distance FROM learnings ORDER BY distance ASC LIMIT ?`
@@ -665,8 +665,8 @@ Max Concurrent: 4 (Wave 1)
   **What to do**:
   - Rewrite `src/cleanup.ts`:
     1. Import `cron` from `node-cron`
-    2. Import `DejaService` from `./service`
-    3. Export `startCleanupCron(service: DejaService)` — schedules `service.cleanup()` daily at midnight UTC: `cron.schedule('0 0 * * *', callback)`
+    2. Import `MnemonicService` from `./service`
+    3. Export `startCleanupCron(service: MnemonicService)` — schedules `service.cleanup()` daily at midnight UTC: `cron.schedule('0 0 * * *', callback)`
     4. Log results: `console.log('Cleanup:', result)`
   - Remove ALL Cloudflare imports and stub.fetch pattern
 
@@ -711,10 +711,10 @@ Max Concurrent: 4 (Wave 1)
   **What to do**:
   - Rewrite `src/index.ts` as standalone Bun/Hono HTTP server:
     1. Single Hono app (no DurableObject, no stub.fetch)
-    2. Startup: `initDb()` → `initEmbeddings()` → create `DejaService` → `startCleanupCron(service)`
+    2. Startup: `initDb()` → `initEmbeddings()` → create `MnemonicService` → `startCleanupCron(service)`
     3. Auth middleware: check Bearer token vs API_KEY env var. No API_KEY = open. 401 on fail.
     4. CORS: `Access-Control-Allow-Origin: *`, allow all needed methods/headers
-    5. Health: `GET /` → `{"status":"ok","service":"deja"}`
+    5. Health: `GET /` → `{"status":"ok","service":"mnemonic"}`
     6. MCP: `POST /mcp` → handleMcpRequest; `GET /mcp` → server info
     7. All DO routes calling service methods directly:
        POST /learn, /query, /inject, /inject/trace | GET /stats, /learnings, /secrets
@@ -723,9 +723,9 @@ Max Concurrent: 4 (Wave 1)
        GET/PUT/PATCH /state/:runId | POST /state/:runId/events, /state/:runId/resolve
        POST /cleanup
     8. `Bun.serve({ port: Number(process.env.PORT) || 8787, fetch: app.fetch })`
-  - handleMcpToolCall: change `(stub, toolName, args)` to `(service: DejaService, toolName, args)`. Replace each stub.fetch with direct service call.
+  - handleMcpToolCall: change `(stub, toolName, args)` to `(service: MnemonicService, toolName, args)`. Replace each stub.fetch with direct service call.
   - handleMcpRequest: change stub param to service.
-  - REMOVE: DejaDO export, stub.fetch, ASSETS.fetch, hostname check, getUserIdFromApiKey, scheduled()
+  - REMOVE: MnemonicDO export, stub.fetch, ASSETS.fetch, hostname check, getUserIdFromApiKey, scheduled()
   - KEEP: MCP_TOOLS array, JSON-RPC handling
   - NOTE: This task subsumes Task 9 (MCP handler port) — they are the same file.
 
@@ -750,7 +750,7 @@ Max Concurrent: 4 (Wave 1)
   - `src/index.ts:192-320` — handleMcpToolCall: each stub.fetch → service.method()
   - `src/index.ts:322-383` — handleMcpRequest: JSON-RPC handler
   - `src/index.ts:393-469` — Worker fetch/scheduled: auth, CORS, routing
-  - `src/do/DejaDO.ts:1106-1345` — Route handlers (copy, change this.method → service.method)
+  - `src/do/MnemonicDO.ts:1106-1345` — Route handlers (copy, change this.method → service.method)
 
   **API/Type References**:
   - `src/service.ts`, `src/db.ts`, `src/embeddings.ts`, `src/cleanup.ts`
@@ -769,7 +769,7 @@ Max Concurrent: 4 (Wave 1)
     Steps:
       1. API_KEY=test bun run src/index.ts &
       2. Wait for model load, curl http://localhost:8787/
-      3. Assert {"status":"ok","service":"deja"}
+      3. Assert {"status":"ok","service":"mnemonic"}
     Evidence: .sisyphus/evidence/task-8-health.txt
 
   Scenario: Auth enforcement
@@ -807,7 +807,7 @@ Max Concurrent: 4 (Wave 1)
   - tsconfig.json: remove `@cloudflare/workers-types` from types
   - `bun install`
 
-  **Must NOT do**: Do not touch marketing/ or packages/deja-client/. No Docker/PM2/dotenv.
+  **Must NOT do**: Do not touch marketing/ or packages/mnemonic-client/. No Docker/PM2/dotenv.
 
   **Recommended Agent Profile**: `quick`
   **Skills**: []
@@ -836,9 +836,9 @@ Max Concurrent: 4 (Wave 1)
 - [ ] 11. Update Tests for Local Stack
 
   **What to do**:
-  - Rewrite `test/deja-do.test.ts` to test DejaService with real libSQL:
+  - Rewrite `test/mnemonic-do.test.ts` to test MnemonicService with real libSQL:
     1. beforeAll: initEmbeddings()
-    2. beforeEach: temp DB, initDb(), create DejaService
+    2. beforeEach: temp DB, initDb(), create MnemonicService
     3. Test non-vector: getLearnings, secrets CRUD, getStats, state CRUD
     4. Test vector: learn, inject, query, neighbors
     5. Test cleanup
@@ -851,7 +851,7 @@ Max Concurrent: 4 (Wave 1)
 
   **Parallelization**: Wave 4 (with Task 12) | **Blocks**: F1-F4 | **Blocked By**: 8, 10
 
-  **References**: `test/deja-do.test.ts`, `jest.config.js`, `src/service.ts`, `src/db.ts`, `src/embeddings.ts`
+  **References**: `test/mnemonic-do.test.ts`, `jest.config.js`, `src/service.ts`, `src/db.ts`, `src/embeddings.ts`
 
   **Acceptance Criteria**:
   - [ ] `bun run test` passes
@@ -932,7 +932,7 @@ Max Concurrent: 4 (Wave 1)
   Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
 
 - [ ] F4. **Scope Fidelity Check** — `deep`
-  For each task: read "What to do", read actual diff. Verify 1:1 — everything in spec was built, nothing beyond spec was built. Check "Must NOT do" compliance. Detect unaccounted changes. Confirm no changes to `marketing/` or `packages/deja-client/`.
+  For each task: read "What to do", read actual diff. Verify 1:1 — everything in spec was built, nothing beyond spec was built. Check "Must NOT do" compliance. Detect unaccounted changes. Confirm no changes to `marketing/` or `packages/mnemonic-client/`.
   Output: `Tasks [N/N compliant] | Unaccounted [CLEAN/N files] | VERDICT`
 
 ---
@@ -952,7 +952,7 @@ Max Concurrent: 4 (Wave 1)
 ### Verification Commands
 ```bash
 bun run dev &                    # Expected: server starts on :8787
-curl http://localhost:8787/      # Expected: {"status":"ok","service":"deja"}
+curl http://localhost:8787/      # Expected: {"status":"ok","service":"mnemonic"}
 bun run typecheck                # Expected: exit 0
 bun run test                     # Expected: all pass
 grep -r "cloudflare" src/        # Expected: no results
@@ -966,4 +966,4 @@ grep -r "cloudflare" src/        # Expected: no results
 - [ ] Learn→Inject semantic roundtrip works
 - [ ] Cleanup cron runs without errors
 - [ ] Zero Cloudflare imports in src/
-- [ ] deja-client and marketing/ untouched
+- [ ] mnemonic-client and marketing/ untouched

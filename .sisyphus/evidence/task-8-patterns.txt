@@ -1,6 +1,6 @@
 === Permissive assertions ===
 test/environment.js:0
-test/deja.test.ts:0
+test/mnemonic.test.ts:0
 test/helpers.ts:0
 test/state-extended.test.ts:0
 test/secrets-extended.test.ts:0

@@ -1,7 +1,7 @@
 {
-	"name": "deja-client",
+	"name": "mnemonic-client",
 	"version": "0.2.0",
-	"description": "Thin client for deja - persistent memory for agents",
+	"description": "Thin client for mnemonic - persistent memory for agents",
 	"main": "dist/client.js",
 	"module": "dist/client.mjs",
 	"types": "dist/client.d.ts",
@@ -27,15 +27,15 @@
 		"memory",
 		"llm",
 		"cloudflare",
-		"deja"
+		"mnemonic"
 	],
 	"author": "",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/acoyfellow/deja"
+		"url": "https://github.com/acoyfellow/mnemonic"
 	},
-	"homepage": "https://deja.coey.dev",
+	"homepage": "https://mnemonic.coey.dev",
 	"devDependencies": {
 		"tsup": "^8.0.0",
 		"typescript": "^5.4.0",

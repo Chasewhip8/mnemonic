@@ -14,12 +14,12 @@ import {
 	unique,
 } from './helpers'
 
-const PRIMARY_PORT = Number(process.env.TEST_DEJA_PORT ?? '8787')
-const BYPASS_PORT = Number(process.env.TEST_DEJA_BYPASS_PORT ?? '8788')
+const PRIMARY_PORT = Number(process.env.TEST_MNEMONIC_PORT ?? '8787')
+const BYPASS_PORT = Number(process.env.TEST_MNEMONIC_BYPASS_PORT ?? '8788')
 
 const RUN_SUFFIX = `${Date.now()}-${process.pid}`
-const PRIMARY_DB_PATH = `./data/test-deja-${RUN_SUFFIX}.db`
-const BYPASS_DB_PATH = `./data/test-deja-no-auth-${RUN_SUFFIX}.db`
+const PRIMARY_DB_PATH = `./data/test-mnemonic-${RUN_SUFFIX}.db`
+const BYPASS_DB_PATH = `./data/test-mnemonic-no-auth-${RUN_SUFFIX}.db`
 
 let primaryServer: RunningServer | null = null
 
@@ -526,7 +526,7 @@ describe('health + auth', () => {
 			expect(response.status).toBe(200)
 			const body = asRecord((await response.json()) as unknown)
 			expect(body.status).toBe('ok')
-			expect(body.service).toBe('deja')
+			expect(body.service).toBe('mnemonic')
 		},
 		TEST_TIMEOUT_MS,
 	)

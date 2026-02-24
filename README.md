@@ -1,8 +1,8 @@
-# deja
+# mnemonic
 
 _What survives a run._
 
-deja is a self-hosted memory layer for agents.
+mnemonic is a self-hosted memory layer for agents.
 It exposes durable memory via REST, with scoped recall and optional live working state.
 
 ## Local references

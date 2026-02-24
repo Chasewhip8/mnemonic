@@ -1,6 +1,6 @@
 bun vitest test/mcp-tools.test.ts --reporter=verbose
 
-RUN  v3.2.4 /home/chase/deja
+RUN  v3.2.4 /home/chase/mnemonic
 
 ✓ test/mcp-tools.test.ts > mcp tools > inject_trace returns candidates, metadata, and injected results
 ✓ test/mcp-tools.test.ts > mcp tools > query returns matching learnings and per-scope hits
