@@ -1,0 +1,9 @@
+Auth assertion in test/deja.test.ts:
+expect(rejected.status).toBe(401);
+
+Why this passes:
+- src/security.ts enables bearer auth when API_KEY is set.
+- test/helpers.ts starts the primary server with apiKey: API_KEY.
+- In the auth rejected test, httpJson(..., { auth: false }) omits the Authorization header.
+- AuthorizationLive compares incoming bearer token to API_KEY and fails with Unauthorized on mismatch/missing token.
+- Unauthorized is annotated with HTTP 401 in src/errors.ts, so /stats without bearer returns 401.

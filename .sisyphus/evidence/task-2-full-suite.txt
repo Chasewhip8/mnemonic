@@ -1,0 +1,26 @@
+
+ RUN  v3.2.4 /home/chase/deja
+
+ ✓ test/deja.test.ts > learn + inject/query/trace > learn + inject round-trip 100ms
+ ✓ test/deja.test.ts > learn + inject/query/trace > learn + query 58ms
+ ✓ test/deja.test.ts > learn + inject/query/trace > inject trace 58ms
+ ✓ test/deja.test.ts > learning endpoints > learning CRUD (learn, list, delete by id) 60ms
+ ✓ test/deja.test.ts > learning endpoints > bulk delete (confidence_lt filter) 146ms
+ ✓ test/deja.test.ts > learning endpoints > learning neighbors 76ms
+ ✓ test/deja.test.ts > learning endpoints > stats 105ms
+ ✓ test/deja.test.ts > secrets > secrets CRUD (set, get, delete) 26ms
+ ✓ test/deja.test.ts > state lifecycle > state lifecycle (PUT, GET, PATCH, POST events) 38ms
+ ✓ test/deja.test.ts > state lifecycle > state resolve with persistToLearn=true 69ms
+ ✓ test/deja.test.ts > mcp > MCP initialize 3ms
+ ✓ test/deja.test.ts > mcp > MCP tools/list 2ms
+ ✓ test/deja.test.ts > mcp > MCP tools/call learn 51ms
+ ✓ test/deja.test.ts > mcp > MCP tools/call inject 64ms
+ ✓ test/deja.test.ts > health + auth > health GET / 2ms
+ ✓ test/deja.test.ts > health + auth > auth rejected (no bearer -> 401) 2ms
+ ✓ test/deja.test.ts > health + auth > auth bypass (no API_KEY env -> all pass) 554ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  10:01:19
+   Duration  2.12s (transform 37ms, setup 0ms, collect 41ms, tests 1.97s, environment 0ms, prepare 32ms)
+

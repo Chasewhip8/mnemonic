@@ -7,14 +7,12 @@ import { LearningsApiLive } from './learnings/live';
 import { SecretsApiLive } from './secrets/live';
 import { StateApiLive } from './state/live';
 import { HealthHandlers } from './health/live';
-import { McpApiLive } from './mcp/live';
 
 const ApiLive = HttpApiBuilder.api(Api).pipe(
 	Layer.provide(LearningsApiLive),
 	Layer.provide(SecretsApiLive),
 	Layer.provide(StateApiLive),
 	Layer.provide(HealthHandlers),
-	Layer.provide(McpApiLive),
 );
 
 const ServerLive = Layer.unwrapEffect(

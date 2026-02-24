@@ -142,3 +142,13 @@
 - The `deja()` default export wraps Effect-based `DejaClient` in Promise-based API — works seamlessly with plain vitest/bun:test
 - `removeDbArtifacts` must use absolute path (`${SERVER_ROOT}/${dbPath}`) since DB_PATH is relative to server cwd
 - All 6 methods tested: learn, inject, query, list, forget, stats — 6 pass, 0 fail
+
+
+## F2: Code Quality Review
+
+- `as any` in state/repo.ts is drizzle insert type compat — 4 casts on .values() calls
+- `: any` param types in state/repo.ts normalizeWorkingStatePayload — accepts untyped JSON payloads (7 instances)
+- Effect plugin warnings (not errors): unknownInEffectCatch in learnings/repo.ts, globalErrorInEffectFailure in mcp/handler.ts
+- All services use Effect.Service correctly, no Context.Tag, no dependencies option
+- Effect.fn used sparingly (2 places) — not mandatory everywhere
+- Comment density extremely low across all files — no AI slop detected

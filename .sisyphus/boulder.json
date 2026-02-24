@@ -1,10 +1,9 @@
 {
-  "active_plan": "/home/chase/deja/.sisyphus/plans/local-port.md",
-  "started_at": "2026-02-23T20:05:05.384Z",
+  "active_plan": "/home/chase/deja/.sisyphus/plans/remove-mcp.md",
+  "started_at": "2026-02-24T17:37:51.130Z",
   "session_ids": [
-    "ses_373e5012fffej2IfolT1pHP34C",
-    "ses_372aaffa8ffe1aLm1L74ekkVTD"
+    "ses_36f4571f7ffeQuU1kHB3AYtULW"
   ],
-  "plan_name": "local-port",
+  "plan_name": "remove-mcp",
   "agent": "atlas"
 }

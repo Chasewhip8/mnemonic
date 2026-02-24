@@ -3,7 +3,7 @@
 *What survives a run.*
 
 deja is a self-hosted memory layer for agents.
-It exposes durable memory via REST + MCP, with scoped recall and optional live working state.
+It exposes durable memory via REST, with scoped recall and optional live working state.
 
 ## Local references
 
@@ -25,33 +25,6 @@ wrangler vectorize create deja-embeddings --dimensions 384 --metric cosine
 wrangler secret put API_KEY
 bun run deploy
 ```
-
----
-
-## Minimal MCP config (agent-agnostic)
-
-Any MCP-capable agent can connect to:
-
-- Endpoint: `https://<your-host>/mcp`
-- Header: `Authorization: Bearer <API_KEY>`
-
-Example:
-
-```json
-{
-  "mcpServers": {
-    "deja": {
-      "type": "http",
-      "url": "https://deja.your-subdomain.workers.dev/mcp",
-      "headers": {
-        "Authorization": "Bearer ${DEJA_API_KEY}"
-      }
-    }
-  }
-}
-```
-
----
 
 ## Core API surface
 
