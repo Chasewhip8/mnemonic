@@ -6,8 +6,8 @@ import {
 	queryLearningNeighborsRaw,
 	queryLearningsByEmbeddingRaw,
 } from '../database/queries/learnings'
-import type { LearningRow } from '../database/types'
 import * as schema from '../database/schema'
+import type { LearningRow } from '../database/types'
 import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
 
@@ -17,29 +17,6 @@ type DeleteLearningsFilters = {
 	confidence_lt?: number
 	not_recalled_in_days?: number
 	scope?: string
-}
-
-
-function normalizeLearningRow(row: LearningRow): LearningRow {
-	const maybeArray = row as unknown
-	if (!Array.isArray(maybeArray)) {
-		return row
-	}
-
-	const values = maybeArray as Array<unknown>
-	return {
-		id: values[0] as string,
-		trigger: values[1] as string,
-		learning: values[2] as string,
-		reason: values[3] as string | null,
-		confidence: values[4] as number | null,
-		source: values[5] as string | null,
-		scope: values[6] as string,
-		created_at: values[8] as string,
-		last_recalled_at: values[9] as string | null,
-		recall_count: values[10] as number | null,
-		...(values[11] !== undefined ? { distance: values[11] as number } : {}),
-	}
 }
 
 const EmbeddingJson = Schema.parseJson(Schema.Array(Schema.Number))
@@ -58,21 +35,17 @@ function filterScopesByPriority(scopes: ReadonlyArray<string>): string[] {
 }
 
 function convertSqlLearningRow(row: LearningRow): Learning {
-	const normalized = normalizeLearningRow(row)
-	const reason = normalized.reason != null ? String(normalized.reason) : undefined
-	const source = normalized.source != null ? String(normalized.source) : undefined
-	const lastRecalledAt = normalized.last_recalled_at != null ? String(normalized.last_recalled_at) : undefined
 	return new Learning({
-		id: String(normalized.id),
-		trigger: String(normalized.trigger),
-		learning: String(normalized.learning),
-		...(reason !== undefined ? { reason } : {}),
-		confidence: normalized.confidence != null ? Number(normalized.confidence) : 0,
-		...(source !== undefined ? { source } : {}),
-		scope: String(normalized.scope),
-		createdAt: String(normalized.created_at),
-		...(lastRecalledAt !== undefined ? { lastRecalledAt } : {}),
-		recallCount: normalized.recall_count != null ? Number(normalized.recall_count) : 0,
+		id: row.id,
+		trigger: row.trigger,
+		learning: row.learning,
+		...(row.reason != null ? { reason: row.reason } : {}),
+		confidence: row.confidence ?? 0,
+		...(row.source != null ? { source: row.source } : {}),
+		scope: row.scope,
+		createdAt: row.created_at,
+		...(row.last_recalled_at != null ? { lastRecalledAt: row.last_recalled_at } : {}),
+		recallCount: row.recall_count ?? 0,
 	})
 }
 
@@ -147,10 +120,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				const learnings = rows
 					.map((row) => {
-						const normalized = normalizeLearningRow(row)
 						return {
-							learning: convertSqlLearningRow(normalized),
-							similarity: 1 - Number(normalized.distance ?? 0),
+							learning: convertSqlLearningRow(row),
+							similarity: 1 - (row.distance ?? 0),
 						}
 					})
 					.filter((entry) => Number.isFinite(entry.similarity))
@@ -242,12 +214,11 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				const candidates = rows.map((row) => {
-					const normalized = normalizeLearningRow(row)
-					const similarity = 1 - Number(normalized.distance ?? 0)
+					const similarity = 1 - (row.distance ?? 0)
 					return {
-						id: String(normalized.id),
-						trigger: String(normalized.trigger),
-						learning: String(normalized.learning),
+						id: row.id,
+						trigger: row.trigger,
+						learning: row.learning,
 						similarity_score: similarity,
 						passed_threshold: similarity >= threshold,
 					}
@@ -320,10 +291,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				const learnings = rows
 					.map((row) => {
-						const normalized = normalizeLearningRow(row)
 						return {
-							learning: convertSqlLearningRow(normalized),
-							similarity: 1 - Number(normalized.distance ?? 0),
+							learning: convertSqlLearningRow(row),
+							similarity: 1 - (row.distance ?? 0),
 						}
 					})
 					.filter((entry) => Number.isFinite(entry.similarity))
@@ -394,7 +364,20 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					},
 				})
 
-				return results.map((row) => convertSqlLearningRow(row as unknown as LearningRow))
+				return results.map((row) =>
+					convertSqlLearningRow({
+						id: row.id,
+						trigger: row.trigger,
+						learning: row.learning,
+						reason: row.reason,
+						confidence: row.confidence,
+						source: row.source,
+						scope: row.scope,
+						created_at: row.createdAt,
+						last_recalled_at: row.lastRecalledAt,
+						recall_count: row.recallCount,
+					}),
+				)
 			}).pipe(
 				Effect.catchAll((error) =>
 					Effect.gen(function* () {
@@ -528,4 +511,3 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 		}
 	}),
 }) {}
-
