@@ -155,7 +155,7 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 					filters.confidence_lt = urlParams.confidence_lt;
 				}
 
-				if (urlParams.not_recalled_in_days != null && urlParams.not_recalled_in_days > 0) {
+				if (urlParams.not_recalled_in_days != null && urlParams.not_recalled_in_days >= 0) {
 					filters.not_recalled_in_days = urlParams.not_recalled_in_days;
 				}
 

@@ -40,3 +40,10 @@
 - Patches accumulate (merge semantics)
 - Double-resolve: second resolve also returns 200 (no error)
 - persistToLearn=false: no learning created
+
+## [2026-02-24] Task 3: Learnings Extended
+- test/learnings-extended.test.ts created, port 8790
+- not_recalled_in_days: uses COALESCE(lastRecalledAt, createdAt) < cutoff SQL logic
+- scope priority: inject returns only highest-priority scope results (session > agent > shared)
+- format:'learnings' returns empty prompt + populated learnings array
+- recall tracking: last_recalled_at updated after inject call
