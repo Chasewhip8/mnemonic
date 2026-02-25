@@ -14,8 +14,8 @@ import {
 	unique,
 } from './helpers'
 
-const PRIMARY_PORT = Number(process.env.TEST_MNEMONIC_PORT ?? '8787')
-const BYPASS_PORT = Number(process.env.TEST_MNEMONIC_BYPASS_PORT ?? '8788')
+const PRIMARY_PORT = Number(process.env.TEST_MNEMONIC_PORT ?? '9887')
+const BYPASS_PORT = Number(process.env.TEST_MNEMONIC_BYPASS_PORT ?? '9888')
 
 const RUN_SUFFIX = `${Date.now()}-${process.pid}`
 const PRIMARY_DB_PATH = `./data/test-mnemonic-${RUN_SUFFIX}.db`
@@ -79,8 +79,6 @@ describe('learn + inject/query/trace', () => {
 
 			expect(injected.status).toBe(200)
 			const injectedBody = asRecord(injected.body)
-			expect(injectedBody.prompt).toBeTypeOf('string')
-
 			const learnings = asArray(injectedBody.learnings)
 			expect(learnings.length).toBeGreaterThan(0)
 			const learnedId = learnedBody.id

@@ -5,7 +5,7 @@ import { rm } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-const PORT = 8788
+const PORT = Number(process.env.TEST_MNEMONIC_CLI_PORT ?? '9889')
 const API_KEY = 'test-key'
 const STARTUP_TIMEOUT_MS = 120_000
 const TEST_TIMEOUT_MS = 240_000

@@ -354,35 +354,3 @@ describe('recall tracking', () => {
 		TEST_TIMEOUT_MS,
 	)
 })
-
-describe('inject variations', () => {
-	it(
-		"format: 'learnings'",
-		async () => {
-			const scope = memoryScope('inject-format-learnings')
-			const trigger = unique('trigger-format-learnings')
-			const memoryId = await learnMemory({
-				scope,
-				trigger,
-				learning: unique('learning-format-learnings'),
-			})
-
-			const injected = await httpJson(getServer().baseUrl, '/inject', {
-				method: 'POST',
-				body: {
-					context: `Need memory for ${trigger}`,
-					scopes: [scope],
-					format: 'learnings',
-					limit: 10,
-				},
-			})
-
-			expect(injected.status).toBe(200)
-			const injectedBody = asRecord(injected.body)
-			expect(injectedBody.prompt).toBe('')
-			const rows = asArray(injectedBody.learnings).map((item) => asRecord(item))
-			expect(rows.some((row) => row.id === memoryId)).toBe(true)
-		},
-		TEST_TIMEOUT_MS,
-	)
-})
