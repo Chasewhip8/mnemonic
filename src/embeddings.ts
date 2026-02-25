@@ -6,6 +6,7 @@ export class EmbeddingService extends Effect.Service<EmbeddingService>()('Embedd
 	scoped: Effect.gen(function* () {
 		yield* Effect.logInfo('Loading embedding model...')
 
+// @huggingface/transformers pipeline() returns a union type; cast is required due to missing overload narrowing
 		const extractor = yield* Effect.tryPromise({
 			try: () =>
 				pipeline('feature-extraction', 'onnx-community/bge-small-en-v1.5-ONNX', {
@@ -21,7 +22,10 @@ export class EmbeddingService extends Effect.Service<EmbeddingService>()('Embedd
 			return yield* Effect.tryPromise({
 				try: async () => {
 					const output = await extractor(text, { pooling: 'cls', normalize: true })
-					return Array.from(output.data as Float32Array)
+					if (!(output.data instanceof Float32Array)) {
+						throw new Error(`Expected Float32Array from embedding model, got ${output.data.constructor.name}`)
+					}
+					return Array.from(output.data)
 				},
 				catch: (error) => new EmbeddingError({ cause: error }),
 			})
