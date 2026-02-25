@@ -11,8 +11,7 @@ const SetSecretBody = Schema.Struct({
 })
 
 const SecretResponse = Schema.Struct({
-	success: Schema.Boolean,
-	error: Schema.optional(Schema.String),
+	success: Schema.Literal(true),
 })
 
 const GetSecretResponse = Schema.Struct({

@@ -11,7 +11,7 @@ export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 		const database = yield* Database
 
 		return {
-			getSecret: (scopes: string[], name: string): Effect.Effect<string | null> =>
+			getSecret: (scopes: string[], name: string) =>
 				Effect.gen(function* () {
 					const filteredScopes = filterScopesByPriority(scopes)
 					if (filteredScopes.length === 0) {
@@ -29,67 +29,29 @@ export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 					})
 
 					return results[0]?.value ?? null
-				}).pipe(
-					Effect.catchAll((error) =>
-						Effect.gen(function* () {
-							yield* Effect.logError('Get secret error', error)
-							return null
-						}),
-					),
-				),
+				}),
 
-			setSecret: (
-				scope: string,
-				name: string,
-				value: string,
-			): Effect.Effect<{ success: boolean; error?: string }> =>
+			setSecret: (scope: string, name: string, value: string) =>
 				Effect.gen(function* () {
 					const now = new Date().toISOString()
 					yield* database.withDb({
 						context: 'secrets.setSecret',
 						run: (db) => upsertSecretRaw(db, { scope, name, value, now }),
 					})
+				}),
 
-					return { success: true } as { success: boolean; error?: string }
-				}).pipe(
-					Effect.catchAll((error) =>
-						Effect.gen(function* () {
-							yield* Effect.logError('Set secret error', error)
-							return { success: false, error: 'Failed to set secret' } as {
-								success: boolean
-								error?: string
-							}
-						}),
-					),
-				),
-
-			deleteSecret: (
-				scope: string,
-				name: string,
-			): Effect.Effect<{ success: boolean; error?: string }> =>
-				Effect.gen(function* () {
-					yield* database.withDb({
+			deleteSecret: (scope: string, name: string) =>
+				database
+					.withDb({
 						context: 'secrets.deleteSecret',
 						run: (db) =>
 							db
 								.delete(schema.secrets)
 								.where(and(eq(schema.secrets.name, name), eq(schema.secrets.scope, scope))),
 					})
+					.pipe(Effect.asVoid),
 
-					return { success: true } as { success: boolean; error?: string }
-				}).pipe(
-					Effect.catchAll((error) =>
-						Effect.gen(function* () {
-							yield* Effect.logError('Delete secret error', error)
-							return { success: false, error: 'Failed to delete secret' } as {
-								success: boolean
-								error?: string
-							}
-						}),
-					),
-				),
-
-			listSecrets: (scope?: string): Effect.Effect<Secret[]> =>
+			listSecrets: (scope?: string) =>
 				Effect.gen(function* () {
 					const rows = yield* database.withDb({
 						context: 'secrets.listSecrets',
@@ -113,14 +75,7 @@ export class SecretsRepo extends Effect.Service<SecretsRepo>()('SecretsRepo', {
 								updatedAt: row.updatedAt,
 							}),
 					)
-				}).pipe(
-					Effect.catchAll((error) =>
-						Effect.gen(function* () {
-							yield* Effect.logError('List secrets error', error)
-							return []
-						}),
-					),
-				),
+				}),
 		}
 	}),
 }) {}

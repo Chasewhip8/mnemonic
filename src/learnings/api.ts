@@ -39,8 +39,7 @@ const DeleteLearningsResponse = Schema.Struct({
 })
 
 const DeleteLearningResponse = Schema.Struct({
-	success: Schema.Boolean,
-	error: Schema.optional(Schema.String),
+	success: Schema.Literal(true),
 })
 
 const LearningWithSimilarity = Schema.Struct({
