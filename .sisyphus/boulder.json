@@ -1,9 +1,9 @@
 {
-  "active_plan": "/home/chase/mnemonic/.sisyphus/plans/mnemonic-client-rewrite.md",
-  "started_at": "2026-02-24T18:22:29.510Z",
+  "active_plan": "/home/chase/mnemonic/.sisyphus/plans/cli-package.md",
+  "started_at": "2026-02-25T02:16:55.099Z",
   "session_ids": [
-    "ses_36f1c93bbffepPhzMv7y9WnMa7"
+    "ses_36d6a39e4ffe9X0Z12tzdKMaqs"
   ],
-  "plan_name": "mnemonic-client-rewrite",
+  "plan_name": "cli-package",
   "agent": "atlas"
 }

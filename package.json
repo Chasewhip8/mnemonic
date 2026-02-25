@@ -10,7 +10,7 @@
 		"db:generate": "drizzle-kit generate --config src/database/drizzle.config.ts",
 		"lint": "biome lint .",
 		"format": "biome format --write .",
-		"test": "vitest run",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit"
 	},
 	"keywords": [

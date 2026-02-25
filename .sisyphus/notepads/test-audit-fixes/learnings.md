@@ -54,3 +54,11 @@
 - Error codes: -32600 invalid request, -32601 method not found, -32603 tool error
 - GET /mcp returns info with name:'mnemonic' and 13 tools
 - notifications/initialized returns 204
+
+## [2026-02-25] Task F3: Real Manual QA (curl)
+- Runtime in this environment requires `LD_LIBRARY_PATH` including nix gcc lib path for `libstdc++.so.6` before server boot.
+- Server listened on `8787` (not `3000`) in this run.
+- Endpoint contract drift observed: `/inject` and `/inject/trace` now require `context`; `/query` now requires `text`.
+- Route/method mismatch observed: `GET /learning/:id` returned 404 for a freshly created learning; `PUT /secret` returned 404.
+- Idempotent delete behavior confirmed: `DELETE /learning/nonexistent-id` returns `200` with `{ "success": true }`.
+- Auth behavior confirmed: missing or wrong bearer token returns `401`.
