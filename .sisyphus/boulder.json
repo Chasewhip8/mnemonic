@@ -1,9 +1,9 @@
 {
-  "active_plan": "/home/chase/mnemonic/.sisyphus/plans/cli-package.md",
-  "started_at": "2026-02-25T02:16:55.099Z",
+  "active_plan": "/home/chase/mnemonic/.sisyphus/plans/mnemonic-cli-skill.md",
+  "started_at": "2026-02-25T23:58:41.837Z",
   "session_ids": [
-    "ses_36d6a39e4ffe9X0Z12tzdKMaqs"
+    "ses_368c26970ffeftCpK91k1WxItH"
   ],
-  "plan_name": "cli-package",
+  "plan_name": "mnemonic-cli-skill",
   "agent": "atlas"
 }

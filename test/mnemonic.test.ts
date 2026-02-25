@@ -74,6 +74,7 @@ describe('learn + inject/query/trace', () => {
 					context: `Need guidance for ${trigger}`,
 					scopes: [scope],
 					limit: 5,
+					threshold: 0,
 				},
 			})
 
@@ -119,6 +120,38 @@ describe('learn + inject/query/trace', () => {
 
 			const hits = asRecord(queriedBody.hits)
 			expect(typeof hits[scope]).toBe('number')
+			const similarities = asRecord(queriedBody.similarities)
+			expect(typeof similarities[String(learnedId)]).toBe('number')
+		},
+		TEST_TIMEOUT_MS,
+	)
+
+	it(
+		'inject threshold filters out low-similarity results',
+		async () => {
+			const scope = memoryScope('scope-threshold')
+			const trigger = unique('trigger-threshold')
+			const learningText = unique('learning-threshold')
+
+			const learned = await httpJson(getPrimaryServer().baseUrl, '/learn', {
+				method: 'POST',
+				body: { trigger, learning: learningText, scope, confidence: 0.9 },
+			})
+			expect(learned.status).toBe(200)
+
+			const injected = await httpJson(getPrimaryServer().baseUrl, '/inject', {
+				method: 'POST',
+				body: {
+					context: `Need guidance for ${trigger}`,
+					scopes: [scope],
+					limit: 5,
+					threshold: 2,
+				},
+			})
+
+			expect(injected.status).toBe(200)
+			const injectedBody = asRecord(injected.body)
+			expect(asArray(injectedBody.learnings).length).toBe(0)
 		},
 		TEST_TIMEOUT_MS,
 	)

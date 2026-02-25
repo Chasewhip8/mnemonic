@@ -12,7 +12,6 @@ import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
 import { filterScopesByPriority } from '../scopes'
 
-
 type DeleteLearningsFilters = {
 	confidence_lt?: number
 	not_recalled_in_days?: number
@@ -90,6 +89,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			scopes: ReadonlyArray<string>,
 			context: string,
 			limit: number = 5,
+			threshold: number = 0.3,
 		) =>
 			Effect.gen(function* () {
 				const filteredScopes = filterScopesByPriority(scopes)
@@ -111,7 +111,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 							similarity: 1 - (row.distance ?? 0),
 						}
 					})
-					.filter((entry) => Number.isFinite(entry.similarity))
+					.filter((entry) => Number.isFinite(entry.similarity) && entry.similarity >= threshold)
 					.map((entry) => entry.learning)
 
 				if (learnings.length > 0) {
@@ -151,10 +151,10 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				if (filteredScopes.length === 0) {
 					return {
 						input_context: context,
-					embedding_generated: [],
-					candidates: [],
+						embedding_generated: [],
+						candidates: [],
 						threshold_applied: threshold,
-					injected: [],
+						injected: [],
 						duration_ms: Date.now() - startTime,
 						metadata: {
 							total_candidates: 0,
@@ -221,8 +221,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				const filteredScopes = filterScopesByPriority(scopes)
 				if (filteredScopes.length === 0) {
 					return {
-					learnings: [],
-					hits: {},
+						learnings: [],
+						similarities: {},
+						hits: {},
 					}
 				}
 
@@ -233,7 +234,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, limit),
 				})
 
-				const learnings = rows
+				const entries = rows
 					.map((row) => {
 						return {
 							learning: convertSqlLearningRow(row),
@@ -241,14 +242,19 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						}
 					})
 					.filter((entry) => Number.isFinite(entry.similarity))
-					.map((entry) => entry.learning)
+
+				const learnings = entries.map((entry) => entry.learning)
+				const similarities: Record<string, number> = {}
+				for (const entry of entries) {
+					similarities[entry.learning.id] = entry.similarity
+				}
 
 				const hits: Record<string, number> = {}
 				for (const learning of learnings) {
 					hits[learning.scope] = (hits[learning.scope] ?? 0) + 1
 				}
 
-				return { learnings, hits }
+				return { learnings, similarities, hits }
 			})
 
 		const getLearningNeighbors = (id: string, threshold: number = 0.85, limit: number = 10) =>
@@ -264,7 +270,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				})
 
 				if (row.length === 0) {
-				return []
+					return []
 				}
 
 				const candidateLimit = Math.max(limit * 3, 20)
@@ -349,7 +355,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				if (conditions.length === 0) {
-				return { deleted: 0, ids: [] }
+					return { deleted: 0, ids: [] }
 				}
 
 				const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions)
@@ -361,7 +367,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				const ids = toDelete.map((row) => row.id)
 				if (ids.length === 0) {
-				return { deleted: 0, ids: [] }
+					return { deleted: 0, ids: [] }
 				}
 
 				yield* database.withDb({

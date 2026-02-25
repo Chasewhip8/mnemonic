@@ -51,6 +51,7 @@ export class InjectTraceResult extends Schema.Class<InjectTraceResult>('InjectTr
 
 export class QueryResult extends Schema.Class<QueryResult>('QueryResult')({
 	learnings: Schema.Array(Learning),
+	similarities: Schema.Record({ key: Schema.String, value: Schema.Number }),
 	hits: Schema.Record({ key: Schema.String, value: Schema.Number }),
 }) {}
 

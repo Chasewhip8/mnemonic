@@ -28,6 +28,7 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 					payload.scopes ?? ['shared'],
 					payload.context ?? '',
 					payload.limit,
+					payload.threshold,
 				)
 			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
