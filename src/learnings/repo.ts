@@ -144,14 +144,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				return { prompt: '', learnings }
-			}).pipe(
-				Effect.catchAll((error) =>
-					Effect.gen(function* () {
-						yield* Effect.logError('Inject error', error)
-						return { prompt: '', learnings: [] as Array<Learning> }
-					}),
-				),
-			)
+			})
 
 		const injectTrace = (
 			scopes: ReadonlyArray<string>,
@@ -235,29 +228,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						below_threshold: candidates.length - aboveThreshold,
 					},
 				}
-			}).pipe(
-				Effect.catchAll(() =>
-					Effect.succeed({
-						input_context: context,
-						embedding_generated: [] as Array<number>,
-						candidates: [] as Array<{
-							id: string
-							trigger: string
-							learning: string
-							similarity_score: number
-							passed_threshold: boolean
-						}>,
-						threshold_applied: threshold,
-						injected: [] as Array<Learning>,
-						duration_ms: Date.now() - startTime,
-						metadata: {
-							total_candidates: 0,
-							above_threshold: 0,
-							below_threshold: 0,
-						},
-					}),
-				),
-			)
+			})
 		}
 
 		const query = (scopes: ReadonlyArray<string>, text: string, limit: number = 10) =>
@@ -293,14 +264,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				return { learnings, hits }
-			}).pipe(
-				Effect.catchAll(() =>
-					Effect.succeed({
-						learnings: [] as Array<Learning>,
-						hits: {} as Record<string, number>,
-					}),
-				),
-			)
+			})
 
 		const getLearningNeighbors = (id: string, threshold: number = 0.85, limit: number = 10) =>
 			Effect.gen(function* () {
@@ -366,34 +330,13 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						recall_count: row.recallCount,
 					}),
 				)
-			}).pipe(
-				Effect.catchAll((error) =>
-					Effect.gen(function* () {
-						yield* Effect.logError('Get learnings error', error)
-						return [] as Array<Learning>
-					}),
-				),
-			)
+			})
 
 		const deleteLearning = (id: string) =>
-			Effect.gen(function* () {
-				yield* database.withDb({
-					context: 'learnings.deleteLearning',
-					run: (db) => db.delete(schema.learnings).where(eq(schema.learnings.id, id)),
-				})
-
-				return { success: true } as { success: boolean; error?: string }
-			}).pipe(
-				Effect.catchAll((error) =>
-					Effect.gen(function* () {
-						yield* Effect.logError('Delete learning error', error)
-						return { success: false, error: 'Failed to delete learning' } as {
-							success: boolean
-							error?: string
-						}
-					}),
-				),
-			)
+			database.withDb({
+				context: 'learnings.deleteLearning',
+				run: (db) => db.delete(schema.learnings).where(eq(schema.learnings.id, id)),
+			})
 
 		const deleteLearnings = (filters: DeleteLearningsFilters) =>
 			Effect.gen(function* () {
@@ -476,15 +419,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						count: Number(row.count ?? 0),
 					})),
 				}
-			}).pipe(
-				Effect.catchAll(() =>
-					Effect.succeed({
-						totalLearnings: 0,
-						totalSecrets: 0,
-						scopes: [] as Array<{ scope: string; count: number }>,
-					}),
-				),
-			)
+			})
 
 		return {
 			learn,

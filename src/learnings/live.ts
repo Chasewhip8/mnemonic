@@ -1,14 +1,8 @@
 import { HttpApiBuilder } from '@effect/platform'
 import { Effect } from 'effect'
 import { Api } from '../api'
-import type { Learning } from '../domain'
 import { DatabaseError, ValidationError } from '../errors'
 import { LearningsRepo } from './repo'
-
-type MutableInjectResult = {
-	prompt: string
-	learnings: Array<Learning>
-}
 
 export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers) =>
 	handlers
@@ -31,18 +25,13 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
 				const format = payload.format === 'learnings' ? 'learnings' : 'prompt'
-				const injected = yield* repo.inject(
+				return yield* repo.inject(
 					payload.scopes ?? ['shared'],
 					payload.context ?? '',
 					payload.limit,
 					format,
 				)
-				const result: MutableInjectResult = {
-					prompt: injected.prompt,
-					learnings: [...injected.learnings],
-				}
-				return result
-			}),
+			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
 		.handle('injectTrace', ({ payload, urlParams }) =>
 			Effect.gen(function* () {
@@ -60,13 +49,13 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 					payload.limit ?? 5,
 					Number.isFinite(threshold) ? threshold : 0,
 				)
-			}),
+			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
 		.handle('query', ({ payload }) =>
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
 				return yield* repo.query(payload.scopes ?? ['shared'], payload.text, payload.limit)
-			}),
+			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
 		.handle('getLearnings', ({ urlParams }) =>
 			Effect.gen(function* () {
@@ -80,7 +69,7 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 				}
 
 				return yield* repo.getLearnings(filter)
-			}),
+			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
 		.handle('deleteLearnings', ({ urlParams }) =>
 			Effect.gen(function* () {
@@ -117,8 +106,9 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 		.handle('deleteLearning', ({ path }) =>
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
-				return yield* repo.deleteLearning(path.id)
-			}),
+				yield* repo.deleteLearning(path.id)
+				return { success: true as const }
+			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
 		.handle('getLearningNeighbors', ({ path, urlParams }) =>
 			Effect.gen(function* () {
@@ -141,6 +131,6 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
 				return yield* repo.getStats()
-			}),
+			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		),
 )
