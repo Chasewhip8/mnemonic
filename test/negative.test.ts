@@ -139,7 +139,6 @@ describe('auth edge cases', () => {
 				headers: { Authorization: 'NotBearer token' },
 			})
 
-			console.log(`MALFORMED_AUTH_STATUS=${response.status}`)
 			expect(response.status).toBe(401)
 		},
 		TEST_TIMEOUT_MS,
