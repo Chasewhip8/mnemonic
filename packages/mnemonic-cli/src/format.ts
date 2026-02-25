@@ -7,162 +7,109 @@ import type {
 	Stats,
 } from '../../mnemonic-client/src/index.ts'
 
-const formatConfidence = (value: number): string => value.toFixed(2)
-
-const formatSimilarity = (value: number): string => value.toFixed(4)
-
-const shortId = (id: string): string => id.slice(0, 8)
-
-const truncate = (value: string, maxLength: number): string => {
-	if (value.length <= maxLength) {
-		return value
-	}
-	if (maxLength <= 3) {
-		return value.slice(0, maxLength)
-	}
-	return `${value.slice(0, maxLength - 3)}...`
-}
+export const escapeXml = (str: string): string =>
+	str
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;')
+		.replaceAll("'", '&apos;')
 
 export const formatLearning = (learning: Learning): string => {
-	const lines = [
-		`ID: ${shortId(learning.id)}`,
-		`Trigger: ${learning.trigger}`,
-		`Learning: ${learning.learning}`,
-		`Confidence: ${formatConfidence(learning.confidence)}`,
-		`Scope: ${learning.scope}`,
-		`Recall count: ${learning.recallCount}`,
-		`Created: ${learning.createdAt}`,
+	const attrs = [
+		`id="${learning.id}"`,
+		`confidence="${learning.confidence}"`,
+		`scope="${escapeXml(learning.scope)}"`,
+		`recall_count="${learning.recallCount}"`,
+		`created="${learning.createdAt}"`,
 	]
 
 	if (learning.lastRecalledAt !== undefined) {
-		lines.push(`Last recalled: ${learning.lastRecalledAt}`)
+		attrs.push(`last_recalled="${learning.lastRecalledAt}"`)
 	}
+
+	const lines = [
+		`<learning ${attrs.join(' ')}>`,
+		`  <trigger>${escapeXml(learning.trigger)}</trigger>`,
+		`  <content>${escapeXml(learning.learning)}</content>`,
+	]
+
+	if (learning.reason !== undefined) {
+		lines.push(`  <reason>${escapeXml(learning.reason)}</reason>`)
+	}
+
+	if (learning.source !== undefined) {
+		lines.push(`  <source>${escapeXml(learning.source)}</source>`)
+	}
+
+	lines.push('</learning>')
 
 	return lines.join('\n')
 }
 
 export const formatLearningList = (learnings: readonly Learning[]): string => {
 	if (learnings.length === 0) {
-		return 'No learnings found.'
+		return '<learnings count="0" />'
 	}
 
-	return learnings
-		.map((learning, index) => {
-			const trigger = truncate(learning.trigger, 40)
-			const confidence = formatConfidence(learning.confidence)
-			return `${index + 1}. ${shortId(learning.id)} | ${trigger} | ${confidence} | ${learning.scope}`
-		})
-		.join('\n')
+	const items = learnings.map((learning) => formatLearning(learning)).join('\n')
+	return `<learnings count="${learnings.length}">\n${items}\n</learnings>`
 }
 
 export const formatInjectResult = (result: InjectResult): string => {
-	const lines = ['Prompt:', result.prompt, '', `Matched learnings: ${result.learnings.length}`]
-
 	if (result.learnings.length === 0) {
-		lines.push('No matched learnings.')
-		return lines.join('\n')
+		return '<recalled_memories count="0" />'
 	}
 
-	lines.push(
-		...result.learnings.map(
-			(learning, index) =>
-				`${index + 1}. ${learning.trigger} (${formatConfidence(learning.confidence)})`,
-		),
-	)
+	const memories = result.learnings
+		.map(
+			(learning) =>
+				`<memory id="${learning.id}" confidence="${learning.confidence}" scope="${escapeXml(learning.scope)}">\n  <trigger>${escapeXml(learning.trigger)}</trigger>\n  <content>${escapeXml(learning.learning)}</content>\n</memory>`,
+		)
+		.join('\n')
 
-	return lines.join('\n')
+	return `<recalled_memories count="${result.learnings.length}">\n${memories}\n</recalled_memories>`
 }
 
 export const formatInjectTraceResult = (result: InjectTraceResult): string => {
-	const lines = [
-		'Context:',
-		result.input_context,
-		'',
-		`Candidates: ${result.candidates.length} (threshold: ${formatConfidence(
-			result.threshold_applied,
-		)})`,
-		`Above threshold: ${result.metadata.above_threshold}, Below: ${result.metadata.below_threshold}`,
-		`Duration: ${result.duration_ms}ms`,
-	]
-
-	if (result.candidates.length > 0) {
-		lines.push(
-			...result.candidates.map((candidate, index) => {
-				const status = candidate.passed_threshold ? 'passed' : 'failed'
-				return `${index + 1}. [${status}] ${candidate.trigger} | ${formatSimilarity(
-					candidate.similarity_score,
-				)}`
-			}),
+	const candidates = result.candidates
+		.map(
+			(candidate) =>
+				`<candidate id="${candidate.id}" similarity="${candidate.similarity_score}" passed="${candidate.passed_threshold}">\n  <trigger>${escapeXml(candidate.trigger)}</trigger>\n</candidate>`,
 		)
-	} else {
-		lines.push('No candidates evaluated.')
-	}
+		.join('\n')
 
-	return lines.join('\n')
+	const injected = result.injected
+		.map(
+			(learning) =>
+				`<memory id="${learning.id}" confidence="${learning.confidence}" scope="${escapeXml(learning.scope)}">\n  <trigger>${escapeXml(learning.trigger)}</trigger>\n  <content>${escapeXml(learning.learning)}</content>\n</memory>`,
+		)
+		.join('\n')
+
+	const candidateBlock = candidates.length > 0 ? `\n${candidates}\n` : ''
+	const injectedBlock = injected.length > 0 ? `\n${injected}\n` : ''
+
+	return [
+		`<inject_trace context="${escapeXml(result.input_context)}" threshold="${result.threshold_applied}" duration_ms="${result.duration_ms}">`,
+		`<candidates total="${result.metadata.total_candidates}" above_threshold="${result.metadata.above_threshold}" below_threshold="${result.metadata.below_threshold}">${candidateBlock}</candidates>`,
+		`<injected count="${result.injected.length}">${injectedBlock}</injected>`,
+		'</inject_trace>',
+	].join('\n')
 }
 
 export const formatQueryResult = (result: QueryResult): string => {
 	if (result.learnings.length === 0) {
-		return 'No results found.'
+		return '<query_results count="0" />'
 	}
 
-	return result.learnings
-		.map((learning, index) => {
-			const score = result.hits[learning.id] ?? 0
-			return `${index + 1}. ${shortId(learning.id)} | ${learning.trigger} | hit: ${formatSimilarity(
-				score,
-			)}`
+	const rows = result.learnings
+		.map((learning) => {
+			const similarity = result.hits[learning.id] ?? 0
+			return `<result id="${learning.id}" similarity="${similarity}" confidence="${learning.confidence}" scope="${escapeXml(learning.scope)}">\n  <trigger>${escapeXml(learning.trigger)}</trigger>\n  <content>${escapeXml(learning.learning)}</content>\n</result>`
 		})
 		.join('\n')
-}
 
-export const formatStats = (stats: Stats): string => {
-	const header = `Learnings: ${stats.totalLearnings} | Secrets: ${stats.totalSecrets}`
-	if (stats.scopes.length === 0) {
-		return `${header}\nScopes: none`
-	}
-
-	const scopeLines = stats.scopes.map((scope) => `- ${scope.scope}: ${scope.count}`)
-	return `${header}\n${scopeLines.join('\n')}`
-}
-
-export const formatSecret = (secret: { value: string }): string => secret.value
-
-export const formatSecretList = (secrets: readonly Secret[]): string => {
-	if (secrets.length === 0) {
-		return 'No secrets found.'
-	}
-
-	const nameWidth = Math.max('name'.length, ...secrets.map((secret) => secret.name.length))
-	const header = `${'name'.padEnd(nameWidth)}  scope  updatedAt`
-	const rows = secrets.map(
-		(secret) => `${secret.name.padEnd(nameWidth)}  ${secret.scope}  ${secret.updatedAt}`,
-	)
-
-	return [header, ...rows].join('\n')
-}
-
-export const formatHealth = (health: { status: string; service: string }): string =>
-	`${health.service}: ${health.status}`
-
-export const formatCleanup = (result: { deleted: number; reasons: readonly string[] }): string => {
-	const lines = [`Deleted ${result.deleted} learnings`]
-	if (result.reasons.length > 0) {
-		lines.push('Reasons:')
-		lines.push(...result.reasons.map((reason, index) => `${index + 1}. ${reason}`))
-	}
-	return lines.join('\n')
-}
-
-export const formatDeleteResult = (result: { deleted: number; ids: readonly string[] }): string => {
-	const lines = [`Deleted ${result.deleted} learning(s)`]
-	if (result.ids.length > 0) {
-		lines.push('IDs:')
-		lines.push(...result.ids.map((id) => `- ${id}`))
-	} else {
-		lines.push('IDs: none')
-	}
-	return lines.join('\n')
+	return `<query_results count="${result.learnings.length}">\n${rows}\n</query_results>`
 }
 
 export const formatNeighbors = (
@@ -174,19 +121,73 @@ export const formatNeighbors = (
 	}>,
 ): string => {
 	if (neighbors.length === 0) {
-		return 'No neighbors found.'
+		return '<neighbors count="0" />'
 	}
 
-	return neighbors
+	const rows = neighbors
 		.map(
-			(neighbor, index) =>
-				`${index + 1}. ${shortId(neighbor.id)} | ${formatSimilarity(neighbor.similarity_score)} | ${neighbor.trigger}`,
+			(neighbor) =>
+				`<neighbor id="${neighbor.id}" similarity="${neighbor.similarity_score}">\n  <trigger>${escapeXml(neighbor.trigger)}</trigger>\n</neighbor>`,
 		)
 		.join('\n')
+
+	return `<neighbors count="${neighbors.length}">\n${rows}\n</neighbors>`
 }
 
-export const formatDeleteSuccess = (id: string): string => `Deleted learning ${id}`
+export const formatStats = (stats: Stats): string => {
+	if (stats.scopes.length === 0) {
+		return `<stats learnings="${stats.totalLearnings}" secrets="${stats.totalSecrets}" />`
+	}
 
-export const formatSecretSet = (name: string): string => `Secret '${name}' set.`
+	const scopes = stats.scopes
+		.map((scope) => `<scope name="${escapeXml(scope.scope)}" count="${scope.count}" />`)
+		.join('\n')
 
-export const formatSecretDelete = (name: string): string => `Secret '${name}' deleted.`
+	return `<stats learnings="${stats.totalLearnings}" secrets="${stats.totalSecrets}">\n${scopes}\n</stats>`
+}
+
+export const formatDeleteSuccess = (id: string): string => `<result action="forget" id="${id}" />`
+
+export const formatDeleteResult = (result: { deleted: number; ids: readonly string[] }): string => {
+	if (result.ids.length === 0) {
+		return `<result action="prune" deleted="${result.deleted}" />`
+	}
+
+	const ids = result.ids.map((id) => `<id>${id}</id>`).join('\n')
+	return `<result action="prune" deleted="${result.deleted}">\n${ids}\n</result>`
+}
+
+export const formatCleanup = (result: { deleted: number; reasons: readonly string[] }): string => {
+	if (result.reasons.length === 0) {
+		return `<result action="cleanup" deleted="${result.deleted}" />`
+	}
+
+	const reasons = result.reasons.map((reason) => `<reason>${escapeXml(reason)}</reason>`).join('\n')
+	return `<result action="cleanup" deleted="${result.deleted}">\n${reasons}\n</result>`
+}
+
+export const formatSecret = (secret: { value: string }): string => secret.value
+
+export const formatSecretSet = (name: string): string =>
+	`<result action="secret_set" name="${escapeXml(name)}" />`
+
+export const formatSecretDelete = (name: string): string =>
+	`<result action="secret_rm" name="${escapeXml(name)}" />`
+
+export const formatSecretList = (secrets: readonly Secret[]): string => {
+	if (secrets.length === 0) {
+		return '<secrets count="0" />'
+	}
+
+	const rows = secrets
+		.map(
+			(secret) =>
+				`<secret name="${escapeXml(secret.name)}" scope="${escapeXml(secret.scope)}" updated="${secret.updatedAt}" />`,
+		)
+		.join('\n')
+
+	return `<secrets count="${secrets.length}">\n${rows}\n</secrets>`
+}
+
+export const formatHealth = (health: { status: string; service: string }): string =>
+	`<health service="${escapeXml(health.service)}" status="${escapeXml(health.status)}" />`
