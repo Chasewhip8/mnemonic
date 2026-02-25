@@ -8,10 +8,7 @@ import {
 	ValidationError,
 } from '../../mnemonic-client/src/index.ts'
 
-export const makeClientLayer = (opts: {
-	url?: string
-	apiKey?: string | undefined
-}): Layer.Layer<MnemonicClient> => {
+export const makeClientLayer = (opts: { url?: string; apiKey?: string | undefined }) => {
 	const map = new Map<string, string>()
 	if (opts.url !== undefined) map.set('MNEMONIC_URL', opts.url)
 	if (opts.apiKey !== undefined) map.set('MNEMONIC_API_KEY', opts.apiKey)
