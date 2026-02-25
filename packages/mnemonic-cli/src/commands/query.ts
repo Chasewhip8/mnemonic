@@ -46,7 +46,11 @@ export const query = Command.make('query', { text, scopes, limit }, ({ text, sco
 			yield* Console.log(formatQueryResult(result))
 		}).pipe(
 			Effect.provide(makeClientLayer(clientOptions)),
-			Effect.catchAll((error) => Console.error(formatApiError(error, url))),
+			Effect.catchAll((error) =>
+				Console.error(formatApiError(error, url)).pipe(
+					Effect.andThen(Effect.sync(() => process.exit(1))),
+				),
+			),
 		)
 	}),
 )

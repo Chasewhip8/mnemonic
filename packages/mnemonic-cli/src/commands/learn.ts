@@ -42,7 +42,11 @@ export const learn = Command.make(
 				yield* Console.log(formatLearning(result))
 			}).pipe(
 				Effect.provide(makeClientLayer(clientOptions)),
-				Effect.catchAll((error) => Console.error(formatApiError(error, url))),
+				Effect.catchAll((error) =>
+					Console.error(formatApiError(error, url)).pipe(
+						Effect.andThen(Effect.sync(() => process.exit(1))),
+					),
+				),
 			)
 		}),
 )

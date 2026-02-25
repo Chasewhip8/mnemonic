@@ -15,7 +15,11 @@ export const cleanup = Command.make('cleanup', {}, () =>
 			Effect.flatMap((client) => client.health.cleanup()),
 			Effect.map((result) => (json ? JSON.stringify(result) : formatCleanup(result))),
 			Effect.flatMap(Console.log),
-			Effect.catchAll((error) => Console.error(formatApiError(error, Option.getOrUndefined(url)))),
+			Effect.catchAll((error) =>
+				Console.error(formatApiError(error, Option.getOrUndefined(url))).pipe(
+					Effect.andThen(Effect.sync(() => process.exit(1))),
+				),
+			),
 			Effect.provide(layer),
 		)
 	}),

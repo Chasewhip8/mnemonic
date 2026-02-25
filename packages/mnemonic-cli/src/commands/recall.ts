@@ -75,7 +75,11 @@ export const recall = Command.make(
 				yield* Console.log(formatInjectResult(result))
 			}).pipe(
 				Effect.provide(makeClientLayer(clientOptions)),
-				Effect.catchAll((error) => Console.error(formatApiError(error, url))),
+				Effect.catchAll((error) =>
+					Console.error(formatApiError(error, url)).pipe(
+						Effect.andThen(Effect.sync(() => process.exit(1))),
+					),
+				),
 			)
 		}),
 )
