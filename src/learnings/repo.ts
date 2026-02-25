@@ -96,7 +96,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			Effect.gen(function* () {
 				const filteredScopes = filterScopesByPriority(scopes)
 				if (filteredScopes.length === 0) {
-					return { prompt: '', learnings: [] as Array<Learning> }
+					return { prompt: '', learnings: [] }
 				}
 
 				const embedding = yield* embeddings.embed(context)
@@ -160,16 +160,10 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				if (filteredScopes.length === 0) {
 					return {
 						input_context: context,
-						embedding_generated: [] as Array<number>,
-						candidates: [] as Array<{
-							id: string
-							trigger: string
-							learning: string
-							similarity_score: number
-							passed_threshold: boolean
-						}>,
+					embedding_generated: [],
+					candidates: [],
 						threshold_applied: threshold,
-						injected: [] as Array<Learning>,
+					injected: [],
 						duration_ms: Date.now() - startTime,
 						metadata: {
 							total_candidates: 0,
@@ -236,8 +230,8 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				const filteredScopes = filterScopesByPriority(scopes)
 				if (filteredScopes.length === 0) {
 					return {
-						learnings: [] as Array<Learning>,
-						hits: {} as Record<string, number>,
+					learnings: [],
+					hits: {},
 					}
 				}
 
@@ -279,7 +273,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				})
 
 				if (row.length === 0) {
-					return [] as Array<Learning & { similarity_score: number }>
+				return []
 				}
 
 				const candidateLimit = Math.max(limit * 3, 20)
@@ -364,7 +358,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				if (conditions.length === 0) {
-					return { deleted: 0, ids: [] as Array<string> }
+				return { deleted: 0, ids: [] }
 				}
 
 				const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions)
@@ -376,7 +370,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				const ids = toDelete.map((row) => row.id)
 				if (ids.length === 0) {
-					return { deleted: 0, ids: [] as Array<string> }
+				return { deleted: 0, ids: [] }
 				}
 
 				yield* database.withDb({
