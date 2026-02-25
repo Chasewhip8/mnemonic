@@ -8,7 +8,6 @@ import { mn } from './root.ts'
 const context = Args.text({ name: 'context' })
 const scopes = Options.text('scopes').pipe(Options.optional)
 const limit = Options.integer('limit').pipe(Options.optional)
-const format = Options.choice('format', ['prompt', 'learnings']).pipe(Options.optional)
 const trace = Options.boolean('trace').pipe(Options.withDefault(false))
 const threshold = Options.float('threshold').pipe(Options.optional)
 
@@ -24,8 +23,8 @@ const parseScopes = (value: Option.Option<string>): Array<string> | undefined =>
 
 export const recall = Command.make(
 	'recall',
-	{ context, scopes, limit, format, trace, threshold },
-	({ context, scopes, limit, format, trace, threshold }) =>
+	{ context, scopes, limit, trace, threshold },
+	({ context, scopes, limit, trace, threshold }) =>
 		Effect.flatMap(mn, (globals) => {
 			const url = Option.getOrUndefined(globals.url)
 			const apiKey = Option.getOrUndefined(globals.apiKey)
@@ -63,7 +62,6 @@ export const recall = Command.make(
 						context,
 						scopes: parsedScopes,
 						limit: Option.getOrUndefined(limit),
-						format: Option.getOrUndefined(format),
 					},
 				})
 
