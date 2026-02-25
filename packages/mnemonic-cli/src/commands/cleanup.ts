@@ -13,7 +13,7 @@ export const cleanup = Command.make('cleanup', {}, () =>
 		})
 		return MnemonicClient.pipe(
 			Effect.flatMap((client) => client.health.cleanup()),
-			Effect.map((result) => (json ? JSON.stringify(result) : formatCleanup(result))),
+			Effect.map((result) => (json ? JSON.stringify(result, null, 2) : formatCleanup(result))),
 			Effect.flatMap(Console.log),
 			Effect.catchAll((error) =>
 				Console.error(formatApiError(error, Option.getOrUndefined(url))).pipe(

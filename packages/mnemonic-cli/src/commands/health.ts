@@ -13,7 +13,7 @@ export const health = Command.make('health', {}, () =>
 		})
 		return MnemonicClient.pipe(
 			Effect.flatMap((client) => client.health.healthCheck()),
-			Effect.map((result) => (json ? JSON.stringify(result) : formatHealth(result))),
+			Effect.map((result) => (json ? JSON.stringify(result, null, 2) : formatHealth(result))),
 			Effect.flatMap(Console.log),
 			Effect.catchAll((error) =>
 				Console.error(formatApiError(error, Option.getOrUndefined(url))).pipe(

@@ -7,13 +7,13 @@ import { mn } from './root.ts'
 
 const confirm = Options.boolean('confirm').pipe(Options.withDefault(false))
 const confidenceLt = Options.float('confidence-lt').pipe(Options.optional)
-const staleDays = Options.integer('stale-days').pipe(Options.optional)
+const notRecalledInDays = Options.integer('not-recalled-in-days').pipe(Options.optional)
 const scope = Options.text('scope').pipe(Options.optional)
 
 export const prune = Command.make(
 	'prune',
-	{ confirm, confidenceLt, staleDays, scope },
-	({ confirm, confidenceLt, staleDays, scope }) =>
+	{ confirm, confidenceLt, notRecalledInDays, scope },
+	({ confirm, confidenceLt, notRecalledInDays, scope }) =>
 		Effect.flatMap(mn, (globals) => {
 			const url = Option.getOrUndefined(globals.url)
 			const apiKey = Option.getOrUndefined(globals.apiKey)
@@ -28,12 +28,12 @@ export const prune = Command.make(
 					return yield* Effect.fail(new Error('Bulk delete requires --confirm flag'))
 				}
 
-				if (Option.isNone(confidenceLt) && Option.isNone(staleDays) && Option.isNone(scope)) {
+				if (Option.isNone(confidenceLt) && Option.isNone(notRecalledInDays) && Option.isNone(scope)) {
 					yield* Console.error(
-						'Error: At least one filter required (--confidence-lt, --stale-days, or --scope)',
+						'Error: At least one filter required (--confidence-lt, --not-recalled-in-days, or --scope)',
 					)
 					return yield* Effect.fail(
-						new Error('At least one filter required (--confidence-lt, --stale-days, or --scope)'),
+						new Error('At least one filter required (--confidence-lt, --not-recalled-in-days, or --scope)'),
 					)
 				}
 
@@ -42,7 +42,7 @@ export const prune = Command.make(
 					.deleteLearnings({
 						urlParams: {
 							confidence_lt: Option.getOrUndefined(confidenceLt),
-							not_recalled_in_days: Option.getOrUndefined(staleDays),
+						not_recalled_in_days: Option.getOrUndefined(notRecalledInDays),
 							scope: Option.getOrUndefined(scope),
 						},
 					})

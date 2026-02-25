@@ -184,3 +184,9 @@ export const formatNeighbors = (
 		)
 		.join('\n')
 }
+
+export const formatDeleteSuccess = (id: string): string => `Deleted learning ${id}`
+
+export const formatSecretSet = (name: string): string => `Secret '${name}' set.`
+
+export const formatSecretDelete = (name: string): string => `Secret '${name}' deleted.`

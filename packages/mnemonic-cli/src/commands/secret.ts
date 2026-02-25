@@ -2,7 +2,7 @@ import { Args, Command, Options } from '@effect/cli'
 import { Console, Effect, Option } from 'effect'
 import { MnemonicClient } from '../../../mnemonic-client/src/index.ts'
 import { formatApiError, makeClientLayer } from '../client.ts'
-import { formatSecret, formatSecretList } from '../format.ts'
+import { formatSecret, formatSecretDelete, formatSecretList, formatSecretSet } from '../format.ts'
 import { mn } from './root.ts'
 
 const name = Args.text({ name: 'name' })
@@ -42,11 +42,13 @@ const setCommand = Command.make('set', { name, value, scope }, ({ name, value, s
 				return
 			}
 
-			yield* Console.log(`Secret '${name}' set.`)
+			yield* Console.log(formatSecretSet(name))
 		}).pipe(
 			Effect.provide(makeLayerFromGlobals(globals)),
 			Effect.catchAll((error) =>
-				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))),
+				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))).pipe(
+					Effect.andThen(Effect.fail(error)),
+				),
 			),
 		),
 	),
@@ -70,7 +72,9 @@ const getCommand = Command.make('get', { name, scopes }, ({ name, scopes }) =>
 		}).pipe(
 			Effect.provide(makeLayerFromGlobals(globals)),
 			Effect.catchAll((error) =>
-				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))),
+				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))).pipe(
+					Effect.andThen(Effect.fail(error)),
+				),
 			),
 		),
 	),
@@ -92,11 +96,13 @@ const rmCommand = Command.make('rm', { name, scope }, ({ name, scope }) =>
 				return
 			}
 
-			yield* Console.log(`Secret '${name}' deleted.`)
+			yield* Console.log(formatSecretDelete(name))
 		}).pipe(
 			Effect.provide(makeLayerFromGlobals(globals)),
 			Effect.catchAll((error) =>
-				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))),
+				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))).pipe(
+					Effect.andThen(Effect.fail(error)),
+				),
 			),
 		),
 	),
@@ -121,7 +127,9 @@ const listCommand = Command.make('list', { scope }, ({ scope }) =>
 		}).pipe(
 			Effect.provide(makeLayerFromGlobals(globals)),
 			Effect.catchAll((error) =>
-				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))),
+				Console.error(formatApiError(error, Option.getOrUndefined(globals.url))).pipe(
+					Effect.andThen(Effect.fail(error)),
+				),
 			),
 		),
 	),

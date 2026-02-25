@@ -2,6 +2,7 @@ import { Args, Command } from '@effect/cli'
 import { Console, Effect, Option } from 'effect'
 import { MnemonicClient } from '../../../mnemonic-client/src/index.ts'
 import { formatApiError, makeClientLayer } from '../client.ts'
+import { formatDeleteSuccess } from '../format.ts'
 import { mn } from './root.ts'
 
 const id = Args.text({ name: 'id' })
@@ -30,7 +31,7 @@ export const forget = Command.make('forget', { id }, ({ id }) =>
 				return
 			}
 
-			yield* Console.log(`Deleted learning ${id}`)
+			yield* Console.log(formatDeleteSuccess(id))
 		}).pipe(Effect.provide(clientLayer))
 	}),
 )
