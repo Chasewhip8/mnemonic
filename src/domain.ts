@@ -22,7 +22,6 @@ export class Secret extends Schema.Class<Secret>('Secret')({
 }) {}
 
 export class InjectResult extends Schema.Class<InjectResult>('InjectResult')({
-	prompt: Schema.String,
 	learnings: Schema.Array(Learning),
 }) {}
 

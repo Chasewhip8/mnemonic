@@ -17,7 +17,6 @@ const InjectBody = Schema.Struct({
 	context: Schema.String,
 	scopes: Schema.optional(Schema.Array(Schema.String)),
 	limit: Schema.optional(Schema.Number),
-	format: Schema.optional(Schema.String),
 })
 
 const InjectTraceBody = Schema.Struct({
