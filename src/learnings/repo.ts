@@ -54,7 +54,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				const id = crypto.randomUUID()
 				const textForEmbedding = `When ${trigger}, ${learning}`
 				const embedding = yield* embeddings.embed(textForEmbedding)
-				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
+				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const createdAt = new Date().toISOString()
 
 				yield* database.withDb({
@@ -100,7 +100,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				const embedding = yield* embeddings.embed(context)
-				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
+				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const rows = yield* database.withDb({
 					context: 'learnings.inject.search',
 					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, limit),
@@ -180,7 +180,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				const embedding = yield* embeddings.embed(context)
-				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
+				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const candidateLimit = Math.max(limit * 3, 20)
 				const rows = yield* database.withDb({
 					context: 'learnings.injectTrace.search',
@@ -242,7 +242,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				const embedding = yield* embeddings.embed(text)
-				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie)
+				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const rows = yield* database.withDb({
 					context: 'learnings.query.search',
 					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, limit),
