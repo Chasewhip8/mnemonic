@@ -1,0 +1,33 @@
+{
+	"name": "mnemonic-cli",
+	"version": "0.1.0",
+	"description": "CLI for mnemonic - persistent memory for agents",
+	"scripts": {
+		"start": "bun run src/main.ts",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome lint ."
+	},
+	"keywords": [
+		"ai",
+		"agents",
+		"memory",
+		"llm",
+		"mnemonic",
+		"cli"
+	],
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"effect": "^3.19.19",
+		"@effect/cli": "^0.72.1",
+		"@effect/platform": "^0.94.5",
+		"@effect/platform-bun": "^0.62.1"
+	},
+	"peerDependencies": {
+		"mnemonic-client": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "^5.4.0",
+		"@types/bun": "latest"
+	}
+}
