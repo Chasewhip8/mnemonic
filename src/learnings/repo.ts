@@ -12,7 +12,6 @@ import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
 import { filterScopesByPriority } from '../scopes'
 
-type InjectFormat = 'prompt' | 'learnings'
 
 type DeleteLearningsFilters = {
 	confidence_lt?: number
@@ -91,12 +90,11 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			scopes: ReadonlyArray<string>,
 			context: string,
 			limit: number = 5,
-			format: InjectFormat = 'prompt',
 		) =>
 			Effect.gen(function* () {
 				const filteredScopes = filterScopesByPriority(scopes)
 				if (filteredScopes.length === 0) {
-					return { prompt: '', learnings: [] }
+					return { learnings: [] }
 				}
 
 				const embedding = yield* embeddings.embed(context)
@@ -136,14 +134,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					})
 				}
 
-				if (format === 'prompt') {
-					const prompt = learnings
-						.map((learning) => `When ${learning.trigger}, ${learning.learning}`)
-						.join('\n')
-					return { prompt, learnings }
-				}
-
-				return { prompt: '', learnings }
+				return { learnings }
 			})
 
 		const injectTrace = (

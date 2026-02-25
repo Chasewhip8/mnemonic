@@ -24,12 +24,10 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 		.handle('inject', ({ payload }) =>
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
-				const format = payload.format === 'learnings' ? 'learnings' : 'prompt'
 				return yield* repo.inject(
 					payload.scopes ?? ['shared'],
 					payload.context ?? '',
 					payload.limit,
-					format,
 				)
 			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
