@@ -104,7 +104,7 @@ export const formatQueryResult = (result: QueryResult): string => {
 
 	const rows = result.learnings
 		.map((learning) => {
-			const similarity = result.hits[learning.id] ?? 0
+			const similarity = result.similarities[learning.id] ?? 0
 			return `<result id="${learning.id}" similarity="${similarity}" confidence="${learning.confidence}" scope="${escapeXml(learning.scope)}">\n  <trigger>${escapeXml(learning.trigger)}</trigger>\n  <content>${escapeXml(learning.learning)}</content>\n</result>`
 		})
 		.join('\n')

@@ -62,6 +62,7 @@ export const recall = Command.make(
 						context,
 						scopes: parsedScopes,
 						limit: Option.getOrUndefined(limit),
+						threshold: Option.getOrUndefined(threshold),
 					},
 				})
 

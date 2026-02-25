@@ -16,6 +16,17 @@ const RUN_SUFFIX = `${Date.now()}-${process.pid}`
 const DB_PATH = `./data/test-cli-${RUN_SUFFIX}.db`
 const BASE_URL = `http://127.0.0.1:${PORT}`
 
+let uniqueCounter = 0
+
+function unique(prefix: string): string {
+	uniqueCounter += 1
+	return `${prefix}-${RUN_SUFFIX}-${uniqueCounter}`
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function mergedLdLibraryPath(current: string | undefined): string {
 	if (!current || current.trim() === '') return REQUIRED_LD_LIBRARY_PATH
 	const parts = current.split(':')
@@ -209,6 +220,48 @@ describe('CLI learning commands', () => {
 		async () => {
 			const result = await runCli(...cliArgs('query', 'test'))
 			expect(result.exitCode).toBe(0)
+		},
+		TEST_TIMEOUT_MS,
+	)
+
+	it(
+		'query includes per-result similarity for matching learning',
+		async () => {
+			const trigger = unique('cli-query-sim-trigger')
+			const learning = unique('cli-query-sim-learning')
+
+			const learned = await runCli(...cliArgs('learn', trigger, learning))
+			expect(learned.exitCode).toBe(0)
+
+			const queried = await runCli(...cliArgs('query', trigger))
+			expect(queried.exitCode).toBe(0)
+			expect(queried.stdout).toContain(`<trigger>${trigger}</trigger>`)
+
+			const matcher = new RegExp(
+				`<result id="[^"]+" similarity="([^"]+)"[\\s\\S]*?<trigger>${escapeRegExp(trigger)}</trigger>`,
+			)
+			const match = queried.stdout.match(matcher)
+			expect(match).not.toBeNull()
+
+			const value = Number(match?.[1])
+			expect(Number.isFinite(value)).toBe(true)
+			expect(value).toBeGreaterThan(0)
+		},
+		TEST_TIMEOUT_MS,
+	)
+
+	it(
+		'recall forwards threshold and filters when very high',
+		async () => {
+			const trigger = unique('cli-recall-threshold-trigger')
+			const learning = unique('cli-recall-threshold-learning')
+
+			const learned = await runCli(...cliArgs('learn', trigger, learning))
+			expect(learned.exitCode).toBe(0)
+
+			const recalled = await runCli(...cliArgs('recall', '--threshold', '2', trigger))
+			expect(recalled.exitCode).toBe(0)
+			expect(recalled.stdout).toContain('<recalled_memories count="0" />')
 		},
 		TEST_TIMEOUT_MS,
 	)
