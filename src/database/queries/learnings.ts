@@ -11,13 +11,12 @@ function toLearningRow(row: unknown): LearningRow {
 		trigger: row[1] as string,
 		learning: row[2] as string,
 		reason: row[3] as string | null,
-		confidence: row[4] as number | null,
-		source: row[5] as string | null,
-		scope: row[6] as string,
-		created_at: row[8] as string,
-		last_recalled_at: row[9] as string | null,
-		recall_count: row[10] as number | null,
-		...(row[11] !== undefined ? { distance: row[11] as number } : {}),
+		source: row[4] as string | null,
+		scope: row[5] as string,
+		created_at: row[7] as string,
+		last_recalled_at: row[8] as string | null,
+		recall_count: row[9] as number | null,
+		...(row[10] !== undefined ? { distance: row[10] as number } : {}),
 	}
 }
 
@@ -28,7 +27,6 @@ export function insertLearningRaw(
 		trigger: string
 		learning: string
 		reason: string | null
-		confidence: number
 		source: string | null
 		scope: string
 		embeddingJson: string
@@ -36,8 +34,8 @@ export function insertLearningRaw(
 	},
 ): Promise<void> {
 	return Promise.resolve(
-		db.run(sql`INSERT INTO learnings (id, trigger, learning, reason, confidence, source, scope, embedding, created_at, recall_count)
-			VALUES (${params.id}, ${params.trigger}, ${params.learning}, ${params.reason}, ${params.confidence}, ${params.source}, ${params.scope}, vector32(${params.embeddingJson}), ${params.createdAt}, 0)`),
+		db.run(sql`INSERT INTO learnings (id, trigger, learning, reason, source, scope, embedding, created_at, recall_count)
+			VALUES (${params.id}, ${params.trigger}, ${params.learning}, ${params.reason}, ${params.source}, ${params.scope}, vector32(${params.embeddingJson}), ${params.createdAt}, 0)`),
 	).then(() => undefined)
 }
 

@@ -7,7 +7,6 @@ import { Authorization } from '../security'
 const LearnBody = Schema.Struct({
 	trigger: Schema.String,
 	learning: Schema.String,
-	confidence: Schema.optional(Schema.Number),
 	scope: Schema.optional(Schema.String),
 	reason: Schema.optional(Schema.String),
 	source: Schema.optional(Schema.String),
@@ -97,7 +96,6 @@ export class LearningsApi extends HttpApiGroup.make('learnings')
 		HttpApiEndpoint.del('deleteLearnings', '/learnings')
 			.setUrlParams(
 				Schema.Struct({
-					confidence_lt: Schema.optional(Schema.NumberFromString),
 					not_recalled_in_days: Schema.optional(Schema.NumberFromString),
 					scope: Schema.optional(Schema.String),
 				}),

@@ -5,7 +5,6 @@ export type LearningRow = {
 	trigger: string
 	learning: string
 	reason: string | null
-	confidence: number | null
 	source: string | null
 	scope: string
 	created_at: string

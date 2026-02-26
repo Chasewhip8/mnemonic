@@ -5,7 +5,6 @@ export class Learning extends Schema.Class<Learning>('Learning')({
 	trigger: Schema.String,
 	learning: Schema.String,
 	reason: Schema.optional(Schema.String),
-	confidence: Schema.Number,
 	source: Schema.optional(Schema.String),
 	scope: Schema.String,
 	createdAt: Schema.String,
