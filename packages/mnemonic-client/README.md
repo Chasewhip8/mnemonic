@@ -91,7 +91,7 @@ client.{group}.{method}({
 | `injectTrace({ payload })` | Inject with debug trace |
 | `query({ payload })` | Semantic search |
 | `getLearnings({ urlParams? })` | List all learnings |
-| `deleteLearnings({ urlParams })` | Bulk delete (requires at least one filter: `confidence_lt`, `not_recalled_in_days`, or `scope`) |
+| `deleteLearnings({ urlParams })` | Bulk delete (requires at least one filter: `not_recalled_in_days` or `scope`) |
 | `deleteLearning({ path })` | Delete by ID |
 | `getLearningNeighbors({ path })` | Find similar learnings |
 | `getStats()` | Get statistics |
