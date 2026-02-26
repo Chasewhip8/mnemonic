@@ -14,7 +14,6 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 						payload.scope ?? 'shared',
 						payload.trigger,
 						payload.learning,
-						payload.confidence,
 						payload.reason,
 						payload.source,
 					)
@@ -74,14 +73,9 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
 				const filters: {
-					confidence_lt?: number
 					not_recalled_in_days?: number
 					scope?: string
 				} = {}
-
-				if (urlParams.confidence_lt != null) {
-					filters.confidence_lt = urlParams.confidence_lt
-				}
 
 				if (urlParams.not_recalled_in_days != null && urlParams.not_recalled_in_days >= 0) {
 					filters.not_recalled_in_days = urlParams.not_recalled_in_days
@@ -93,7 +87,7 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 
 				if (Object.keys(filters).length === 0) {
 					return yield* new ValidationError({
-						message: 'At least one filter required: confidence_lt, not_recalled_in_days, or scope',
+						message: 'At least one filter required: not_recalled_in_days or scope',
 					})
 				}
 

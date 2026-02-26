@@ -13,7 +13,6 @@ import { EmbeddingService } from '../embeddings'
 import { filterScopesByPriority } from '../scopes'
 
 type DeleteLearningsFilters = {
-	confidence_lt?: number
 	not_recalled_in_days?: number
 	scope?: string
 }
@@ -26,7 +25,6 @@ function convertSqlLearningRow(row: LearningRow): Learning {
 		trigger: row.trigger,
 		learning: row.learning,
 		...(row.reason != null ? { reason: row.reason } : {}),
-		confidence: row.confidence ?? 0,
 		...(row.source != null ? { source: row.source } : {}),
 		scope: row.scope,
 		createdAt: row.created_at,
@@ -44,7 +42,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			scope: string,
 			trigger: string,
 			learning: string,
-			confidence: number = 0.5,
 			reason?: string,
 			source?: string,
 		) =>
@@ -63,7 +60,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 							trigger,
 							learning,
 							reason: reason ?? null,
-							confidence,
 							source: source ?? null,
 							scope,
 							embeddingJson,
@@ -76,7 +72,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					trigger,
 					learning,
 					reason: reason ?? null,
-					confidence,
 					source: source ?? null,
 					scope,
 					created_at: createdAt,
@@ -313,7 +308,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						trigger: row.trigger,
 						learning: row.learning,
 						reason: row.reason,
-						confidence: row.confidence,
 						source: row.source,
 						scope: row.scope,
 						created_at: row.createdAt,
@@ -332,10 +326,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 		const deleteLearnings = (filters: DeleteLearningsFilters) =>
 			Effect.gen(function* () {
 				const conditions: Array<SQL<unknown>> = []
-
-				if (filters.confidence_lt != null) {
-					conditions.push(drizzleSql`${schema.learnings.confidence} < ${filters.confidence_lt}`)
-				}
 
 				if (filters.not_recalled_in_days != null) {
 					if (filters.not_recalled_in_days === 0) {

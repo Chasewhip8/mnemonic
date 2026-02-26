@@ -7,15 +7,14 @@ import { mn } from './root.ts'
 
 const trigger = Args.text({ name: 'trigger' })
 const learning = Args.text({ name: 'learning' })
-const confidence = Options.float('confidence').pipe(Options.optional)
 const scope = Options.text('scope').pipe(Options.optional)
 const reason = Options.text('reason').pipe(Options.optional)
 const source = Options.text('source').pipe(Options.optional)
 
 export const learn = Command.make(
 	'learn',
-	{ trigger, learning, confidence, scope, reason, source },
-	({ trigger, learning, confidence, scope, reason, source }) =>
+	{ trigger, learning, scope, reason, source },
+	({ trigger, learning, scope, reason, source }) =>
 		Effect.flatMap(mn, (globals) => {
 			const url = Option.getOrUndefined(globals.url)
 			const apiKey = Option.getOrUndefined(globals.apiKey)
@@ -26,7 +25,6 @@ export const learn = Command.make(
 			const payload = {
 				trigger,
 				learning,
-				...(Option.isSome(confidence) ? { confidence: Option.getOrUndefined(confidence) } : {}),
 				...(Option.isSome(scope) ? { scope: Option.getOrUndefined(scope) } : {}),
 				...(Option.isSome(reason) ? { reason: Option.getOrUndefined(reason) } : {}),
 				...(Option.isSome(source) ? { source: Option.getOrUndefined(source) } : {}),

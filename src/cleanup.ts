@@ -1,4 +1,4 @@
-import { and, like, sql } from 'drizzle-orm'
+import { and, eq, like, sql } from 'drizzle-orm'
 import { Cron, Effect, Schedule } from 'effect'
 import { Database } from './database'
 import * as schema from './database/schema'
@@ -76,21 +76,39 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 				})
 			}
 
-			// 3. Low confidence (< 0.3)
-			const lowConfidence = yield* database.withDb({
-				context: 'cleanup.selectLowConfidence',
+			// 3. Shared-scope learnings never recalled and older than 14 days
+			const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+			const staleShared = yield* database.withDb({
+				context: 'cleanup.selectStaleShared',
 				run: (db) =>
 					db
 						.select({ id: schema.learnings.id })
 						.from(schema.learnings)
-						.where(sql`${schema.learnings.confidence} < 0.3`),
+						.where(
+							and(
+								eq(schema.learnings.scope, 'shared'),
+								sql`${schema.learnings.lastRecalledAt} IS NULL`,
+								sql`${schema.learnings.createdAt} < ${twoWeeksAgo}`,
+							),
+						),
 			})
-			if (lowConfidence.length > 0) {
-				deleted += lowConfidence.length
-				reasons.push(`Deleted ${lowConfidence.length} low-confidence learnings (<0.3 confidence)`)
+			if (staleShared.length > 0) {
+				deleted += staleShared.length
+				reasons.push(
+					`Deleted ${staleShared.length} stale shared-scope learnings (never recalled, >14 days)`,
+				)
 				yield* database.withDb({
-					context: 'cleanup.deleteLowConfidence',
-					run: (db) => db.delete(schema.learnings).where(sql`${schema.learnings.confidence} < 0.3`),
+					context: 'cleanup.deleteStaleShared',
+					run: (db) =>
+						db
+							.delete(schema.learnings)
+							.where(
+								and(
+									eq(schema.learnings.scope, 'shared'),
+									sql`${schema.learnings.lastRecalledAt} IS NULL`,
+									sql`${schema.learnings.createdAt} < ${twoWeeksAgo}`,
+								),
+							),
 				})
 			}
 
@@ -111,4 +129,3 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 		return { runCleanup }
 	}),
 }) {}
-

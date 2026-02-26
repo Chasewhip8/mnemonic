@@ -18,7 +18,6 @@ export const escapeXml = (str: string): string =>
 export const formatLearning = (learning: Learning): string => {
 	const attrs = [
 		`id="${learning.id}"`,
-		`confidence="${learning.confidence}"`,
 		`scope="${escapeXml(learning.scope)}"`,
 		`recall_count="${learning.recallCount}"`,
 		`created="${learning.createdAt}"`,
@@ -64,7 +63,10 @@ export const formatInjectResult = (result: InjectResult): string => {
 	const memories = result.learnings
 		.map(
 			(learning) =>
-				`<memory id="${learning.id}" confidence="${learning.confidence}" scope="${escapeXml(learning.scope)}">\n  <trigger>${escapeXml(learning.trigger)}</trigger>\n  <content>${escapeXml(learning.learning)}</content>\n</memory>`,
+				`<memory id="${learning.id}" scope="${escapeXml(learning.scope)}">
+  <trigger>${escapeXml(learning.trigger)}</trigger>
+  <content>${escapeXml(learning.learning)}</content>
+</memory>`,
 		)
 		.join('\n')
 
@@ -82,7 +84,10 @@ export const formatInjectTraceResult = (result: InjectTraceResult): string => {
 	const injected = result.injected
 		.map(
 			(learning) =>
-				`<memory id="${learning.id}" confidence="${learning.confidence}" scope="${escapeXml(learning.scope)}">\n  <trigger>${escapeXml(learning.trigger)}</trigger>\n  <content>${escapeXml(learning.learning)}</content>\n</memory>`,
+				`<memory id="${learning.id}" scope="${escapeXml(learning.scope)}">
+  <trigger>${escapeXml(learning.trigger)}</trigger>
+  <content>${escapeXml(learning.learning)}</content>
+</memory>`,
 		)
 		.join('\n')
 
@@ -105,7 +110,10 @@ export const formatQueryResult = (result: QueryResult): string => {
 	const rows = result.learnings
 		.map((learning) => {
 			const similarity = result.similarities[learning.id] ?? 0
-			return `<result id="${learning.id}" similarity="${similarity}" confidence="${learning.confidence}" scope="${escapeXml(learning.scope)}">\n  <trigger>${escapeXml(learning.trigger)}</trigger>\n  <content>${escapeXml(learning.learning)}</content>\n</result>`
+			return `<result id="${learning.id}" similarity="${similarity}" scope="${escapeXml(learning.scope)}">
+  <trigger>${escapeXml(learning.trigger)}</trigger>
+  <content>${escapeXml(learning.learning)}</content>
+</result>`
 		})
 		.join('\n')
 
