@@ -39,7 +39,6 @@ async function learnMemory(input: {
 	scope: string
 	trigger: string
 	learning: string
-	confidence?: number
 }): Promise<string> {
 	const learned = await httpJson(getServer().baseUrl, '/learn', {
 		method: 'POST',
@@ -47,7 +46,6 @@ async function learnMemory(input: {
 			trigger: input.trigger,
 			learning: input.learning,
 			scope: input.scope,
-			confidence: input.confidence ?? 0.8,
 		},
 	})
 
@@ -160,48 +158,57 @@ describe('bulk delete filters', () => {
 	)
 
 	it(
-		'combined filters (confidence_lt + scope)',
+		'combined filters (not_recalled_in_days + scope)',
 		async () => {
 			const scopeA = memoryScope('bulk-combined-a')
 			const scopeB = memoryScope('bulk-combined-b')
+			const triggerA = unique('trigger-combined-a')
 
-			const lowScopeAId = await learnMemory({
+			const recalledScopeAId = await learnMemory({
 				scope: scopeA,
-				trigger: unique('trigger-low-a'),
-				learning: unique('learning-low-a'),
-				confidence: 0.2,
+				trigger: triggerA,
+				learning: unique('learning-recalled-a'),
 			})
-			const highScopeAId = await learnMemory({
+			const staleScopeAId = await learnMemory({
 				scope: scopeA,
-				trigger: unique('trigger-high-a'),
-				learning: unique('learning-high-a'),
-				confidence: 0.95,
+				trigger: unique('trigger-stale-a'),
+				learning: unique('learning-stale-a'),
 			})
-			const lowScopeBId = await learnMemory({
+			const scopeBId = await learnMemory({
 				scope: scopeB,
-				trigger: unique('trigger-low-b'),
-				learning: unique('learning-low-b'),
-				confidence: 0.1,
+				trigger: unique('trigger-b'),
+				learning: unique('learning-b'),
 			})
+
+			await httpJson(getServer().baseUrl, '/inject', {
+				method: 'POST',
+				body: {
+					context: `Need memory for ${triggerA}`,
+					scopes: [scopeA],
+					limit: 1,
+				},
+			})
+
+			await new Promise((resolve) => setTimeout(resolve, 100))
 
 			const deleted = await httpJson(
 				getServer().baseUrl,
-				`/learnings?confidence_lt=0.4&scope=${encodeURIComponent(scopeA)}`,
+				`/learnings?not_recalled_in_days=0&scope=${encodeURIComponent(scopeA)}`,
 				{ method: 'DELETE' },
 			)
 
 			expect(deleted.status).toBe(200)
 			const deletedIds = asArray(asRecord(deleted.body).ids)
-			expect(deletedIds).toContain(lowScopeAId)
-			expect(deletedIds).not.toContain(highScopeAId)
-			expect(deletedIds).not.toContain(lowScopeBId)
+			expect(deletedIds).toContain(staleScopeAId)
+			expect(deletedIds).not.toContain(recalledScopeAId)
+			expect(deletedIds).not.toContain(scopeBId)
 
 			const scopeARows = await listScopeLearnings(scopeA)
 			const scopeBRows = await listScopeLearnings(scopeB)
 
-			expect(scopeARows.some((row) => row.id === lowScopeAId)).toBe(false)
-			expect(scopeARows.some((row) => row.id === highScopeAId)).toBe(true)
-			expect(scopeBRows.some((row) => row.id === lowScopeBId)).toBe(true)
+			expect(scopeARows.some((row) => row.id === staleScopeAId)).toBe(false)
+			expect(scopeARows.some((row) => row.id === recalledScopeAId)).toBe(true)
+			expect(scopeBRows.some((row) => row.id === scopeBId)).toBe(true)
 		},
 		TEST_TIMEOUT_MS,
 	)

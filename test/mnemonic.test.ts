@@ -58,7 +58,6 @@ describe('learn + inject/query/trace', () => {
 				body: {
 					trigger,
 					learning: learningText,
-					confidence: 0.92,
 					scope,
 					reason: 'integration test',
 				},
@@ -97,7 +96,7 @@ describe('learn + inject/query/trace', () => {
 
 			const learned = await httpJson(getPrimaryServer().baseUrl, '/learn', {
 				method: 'POST',
-				body: { trigger, learning: learningText, scope, confidence: 0.88 },
+				body: { trigger, learning: learningText, scope },
 			})
 
 			expect(learned.status).toBe(200)
@@ -135,7 +134,7 @@ describe('learn + inject/query/trace', () => {
 
 			const learned = await httpJson(getPrimaryServer().baseUrl, '/learn', {
 				method: 'POST',
-				body: { trigger, learning: learningText, scope, confidence: 0.9 },
+				body: { trigger, learning: learningText, scope },
 			})
 			expect(learned.status).toBe(200)
 
@@ -168,7 +167,6 @@ describe('learn + inject/query/trace', () => {
 					trigger,
 					learning: unique('learning-trace'),
 					scope,
-					confidence: 0.75,
 				},
 			})
 
@@ -205,7 +203,6 @@ describe('learning endpoints', () => {
 					trigger: unique('trigger-crud'),
 					learning: unique('learning-crud'),
 					scope,
-					confidence: 0.67,
 				},
 			})
 
@@ -238,45 +235,33 @@ describe('learning endpoints', () => {
 	)
 
 	it(
-		'bulk delete (confidence_lt filter)',
+		'bulk delete (scope filter)',
 		async () => {
 			const scope = memoryScope('scope-bulk-delete')
 
-			const lowA = await httpJson(getPrimaryServer().baseUrl, '/learn', {
+			const learnA = await httpJson(getPrimaryServer().baseUrl, '/learn', {
 				method: 'POST',
 				body: {
-					trigger: unique('trigger-low-a'),
-					learning: unique('learning-low-a'),
+					trigger: unique('trigger-bulk-a'),
+					learning: unique('learning-bulk-a'),
 					scope,
-					confidence: 0.2,
 				},
 			})
-			const lowB = await httpJson(getPrimaryServer().baseUrl, '/learn', {
+			const learnB = await httpJson(getPrimaryServer().baseUrl, '/learn', {
 				method: 'POST',
 				body: {
-					trigger: unique('trigger-low-b'),
-					learning: unique('learning-low-b'),
+					trigger: unique('trigger-bulk-b'),
+					learning: unique('learning-bulk-b'),
 					scope,
-					confidence: 0.3,
-				},
-			})
-			const high = await httpJson(getPrimaryServer().baseUrl, '/learn', {
-				method: 'POST',
-				body: {
-					trigger: unique('trigger-high'),
-					learning: unique('learning-high'),
-					scope,
-					confidence: 0.95,
 				},
 			})
 
-			const lowAId = asRecord(lowA.body).id
-			const lowBId = asRecord(lowB.body).id
-			const highId = asRecord(high.body).id
+			const idA = asRecord(learnA.body).id
+			const idB = asRecord(learnB.body).id
 
 			const bulkDeleted = await httpJson(
 				getPrimaryServer().baseUrl,
-				`/learnings?confidence_lt=0.5&scope=${encodeURIComponent(scope)}`,
+				`/learnings?scope=${encodeURIComponent(scope)}`,
 				{ method: 'DELETE' },
 			)
 
@@ -284,9 +269,8 @@ describe('learning endpoints', () => {
 			const bulkDeletedBody = asRecord(bulkDeleted.body)
 			expect((bulkDeletedBody.deleted as number) >= 2).toBe(true)
 			const ids = asArray(bulkDeletedBody.ids)
-			expect(ids).toContain(lowAId)
-			expect(ids).toContain(lowBId)
-			expect(ids).not.toContain(highId)
+			expect(ids).toContain(idA)
+			expect(ids).toContain(idB)
 
 			const remaining = await httpJson(
 				getPrimaryServer().baseUrl,
@@ -294,9 +278,8 @@ describe('learning endpoints', () => {
 			)
 			expect(remaining.status).toBe(200)
 			const remainingIds = asArray(remaining.body).map((item) => asRecord(item).id)
-			expect(remainingIds).toContain(highId)
-			expect(remainingIds).not.toContain(lowAId)
-			expect(remainingIds).not.toContain(lowBId)
+			expect(remainingIds).not.toContain(idA)
+			expect(remainingIds).not.toContain(idB)
 		},
 		TEST_TIMEOUT_MS,
 	)
@@ -311,7 +294,6 @@ describe('learning endpoints', () => {
 					trigger: 'deploying bun services',
 					learning: unique('keep health checks and graceful shutdown'),
 					scope,
-					confidence: 0.9,
 				},
 			})
 			const similar = await httpJson(getPrimaryServer().baseUrl, '/learn', {
@@ -320,7 +302,6 @@ describe('learning endpoints', () => {
 					trigger: 'deploying bun service',
 					learning: unique('configure readiness and graceful shutdown'),
 					scope,
-					confidence: 0.88,
 				},
 			})
 
@@ -355,7 +336,6 @@ describe('learning endpoints', () => {
 					trigger: unique('trigger-stats-a'),
 					learning: unique('learning-stats-a'),
 					scope,
-					confidence: 0.71,
 				},
 			})
 			await httpJson(getPrimaryServer().baseUrl, '/learn', {
@@ -364,7 +344,6 @@ describe('learning endpoints', () => {
 					trigger: unique('trigger-stats-b'),
 					learning: unique('learning-stats-b'),
 					scope,
-					confidence: 0.72,
 				},
 			})
 			await httpJson(getPrimaryServer().baseUrl, '/secret', {

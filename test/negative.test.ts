@@ -4,7 +4,6 @@ import {
 	asArray,
 	asRecord,
 	httpJson,
-	memoryScope,
 	type RunningServer,
 	removeDbArtifacts,
 	STARTUP_TIMEOUT_MS,
@@ -162,16 +161,14 @@ describe('cleanup endpoint', () => {
 	)
 
 	it(
-		'cleanup removes low-confidence learnings',
+		'cleanup does not delete recently-created never-recalled shared learnings',
 		async () => {
-			const scope = memoryScope('negative-cleanup')
 			const learned = await httpJson(getServer().baseUrl, '/learn', {
 				method: 'POST',
 				body: {
-					trigger: unique('negative-low-confidence-trigger'),
-					learning: unique('negative-low-confidence-learning'),
-					confidence: 0.1,
-					scope,
+					trigger: unique('shared-cleanup-trigger'),
+					learning: unique('shared-cleanup-learning'),
+					scope: 'shared',
 				},
 			})
 
@@ -182,15 +179,14 @@ describe('cleanup endpoint', () => {
 				method: 'POST',
 			})
 			expect(cleanup.status).toBe(200)
+			const body = asRecord(cleanup.body)
+			expect(typeof body.deleted).toBe('number')
 
-			const listed = await httpJson(
-				getServer().baseUrl,
-				`/learnings?scope=${encodeURIComponent(scope)}&limit=20`,
-			)
+			const listed = await httpJson(getServer().baseUrl, `/learnings?scope=shared&limit=50`)
 
 			expect(listed.status).toBe(200)
 			const ids = asArray(listed.body).map((item) => asRecord(item).id)
-			expect(ids).not.toContain(learningId)
+			expect(ids).toContain(learningId)
 		},
 		TEST_TIMEOUT_MS,
 	)
