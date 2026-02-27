@@ -12,6 +12,7 @@ import { neighbors } from './commands/neighbors.ts'
 import { prune } from './commands/prune.ts'
 import { query } from './commands/query.ts'
 import { recall } from './commands/recall.ts'
+import { rescope } from './commands/rescope.ts'
 import { mn } from './commands/root.ts'
 import { stats } from './commands/stats.ts'
 
@@ -22,6 +23,7 @@ const app = mn.pipe(
 		query,
 		list,
 		forget,
+		rescope,
 		prune,
 		neighbors,
 		stats,

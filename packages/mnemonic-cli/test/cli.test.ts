@@ -142,6 +142,7 @@ describe('CLI help and health', () => {
 				'stats',
 				'health',
 				'cleanup',
+				'rescope',
 			]) {
 				expect(output).toContain(command)
 			}
@@ -300,6 +301,24 @@ describe('CLI learning commands', () => {
 			const result = await runCli(...cliArgs('prune', '--confirm'))
 			expect(result.exitCode).not.toBe(0)
 			expect(result.stderr).toContain('At least one filter required')
+		},
+		TEST_TIMEOUT_MS,
+	)
+
+	it(
+		'rescope changes scope of a learning',
+		async () => {
+			const learnResult = await runCli(...cliArgs('learn', '--scope', 'shared', unique('rescope-trigger'), unique('rescope-learning')))
+			expect(learnResult.exitCode).toBe(0)
+			// extract ID from output like: <learning id="xxx" scope="shared" />
+			const idMatch = learnResult.stdout.match(/id="([^"]+)"/)
+			expect(idMatch).not.toBeNull()
+			const id = idMatch?.[1]
+			expect(id).toBeDefined()
+
+			const rescopeResult = await runCli(...cliArgs('rescope', id!, 'agent:test'))
+			expect(rescopeResult.exitCode).toBe(0)
+			expect(rescopeResult.stdout).toContain('agent:test')
 		},
 		TEST_TIMEOUT_MS,
 	)
