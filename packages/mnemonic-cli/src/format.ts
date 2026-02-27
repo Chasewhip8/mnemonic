@@ -14,104 +14,95 @@ export const escapeXml = (str: string): string =>
 		.replaceAll('"', '&quot;')
 		.replaceAll("'", '&apos;')
 
-export const formatLearning = (learning: Learning): string => {
-	const attrs = [
-		`id="${learning.id}"`,
-		`scope="${escapeXml(learning.scope)}"`,
-		`recall_count="${learning.recallCount}"`,
-		`created="${learning.createdAt}"`,
-	]
-
-	if (learning.lastRecalledAt !== undefined) {
-		attrs.push(`last_recalled="${learning.lastRecalledAt}"`)
-	}
-
-	const lines = [
-		`<learning ${attrs.join(' ')}>`,
-		`  <trigger>${escapeXml(learning.trigger)}</trigger>`,
-		`  <content>${escapeXml(learning.learning)}</content>`,
-	]
-
-	if (learning.reason !== undefined) {
-		lines.push(`  <reason>${escapeXml(learning.reason)}</reason>`)
-	}
-
-	if (learning.source !== undefined) {
-		lines.push(`  <source>${escapeXml(learning.source)}</source>`)
-	}
-
-	lines.push('</learning>')
-
-	return lines.join('\n')
+class XmlRaw {
+	constructor(readonly value: string) {}
 }
 
-export const formatLearningList = (learnings: readonly Learning[]): string => {
-	if (learnings.length === 0) {
-		return '<learnings count="0" />'
+/** Wrap pre-built XML to prevent double-escaping in xml`` */
+export const raw = (value: string): XmlRaw => new XmlRaw(value)
+
+/** Tagged template — auto-escapes all interpolated values unless wrapped in raw() */
+export const xml = (strings: TemplateStringsArray, ...values: unknown[]): string =>
+	strings.reduce((out, str, i) => {
+		if (i >= values.length) return out + str
+		const val = values[i]
+		return out + str + (val instanceof XmlRaw ? val.value : escapeXml(String(val)))
+	}, '')
+
+const formatMemory = (learning: Learning): string =>
+	xml`<memory id="${learning.id}" scope="${learning.scope}">
+  <trigger>${learning.trigger}</trigger>
+  <content>${learning.learning}</content>
+</memory>`
+
+export const formatLearning = (learning: Learning): string => {
+	const lastRecalled =
+		learning.lastRecalledAt !== undefined ? xml` last_recalled="${learning.lastRecalledAt}"` : ''
+
+	const children = [
+		xml`  <trigger>${learning.trigger}</trigger>`,
+		xml`  <content>${learning.learning}</content>`,
+	]
+	if (learning.reason !== undefined) {
+		children.push(xml`  <reason>${learning.reason}</reason>`)
+	}
+	if (learning.source !== undefined) {
+		children.push(xml`  <source>${learning.source}</source>`)
 	}
 
-	const items = learnings.map((learning) => formatLearning(learning)).join('\n')
+	return xml`<learning id="${learning.id}" scope="${learning.scope}" recall_count="${learning.recallCount}" created="${learning.createdAt}"${raw(lastRecalled)}>
+${raw(children.join('\n'))}
+</learning>`
+}
+
+export const formatLearnResult = (learning: Learning): string =>
+	xml`<learning id="${learning.id}" scope="${learning.scope}" />`
+
+export const formatLearningList = (learnings: readonly Learning[]): string => {
+	if (learnings.length === 0) return '<learnings count="0" />'
+	const items = learnings.map(formatLearning).join('\n')
 	return `<learnings count="${learnings.length}">\n${items}\n</learnings>`
 }
 
 export const formatInjectResult = (result: InjectResult): string => {
-	if (result.learnings.length === 0) {
-		return '<recalled_memories count="0" />'
-	}
-
-	const memories = result.learnings
-		.map(
-			(learning) =>
-				`<memory id="${learning.id}" scope="${escapeXml(learning.scope)}">
-  <trigger>${escapeXml(learning.trigger)}</trigger>
-  <content>${escapeXml(learning.learning)}</content>
-</memory>`,
-		)
-		.join('\n')
-
-	return `<recalled_memories count="${result.learnings.length}">\n${memories}\n</recalled_memories>`
+	if (result.learnings.length === 0) return '<recalled_memories />'
+	const memories = result.learnings.map(formatMemory).join('\n')
+	return `<recalled_memories>\n${memories}\n</recalled_memories>`
 }
 
 export const formatInjectTraceResult = (result: InjectTraceResult): string => {
 	const candidates = result.candidates
 		.map(
-			(candidate) =>
-				`<candidate id="${candidate.id}" similarity="${candidate.similarity_score}" passed="${candidate.passed_threshold}">\n  <trigger>${escapeXml(candidate.trigger)}</trigger>\n</candidate>`,
+			(c) =>
+				xml`<candidate id="${c.id}" similarity="${c.similarity_score}" passed="${c.passed_threshold}">
+  <trigger>${c.trigger}</trigger>
+</candidate>`,
 		)
 		.join('\n')
 
-	const injected = result.injected
-		.map(
-			(learning) =>
-				`<memory id="${learning.id}" scope="${escapeXml(learning.scope)}">
-  <trigger>${escapeXml(learning.trigger)}</trigger>
-  <content>${escapeXml(learning.learning)}</content>
-</memory>`,
-		)
-		.join('\n')
+	const injected = result.injected.map(formatMemory).join('\n')
 
 	const candidateBlock = candidates.length > 0 ? `\n${candidates}\n` : ''
 	const injectedBlock = injected.length > 0 ? `\n${injected}\n` : ''
 
+	const meta = result.metadata
 	return [
-		`<inject_trace context="${escapeXml(result.input_context)}" threshold="${result.threshold_applied}" duration_ms="${result.duration_ms}">`,
-		`<candidates total="${result.metadata.total_candidates}" above_threshold="${result.metadata.above_threshold}" below_threshold="${result.metadata.below_threshold}">${candidateBlock}</candidates>`,
+		xml`<inject_trace context="${result.input_context}" threshold="${result.threshold_applied}" duration_ms="${result.duration_ms}">`,
+		`<candidates total="${meta.total_candidates}" above_threshold="${meta.above_threshold}" below_threshold="${meta.below_threshold}">${candidateBlock}</candidates>`,
 		`<injected count="${result.injected.length}">${injectedBlock}</injected>`,
 		'</inject_trace>',
 	].join('\n')
 }
 
 export const formatQueryResult = (result: QueryResult): string => {
-	if (result.learnings.length === 0) {
-		return '<query_results count="0" />'
-	}
+	if (result.learnings.length === 0) return '<query_results count="0" />'
 
 	const rows = result.learnings
 		.map((learning) => {
 			const similarity = result.similarities[learning.id] ?? 0
-			return `<result id="${learning.id}" similarity="${similarity}" scope="${escapeXml(learning.scope)}">
-  <trigger>${escapeXml(learning.trigger)}</trigger>
-  <content>${escapeXml(learning.learning)}</content>
+			return xml`<result id="${learning.id}" similarity="${similarity}" scope="${learning.scope}">
+  <trigger>${learning.trigger}</trigger>
+  <content>${learning.learning}</content>
 </result>`
 		})
 		.join('\n')
@@ -127,14 +118,14 @@ export const formatNeighbors = (
 		[k: string]: unknown
 	}>,
 ): string => {
-	if (neighbors.length === 0) {
-		return '<neighbors count="0" />'
-	}
+	if (neighbors.length === 0) return '<neighbors count="0" />'
 
 	const rows = neighbors
 		.map(
-			(neighbor) =>
-				`<neighbor id="${neighbor.id}" similarity="${neighbor.similarity_score}">\n  <trigger>${escapeXml(neighbor.trigger)}</trigger>\n</neighbor>`,
+			(n) =>
+				xml`<neighbor id="${n.id}" similarity="${n.similarity_score}">
+  <trigger>${n.trigger}</trigger>
+</neighbor>`,
 		)
 		.join('\n')
 
@@ -142,48 +133,39 @@ export const formatNeighbors = (
 }
 
 export const formatStats = (stats: Stats): string => {
-	if (stats.scopes.length === 0) {
-		return `<stats learnings="${stats.totalLearnings}" />`
-	}
+	if (stats.scopes.length === 0) return `<stats learnings="${stats.totalLearnings}" />`
 
 	const scopes = stats.scopes
-		.map((scope) => `<scope name="${escapeXml(scope.scope)}" count="${scope.count}" />`)
+		.map((s) => xml`<scope name="${s.scope}" count="${s.count}" />`)
 		.join('\n')
 
 	return `<stats learnings="${stats.totalLearnings}">\n${scopes}\n</stats>`
 }
 
 export const formatScopes = (scopes: ReadonlyArray<{ scope: string; count: number }>): string => {
-	if (scopes.length === 0) {
-		return '<scopes count="0" />'
-	}
+	if (scopes.length === 0) return '<scopes count="0" />'
 
-	const items = scopes
-		.map((s) => `<scope name="${escapeXml(s.scope)}" count="${s.count}" />`)
-		.join('\n')
+	const items = scopes.map((s) => xml`<scope name="${s.scope}" count="${s.count}" />`).join('\n')
 
 	return `<scopes count="${scopes.length}">\n${items}\n</scopes>`
 }
 
-export const formatDeleteSuccess = (id: string): string => `<result action="forget" id="${id}" />`
+export const formatDeleteSuccess = (id: string): string =>
+	xml`<result action="forget" id="${id}" />`
 
 export const formatDeleteResult = (result: { deleted: number; ids: readonly string[] }): string => {
-	if (result.ids.length === 0) {
-		return `<result action="prune" deleted="${result.deleted}" />`
-	}
+	if (result.ids.length === 0) return `<result action="prune" deleted="${result.deleted}" />`
 
-	const ids = result.ids.map((id) => `<id>${id}</id>`).join('\n')
+	const ids = result.ids.map((id) => xml`<id>${id}</id>`).join('\n')
 	return `<result action="prune" deleted="${result.deleted}">\n${ids}\n</result>`
 }
 
 export const formatCleanup = (result: { deleted: number; reasons: readonly string[] }): string => {
-	if (result.reasons.length === 0) {
-		return `<result action="cleanup" deleted="${result.deleted}" />`
-	}
+	if (result.reasons.length === 0) return `<result action="cleanup" deleted="${result.deleted}" />`
 
-	const reasons = result.reasons.map((reason) => `<reason>${escapeXml(reason)}</reason>`).join('\n')
+	const reasons = result.reasons.map((r) => xml`<reason>${r}</reason>`).join('\n')
 	return `<result action="cleanup" deleted="${result.deleted}">\n${reasons}\n</result>`
 }
 
 export const formatHealth = (health: { status: string; service: string }): string =>
-	`<health service="${escapeXml(health.service)}" status="${escapeXml(health.status)}" />`
+	xml`<health service="${health.service}" status="${health.status}" />`

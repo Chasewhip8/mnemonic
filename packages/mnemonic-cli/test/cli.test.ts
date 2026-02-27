@@ -188,7 +188,7 @@ describe('CLI learning commands', () => {
 		async () => {
 			const result = await runCli(...cliArgs('learn', 'cli-test-trigger', 'cli-test-learning'))
 			expect(result.exitCode).toBe(0)
-			expect(result.stdout).toContain('cli-test-trigger')
+			expect(result.stdout).toContain('<learning id=')
 		},
 		TEST_TIMEOUT_MS,
 	)
@@ -260,7 +260,7 @@ describe('CLI learning commands', () => {
 
 			const recalled = await runCli(...cliArgs('recall', '--threshold', '2', trigger))
 			expect(recalled.exitCode).toBe(0)
-			expect(recalled.stdout).toContain('<recalled_memories count="0" />')
+			expect(recalled.stdout).toContain('<recalled_memories />')
 		},
 		TEST_TIMEOUT_MS,
 	)

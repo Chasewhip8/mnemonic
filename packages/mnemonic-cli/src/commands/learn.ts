@@ -2,7 +2,7 @@ import { Args, Command, Options } from '@effect/cli'
 import { Console, Effect, Option } from 'effect'
 import { MnemonicClient } from '../../../mnemonic-client/src/index.ts'
 import { formatApiError, makeClientLayer } from '../client.ts'
-import { formatLearning } from '../format.ts'
+import { formatLearnResult } from '../format.ts'
 import { mn } from './root.ts'
 
 const trigger = Args.text({ name: 'trigger' })
@@ -37,7 +37,7 @@ export const learn = Command.make(
 					yield* Console.log(JSON.stringify(result, null, 2))
 					return
 				}
-				yield* Console.log(formatLearning(result))
+				yield* Console.log(formatLearnResult(result))
 			}).pipe(
 				Effect.provide(makeClientLayer(clientOptions)),
 				Effect.catchAll((error) =>
