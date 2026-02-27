@@ -257,7 +257,7 @@ describe('scope priority', () => {
 			expect(injected.status).toBe(200)
 			const ids = asArray(asRecord(injected.body).learnings).map((item) => asRecord(item).id)
 			expect(ids).toContain(sessionId)
-			expect(ids).not.toContain(sharedId)
+			expect(ids).toContain(sharedId)
 		},
 		TEST_TIMEOUT_MS,
 	)
@@ -292,7 +292,7 @@ describe('scope priority', () => {
 			expect(injected.status).toBe(200)
 			const ids = asArray(asRecord(injected.body).learnings).map((item) => asRecord(item).id)
 			expect(ids).toContain(agentId)
-			expect(ids).not.toContain(sharedId)
+			expect(ids).toContain(sharedId)
 		},
 		TEST_TIMEOUT_MS,
 	)
@@ -308,8 +308,7 @@ describe('scope priority', () => {
 				},
 			})
 
-			expect(injected.status).toBe(200)
-			expect(asArray(asRecord(injected.body).learnings)).toHaveLength(0)
+			expect(injected.status).toBe(400)
 		},
 		TEST_TIMEOUT_MS,
 	)

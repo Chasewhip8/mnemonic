@@ -10,7 +10,6 @@ import * as schema from '../database/schema'
 import type { LearningRow } from '../database/types'
 import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
-import { filterScopesByPriority } from '../scopes'
 
 type DeleteLearningsFilters = {
 	not_recalled_in_days?: number
@@ -87,16 +86,12 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			threshold: number = 0.3,
 		) =>
 			Effect.gen(function* () {
-				const filteredScopes = filterScopesByPriority(scopes)
-				if (filteredScopes.length === 0) {
-					return { learnings: [] }
-				}
 
 				const embedding = yield* embeddings.embed(context)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const rows = yield* database.withDb({
 					context: 'learnings.inject.search',
-					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, limit),
+				run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], limit),
 				})
 
 				const learnings = rows
@@ -141,23 +136,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			const startTime = Date.now()
 
 			return Effect.gen(function* () {
-				const filteredScopes = filterScopesByPriority(scopes)
-
-				if (filteredScopes.length === 0) {
-					return {
-						input_context: context,
-						embedding_generated: [],
-						candidates: [],
-						threshold_applied: threshold,
-						injected: [],
-						duration_ms: Date.now() - startTime,
-						metadata: {
-							total_candidates: 0,
-							above_threshold: 0,
-							below_threshold: 0,
-						},
-					}
-				}
 
 				const embedding = yield* embeddings.embed(context)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
@@ -165,7 +143,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				const rows = yield* database.withDb({
 					context: 'learnings.injectTrace.search',
 					run: (db) =>
-						queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, candidateLimit),
+					queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], candidateLimit),
 				})
 
 				const byId = new Map<string, Learning>()
@@ -213,20 +191,12 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 		const query = (scopes: ReadonlyArray<string>, text: string, limit: number = 10) =>
 			Effect.gen(function* () {
-				const filteredScopes = filterScopesByPriority(scopes)
-				if (filteredScopes.length === 0) {
-					return {
-						learnings: [],
-						similarities: {},
-						hits: {},
-					}
-				}
 
 				const embedding = yield* embeddings.embed(text)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const rows = yield* database.withDb({
 					context: 'learnings.query.search',
-					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, filteredScopes, limit),
+				run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], limit),
 				})
 
 				const entries = rows
