@@ -122,7 +122,7 @@ describe('MnemonicClient smoke test', () => {
 				Effect.gen(function* () {
 					const client = yield* MnemonicClient
 					return yield* client.learnings.learn({
-						payload: { trigger: 'smoke-test', learning: 'it works' },
+						payload: { trigger: 'smoke-test', learning: 'it works', scope: 'shared' },
 					})
 				}),
 			)
