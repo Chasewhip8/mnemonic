@@ -11,7 +11,7 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 				const repo = yield* LearningsRepo
 				return yield* repo
 					.learn(
-						payload.scope ?? 'shared',
+					payload.scope,
 						payload.trigger,
 						payload.learning,
 						payload.reason,
@@ -24,8 +24,8 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
 				return yield* repo.inject(
-					payload.scopes ?? ['shared'],
-					payload.context ?? '',
+					payload.scopes,
+					payload.context,
 					payload.limit,
 					payload.threshold,
 				)
@@ -42,8 +42,8 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 							: 0
 
 				return yield* repo.injectTrace(
-					payload.scopes ?? ['shared'],
-					payload.context ?? '',
+					payload.scopes,
+					payload.context,
 					payload.limit ?? 5,
 					Number.isFinite(threshold) ? threshold : 0,
 				)
@@ -52,7 +52,7 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 		.handle('query', ({ payload }) =>
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
-				return yield* repo.query(payload.scopes ?? ['shared'], payload.text, payload.limit)
+				return yield* repo.query(payload.scopes, payload.text, payload.limit)
 			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
 		.handle('getLearnings', ({ urlParams }) =>

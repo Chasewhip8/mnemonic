@@ -7,28 +7,28 @@ import { Authorization } from '../security'
 const LearnBody = Schema.Struct({
 	trigger: Schema.String,
 	learning: Schema.String,
-	scope: Schema.optional(Schema.String),
+	scope: Schema.String,
 	reason: Schema.optional(Schema.String),
 	source: Schema.optional(Schema.String),
 })
 
 const InjectBody = Schema.Struct({
 	context: Schema.String,
-	scopes: Schema.optional(Schema.Array(Schema.String)),
+	scopes: Schema.NonEmptyArray(Schema.String),
 	limit: Schema.optional(Schema.Number),
 	threshold: Schema.optional(Schema.Number),
 })
 
 const InjectTraceBody = Schema.Struct({
 	context: Schema.String,
-	scopes: Schema.optional(Schema.Array(Schema.String)),
+	scopes: Schema.NonEmptyArray(Schema.String),
 	limit: Schema.optional(Schema.Number),
 	threshold: Schema.optional(Schema.Number),
 })
 
 const QueryBody = Schema.Struct({
 	text: Schema.String,
-	scopes: Schema.optional(Schema.Array(Schema.String)),
+	scopes: Schema.NonEmptyArray(Schema.String),
 	limit: Schema.optional(Schema.Number),
 })
 

@@ -67,6 +67,19 @@ describe('validation errors', () => {
 		},
 		TEST_TIMEOUT_MS,
 	)
+	
+	it(
+		'POST /learn missing scope returns 400',
+		async () => {
+			const response = await httpJson(getServer().baseUrl, '/learn', {
+				method: 'POST',
+				body: { trigger: 'some-trigger', learning: 'some-learning' },
+			})
+
+			expect(response.status).toBe(400)
+		},
+		TEST_TIMEOUT_MS,
+	)
 
 	it(
 		'POST /inject empty body returns 400',
