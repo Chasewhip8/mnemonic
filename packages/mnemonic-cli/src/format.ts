@@ -142,13 +142,6 @@ export const formatStats = (stats: Stats): string => {
 	return `<stats learnings="${stats.totalLearnings}">\n${scopes}\n</stats>`
 }
 
-export const formatScopes = (scopes: ReadonlyArray<{ scope: string; count: number }>): string => {
-	if (scopes.length === 0) return '<scopes count="0" />'
-
-	const items = scopes.map((s) => xml`<scope name="${s.scope}" count="${s.count}" />`).join('\n')
-
-	return `<scopes count="${scopes.length}">\n${items}\n</scopes>`
-}
 
 export const formatDeleteSuccess = (id: string): string =>
 	xml`<result action="forget" id="${id}" />`
