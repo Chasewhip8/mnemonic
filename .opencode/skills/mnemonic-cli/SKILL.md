@@ -27,20 +27,20 @@ description: Use when working with mnemonic memory operations, mm commands, agen
 **`mm learn <trigger> <learning>`**
 Store a new memory.
 - `--confidence <float>` confidence score (0–1)
-- `--scope <str>` scope name
+- `--scope <str>` scope name **(required)**
 - `--reason <str>` reason for storing
 - `--source <str>` source attribution
 
 **`mm recall <context>`**
 Inject relevant memories for a context (fire-and-forget injection). Use when you want to prime a session with relevant memories.
-- `--scopes <csv>` comma-separated scope names
+- `--scopes <csv>` comma-separated scope names **(required)**
 - `--limit <int>` max memories to inject
 - `--threshold <float>` similarity threshold
 - `--trace` return debug info (candidates, scores, timing) instead of injecting
 
 **`mm query <text>`**
 Semantic search returning similarity-ranked results. Use when you want to search/browse memories explicitly. Different from `recall` (which injects; `query` returns results).
-- `--scopes <csv>` comma-separated scope names
+- `--scopes <csv>` comma-separated scope names **(required)**
 - `--limit <int>` max results
 
 **`mm list`**
@@ -50,6 +50,9 @@ List stored memories.
 
 **`mm forget <id>`**
 Delete a memory by ID. No extra options.
+
+**`mm rescope <id> <scope>`**
+Change a memory's scope. Prints the updated memory.
 
 **`mm prune`**
 Bulk delete memories. **Requires `--confirm` AND at least one filter.**
@@ -96,8 +99,8 @@ Remove stale/orphaned data. Requires authentication.
 
 | Flag | Commands |
 |------|----------|
-| `--scope` (singular) | `learn`, `list`, `prune`, `secret set`, `secret rm`, `secret list` |
-| `--scopes` (plural, csv) | `recall`, `query`, `secret get` |
+| `--scope` (singular, **required** for learn) | `learn`, `list`, `prune`, `secret set`, `secret rm`, `secret list` |
+| `--scopes` (plural, csv, **required** for recall/query) | `recall`, `query`, `secret get` |
 
 ## Output Format
 
