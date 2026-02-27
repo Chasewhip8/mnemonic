@@ -12,6 +12,32 @@ in {
       description = "Package that provides the mnemonic executable.";
     };
 
+    apiKey = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Optional API key passed to the service as API_KEY. This stores the key in the Nix store, so prefer environmentFile for secrets.";
+    };
+
+    cli = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install the mm CLI and configure it for this service.";
+      };
+
+      exportApiKey = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Export MNEMONIC_API_KEY for interactive shells when apiKey is set.";
+      };
+
+      package = lib.mkOption {
+        type = lib.types.package;
+        default = self.packages.${pkgs.system}.cli;
+        description = "Package that provides the mm executable.";
+      };
+    };
+
     port = lib.mkOption {
       type = lib.types.port;
       default = 8787;
@@ -27,6 +53,23 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !(cfg.cli.exportApiKey && cfg.apiKey == null);
+        message = "services.mnemonic.cli.exportApiKey requires services.mnemonic.apiKey to be set.";
+      }
+    ];
+
+    environment.systemPackages = lib.mkIf cfg.cli.enable [
+      cfg.cli.package
+    ];
+
+    environment.sessionVariables = lib.mkIf cfg.cli.enable ({
+      MNEMONIC_URL = "http://127.0.0.1:${toString cfg.port}";
+    } // lib.optionalAttrs (cfg.cli.exportApiKey && cfg.apiKey != null) {
+      MNEMONIC_API_KEY = cfg.apiKey;
+    });
+
     systemd.services.mnemonic = {
       description = "mnemonic memory server";
       wantedBy = [ "multi-user.target" ];
@@ -35,6 +78,8 @@ in {
 
       environment = {
         PORT = toString cfg.port;
+      } // lib.optionalAttrs (cfg.apiKey != null) {
+        API_KEY = cfg.apiKey;
       };
 
       serviceConfig = {

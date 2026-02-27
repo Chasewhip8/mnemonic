@@ -8,7 +8,6 @@ export {
 	InjectTraceResult,
 	Learning,
 	QueryResult,
-	Secret,
 	Stats,
 } from './domain'
 export {

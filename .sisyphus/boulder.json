@@ -1,9 +1,9 @@
 {
-  "active_plan": "/home/chase/mnemonic/.sisyphus/plans/mnemonic-cli-skill.md",
-  "started_at": "2026-02-25T23:58:41.837Z",
+  "active_plan": "/home/chase/mnemonic/.sisyphus/plans/remove-confidence.md",
+  "started_at": "2026-02-26T17:08:09.354Z",
   "session_ids": [
-    "ses_368c26970ffeftCpK91k1WxItH"
+    "ses_36513ea0cffe9iYzb58MHlIhyA"
   ],
-  "plan_name": "mnemonic-cli-skill",
+  "plan_name": "remove-confidence",
   "agent": "atlas"
 }

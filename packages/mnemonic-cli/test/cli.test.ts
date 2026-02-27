@@ -140,7 +140,6 @@ describe('CLI help and health', () => {
 				'prune',
 				'neighbors',
 				'stats',
-				'secret',
 				'health',
 				'cleanup',
 			]) {
@@ -306,20 +305,7 @@ describe('CLI learning commands', () => {
 	)
 })
 
-describe('CLI secret and auth behavior', () => {
-	it(
-		'secret set/get round-trip works',
-		async () => {
-			const setResult = await runCli(...cliArgs('secret', 'set', 'test-key', 'test-val'))
-			expect(setResult.exitCode).toBe(0)
-
-			const getResult = await runCli(...cliArgs('secret', 'get', 'test-key'))
-			expect(getResult.exitCode).toBe(0)
-			expect(getResult.stdout).toContain('test-val')
-		},
-		TEST_TIMEOUT_MS,
-	)
-
+describe('CLI auth behavior', () => {
 	it(
 		'cleanup without auth exits non-zero',
 		async () => {

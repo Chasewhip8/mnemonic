@@ -12,14 +12,6 @@ export class Learning extends Schema.Class<Learning>('Learning')({
 	recallCount: Schema.Number,
 }) {}
 
-export class Secret extends Schema.Class<Secret>('Secret')({
-	name: Schema.String,
-	value: Schema.String,
-	scope: Schema.String,
-	createdAt: Schema.String,
-	updatedAt: Schema.String,
-}) {}
-
 export class InjectResult extends Schema.Class<InjectResult>('InjectResult')({
 	learnings: Schema.Array(Learning),
 }) {}
@@ -61,6 +53,5 @@ const ScopeStats = Schema.Struct({
 
 export class Stats extends Schema.Class<Stats>('Stats')({
 	totalLearnings: Schema.Number,
-	totalSecrets: Schema.Number,
 	scopes: Schema.Array(ScopeStats),
 }) {}

@@ -96,15 +96,6 @@ client.{group}.{method}({
 | `getLearningNeighbors({ path })` | Find similar learnings |
 | `getStats()` | Get statistics |
 
-### `client.secrets.*`
-
-| Method | Description |
-|---|---|
-| `setSecret({ payload })` | Store a secret |
-| `getSecret({ path })` | Retrieve by name |
-| `deleteSecret({ path })` | Delete by name |
-| `listSecrets()` | List all secret names |
-
 ### `client.health.*`
 
 | Method | Description |
@@ -117,7 +108,6 @@ client.{group}.{method}({
 ```ts
 import {
   type Learning,
-  type Secret,
   type InjectResult,
   type InjectTraceResult,
   type QueryResult,

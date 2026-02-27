@@ -17,6 +17,5 @@ It exposes durable memory via REST with scoped recall.
 ## Core API surface
 
 - Memory: `/learn`, `/inject`, `/inject/trace`, `/query`, `/learnings`, `/learning/:id`, `/learning/:id/neighbors`, `/stats`, `DELETE /learning/:id`, `DELETE /learnings`
-- Secrets: `/secret`, `/secret/:name`, `/secrets`
 
 Learnings include `last_recalled_at`, `recall_count` for tracking. Bulk delete: `DELETE /learnings?not_recalled_in_days=90` or `?scope=shared` (requires at least one filter).

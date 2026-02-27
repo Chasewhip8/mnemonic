@@ -375,11 +375,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					run: (db) => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.learnings),
 				})
 
-				const secretCountResult = yield* database.withDb({
-					context: 'learnings.getStats.secretCount',
-					run: (db) => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.secrets),
-				})
-
 				const learningByScope = yield* database.withDb({
 					context: 'learnings.getStats.byScope',
 					run: (db) =>
@@ -394,7 +389,6 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 				return {
 					totalLearnings: Number(learningCountResult[0]?.count ?? 0),
-					totalSecrets: Number(secretCountResult[0]?.count ?? 0),
 					scopes: learningByScope.map((row) => ({
 						scope: row.scope,
 						count: Number(row.count ?? 0),

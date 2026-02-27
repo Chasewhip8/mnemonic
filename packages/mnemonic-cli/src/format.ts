@@ -3,7 +3,6 @@ import type {
 	InjectTraceResult,
 	Learning,
 	QueryResult,
-	Secret,
 	Stats,
 } from '../../mnemonic-client/src/index.ts'
 
@@ -144,14 +143,14 @@ export const formatNeighbors = (
 
 export const formatStats = (stats: Stats): string => {
 	if (stats.scopes.length === 0) {
-		return `<stats learnings="${stats.totalLearnings}" secrets="${stats.totalSecrets}" />`
+		return `<stats learnings="${stats.totalLearnings}" />`
 	}
 
 	const scopes = stats.scopes
 		.map((scope) => `<scope name="${escapeXml(scope.scope)}" count="${scope.count}" />`)
 		.join('\n')
 
-	return `<stats learnings="${stats.totalLearnings}" secrets="${stats.totalSecrets}">\n${scopes}\n</stats>`
+	return `<stats learnings="${stats.totalLearnings}">\n${scopes}\n</stats>`
 }
 
 export const formatDeleteSuccess = (id: string): string => `<result action="forget" id="${id}" />`
@@ -172,29 +171,6 @@ export const formatCleanup = (result: { deleted: number; reasons: readonly strin
 
 	const reasons = result.reasons.map((reason) => `<reason>${escapeXml(reason)}</reason>`).join('\n')
 	return `<result action="cleanup" deleted="${result.deleted}">\n${reasons}\n</result>`
-}
-
-export const formatSecret = (secret: { value: string }): string => secret.value
-
-export const formatSecretSet = (name: string): string =>
-	`<result action="secret_set" name="${escapeXml(name)}" />`
-
-export const formatSecretDelete = (name: string): string =>
-	`<result action="secret_rm" name="${escapeXml(name)}" />`
-
-export const formatSecretList = (secrets: readonly Secret[]): string => {
-	if (secrets.length === 0) {
-		return '<secrets count="0" />'
-	}
-
-	const rows = secrets
-		.map(
-			(secret) =>
-				`<secret name="${escapeXml(secret.name)}" scope="${escapeXml(secret.scope)}" updated="${secret.updatedAt}" />`,
-		)
-		.join('\n')
-
-	return `<secrets count="${secrets.length}">\n${rows}\n</secrets>`
 }
 
 export const formatHealth = (health: { status: string; service: string }): string =>

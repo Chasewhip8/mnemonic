@@ -15,6 +15,13 @@
       "when": 1772125846814,
       "tag": "0001_safe_kylun",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772212074596,
+      "tag": "0002_massive_human_fly",
+      "breakpoints": true
     }
   ]
 }

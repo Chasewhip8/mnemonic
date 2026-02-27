@@ -346,67 +346,16 @@ describe('learning endpoints', () => {
 					scope,
 				},
 			})
-			await httpJson(getPrimaryServer().baseUrl, '/secret', {
-				method: 'POST',
-				body: {
-					name: unique('secret-stats'),
-					value: unique('value-stats'),
-					scope,
-				},
-			})
-
 			const stats = await httpJson(getPrimaryServer().baseUrl, '/stats')
 			expect(stats.status).toBe(200)
 
 			const statsBody = asRecord(stats.body)
 			expect((statsBody.totalLearnings as number) >= 2).toBe(true)
-			expect((statsBody.totalSecrets as number) >= 1).toBe(true)
 
 			const scopes = asArray(statsBody.scopes).map((item) => asRecord(item))
 			const scopeRow = scopes.find((item) => item.scope === scope)
 			expect(scopeRow).toBeDefined()
 			expect(((scopeRow?.count as number) ?? 0) >= 2).toBe(true)
-		},
-		TEST_TIMEOUT_MS,
-	)
-})
-
-describe('secrets', () => {
-	it(
-		'secrets CRUD (set, get, delete)',
-		async () => {
-			const scope = memoryScope('scope-secrets')
-			const name = unique('secret-name')
-			const value = unique('secret-value')
-
-			const setSecret = await httpJson(getPrimaryServer().baseUrl, '/secret', {
-				method: 'POST',
-				body: { name, value, scope },
-			})
-			expect(setSecret.status).toBe(200)
-			expect(asRecord(setSecret.body).success).toBe(true)
-
-			const getSecret = await httpJson(
-				getPrimaryServer().baseUrl,
-				`/secret/${encodeURIComponent(name)}?scopes=${encodeURIComponent(scope)}`,
-			)
-			expect(getSecret.status).toBe(200)
-			expect(asRecord(getSecret.body).value).toBe(value)
-
-			const deleteSecret = await httpJson(
-				getPrimaryServer().baseUrl,
-				`/secret/${encodeURIComponent(name)}?scope=${encodeURIComponent(scope)}`,
-				{ method: 'DELETE' },
-			)
-			expect(deleteSecret.status).toBe(200)
-			expect(asRecord(deleteSecret.body).success).toBe(true)
-
-			const listSecrets = await httpJson(
-				getPrimaryServer().baseUrl,
-				`/secrets?scope=${encodeURIComponent(scope)}`,
-			)
-			expect(listSecrets.status).toBe(200)
-			expect(asArray(listSecrets.body).some((item) => asRecord(item).name === name)).toBe(false)
 		},
 		TEST_TIMEOUT_MS,
 	)
@@ -449,18 +398,6 @@ describe('health + auth', () => {
 					auth: false,
 				})
 				expect(stats.status).toBe(200)
-
-				const setSecret = await httpJson(bypassServer.baseUrl, '/secret', {
-					method: 'POST',
-					auth: false,
-					body: {
-						name: unique('bypass-secret'),
-						value: unique('bypass-value'),
-						scope: memoryScope('bypass-scope'),
-					},
-				})
-				expect(setSecret.status).toBe(200)
-				expect(asRecord(setSecret.body).success).toBe(true)
 			} finally {
 				await stopServer(bypassServer)
 				await removeDbArtifacts(bypassServer.dbPath)

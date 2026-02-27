@@ -5,11 +5,9 @@ import { Api } from './api'
 import { AppConfig } from './config'
 import { HealthHandlers } from './health/live'
 import { LearningsApiLive } from './learnings/live'
-import { SecretsApiLive } from './secrets/live'
 
 const ApiLive = HttpApiBuilder.api(Api).pipe(
 	Layer.provide(LearningsApiLive),
-	Layer.provide(SecretsApiLive),
 	Layer.provide(HealthHandlers),
 )
 
