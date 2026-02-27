@@ -100,8 +100,7 @@ in {
         User = "mnemonic";
         Group = "mnemonic";
         StateDirectory = "mnemonic";
-        RuntimeDirectory = "mnemonic";
-        RuntimeDirectoryPreserve = "restart";
+        CacheDirectory = "mnemonic";
         WorkingDirectory = "/var/lib/mnemonic";
         EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
       };
