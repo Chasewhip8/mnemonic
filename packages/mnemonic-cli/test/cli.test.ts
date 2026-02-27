@@ -186,7 +186,7 @@ describe('CLI learning commands', () => {
 	it(
 		'learn stores a learning',
 		async () => {
-			const result = await runCli(...cliArgs('learn', 'cli-test-trigger', 'cli-test-learning'))
+			const result = await runCli(...cliArgs('learn', '--scope', 'shared', 'cli-test-trigger', 'cli-test-learning'))
 			expect(result.exitCode).toBe(0)
 			expect(result.stdout).toContain('<learning id=')
 		},
@@ -229,7 +229,7 @@ describe('CLI learning commands', () => {
 			const trigger = unique('cli-query-sim-trigger')
 			const learning = unique('cli-query-sim-learning')
 
-			const learned = await runCli(...cliArgs('learn', trigger, learning))
+			const learned = await runCli(...cliArgs('learn', '--scope', 'shared', trigger, learning))
 			expect(learned.exitCode).toBe(0)
 
 			const queried = await runCli(...cliArgs('query', trigger))
@@ -255,7 +255,7 @@ describe('CLI learning commands', () => {
 			const trigger = unique('cli-recall-threshold-trigger')
 			const learning = unique('cli-recall-threshold-learning')
 
-			const learned = await runCli(...cliArgs('learn', trigger, learning))
+			const learned = await runCli(...cliArgs('learn', '--scope', 'shared', trigger, learning))
 			expect(learned.exitCode).toBe(0)
 
 			const recalled = await runCli(...cliArgs('recall', '--threshold', '2', trigger))

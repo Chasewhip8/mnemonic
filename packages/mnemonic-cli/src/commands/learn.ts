@@ -7,7 +7,7 @@ import { mn } from './root.ts'
 
 const trigger = Args.text({ name: 'trigger' })
 const learning = Args.text({ name: 'learning' })
-const scope = Options.text('scope').pipe(Options.withDescription('Scope to store the learning under'), Options.optional)
+const scope = Options.text('scope').pipe(Options.withDescription('Scope to store the learning under'))
 const reason = Options.text('reason').pipe(Options.optional)
 const source = Options.text('source').pipe(Options.optional)
 
@@ -25,7 +25,7 @@ export const learn = Command.make(
 			const payload = {
 				trigger,
 				learning,
-				...(Option.isSome(scope) ? { scope: Option.getOrUndefined(scope) } : {}),
+				scope,
 				...(Option.isSome(reason) ? { reason: Option.getOrUndefined(reason) } : {}),
 				...(Option.isSome(source) ? { source: Option.getOrUndefined(source) } : {}),
 			}
