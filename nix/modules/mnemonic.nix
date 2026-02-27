@@ -60,6 +60,15 @@ in {
       }
     ];
 
+    users.groups.mnemonic = {};
+
+    users.users.mnemonic = {
+      isSystemUser = true;
+      group = "mnemonic";
+      home = "/var/lib/mnemonic";
+      createHome = true;
+    };
+
     environment.systemPackages = lib.mkIf cfg.cli.enable [
       cfg.cli.package
     ];
@@ -87,7 +96,9 @@ in {
         ExecStart = "${cfg.package}/bin/mnemonic";
         Restart = "on-failure";
         RestartSec = 2;
-        DynamicUser = true;
+        DynamicUser = lib.mkForce false;
+        User = "mnemonic";
+        Group = "mnemonic";
         StateDirectory = "mnemonic";
         RuntimeDirectory = "mnemonic";
         RuntimeDirectoryPreserve = "restart";
