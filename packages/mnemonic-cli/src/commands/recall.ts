@@ -6,20 +6,16 @@ import { formatInjectResult, formatInjectTraceResult } from '../format.ts'
 import { mn } from './root.ts'
 
 const context = Args.text({ name: 'context' })
-const scopes = Options.text('scopes').pipe(Options.withDescription('Comma-separated list of scopes to search (e.g. "project,shared")'), Options.optional)
+const scopes = Options.text('scopes').pipe(Options.withDescription('Comma-separated list of scopes to search (e.g. "project,shared")'))
 const limit = Options.integer('limit').pipe(Options.optional)
 const trace = Options.boolean('trace').pipe(Options.withDefault(false))
 const threshold = Options.float('threshold').pipe(Options.withDescription('Similarity threshold from 0.0 to 1.0 (default: 0.3)'), Options.optional)
 
-const parseScopes = (value: Option.Option<string>): Array<string> | undefined =>
-	Option.match(value, {
-		onNone: () => undefined,
-		onSome: (raw) =>
-			raw
-				.split(',')
-				.map((scope) => scope.trim())
-				.filter((scope) => scope.length > 0),
-	})
+const parseScopes = (value: string): string[] =>
+	value
+		.split(',')
+		.map((scope) => scope.trim())
+		.filter((scope) => scope.length > 0)
 
 export const recall = Command.make(
 	'recall',
@@ -42,7 +38,7 @@ export const recall = Command.make(
 						urlParams: {},
 						payload: {
 							context,
-							scopes: parsedScopes,
+						scopes: parsedScopes as [string, ...string[]],
 							limit: Option.getOrUndefined(limit),
 							threshold: Option.getOrUndefined(threshold),
 						},
@@ -60,7 +56,7 @@ export const recall = Command.make(
 				const result = yield* client.learnings.inject({
 					payload: {
 						context,
-						scopes: parsedScopes,
+					scopes: parsedScopes as [string, ...string[]],
 						limit: Option.getOrUndefined(limit),
 						threshold: Option.getOrUndefined(threshold),
 					},

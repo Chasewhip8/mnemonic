@@ -10,7 +10,7 @@ const API_KEY = 'test-key'
 const STARTUP_TIMEOUT_MS = 120_000
 const TEST_TIMEOUT_MS = 240_000
 const REQUIRED_LD_LIBRARY_PATH = '/nix/store/j9nz3m8hqnyjjj5zxz5qvmd35g37rjyi-gcc-15.2.0-lib/lib'
-const SERVER_ROOT = '/home/chase/mnemonic'
+const SERVER_ROOT = '/home/chase/mnemonic-scope-improvements'
 
 const RUN_SUFFIX = `${Date.now()}-${process.pid}`
 const DB_PATH = `./data/test-cli-${RUN_SUFFIX}.db`
@@ -196,7 +196,7 @@ describe('CLI learning commands', () => {
 	it(
 		'recall works',
 		async () => {
-			const result = await runCli(...cliArgs('recall', 'cli-test'))
+			const result = await runCli(...cliArgs('recall', '--scopes', 'shared', 'cli-test'))
 			expect(result.exitCode).toBe(0)
 		},
 		TEST_TIMEOUT_MS,
@@ -205,7 +205,7 @@ describe('CLI learning commands', () => {
 	it(
 		'recall --trace includes trace metadata',
 		async () => {
-			const result = await runCli(...cliArgs('recall', '--trace', 'cli-test'))
+			const result = await runCli(...cliArgs('recall', '--trace', '--scopes', 'shared', 'cli-test'))
 			expect(result.exitCode).toBe(0)
 			expect(result.stdout.toLowerCase()).toContain('candidates')
 			expect(result.stdout.toLowerCase()).toContain('threshold')
@@ -217,7 +217,7 @@ describe('CLI learning commands', () => {
 	it(
 		'query works',
 		async () => {
-			const result = await runCli(...cliArgs('query', 'test'))
+			const result = await runCli(...cliArgs('query', '--scopes', 'shared', 'test'))
 			expect(result.exitCode).toBe(0)
 		},
 		TEST_TIMEOUT_MS,
@@ -232,7 +232,7 @@ describe('CLI learning commands', () => {
 			const learned = await runCli(...cliArgs('learn', '--scope', 'shared', trigger, learning))
 			expect(learned.exitCode).toBe(0)
 
-			const queried = await runCli(...cliArgs('query', trigger))
+			const queried = await runCli(...cliArgs('query', '--scopes', 'shared', trigger))
 			expect(queried.exitCode).toBe(0)
 			expect(queried.stdout).toContain(`<trigger>${trigger}</trigger>`)
 
@@ -258,7 +258,7 @@ describe('CLI learning commands', () => {
 			const learned = await runCli(...cliArgs('learn', '--scope', 'shared', trigger, learning))
 			expect(learned.exitCode).toBe(0)
 
-			const recalled = await runCli(...cliArgs('recall', '--threshold', '2', trigger))
+			const recalled = await runCli(...cliArgs('recall', '--scopes', 'shared', '--threshold', '2', trigger))
 			expect(recalled.exitCode).toBe(0)
 			expect(recalled.stdout).toContain('<recalled_memories />')
 		},
