@@ -4,14 +4,19 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    bun2nix = {
+      url = "github:nix-community/bun2nix?tag=2.0.8";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, bun2nix }:
     let
       eachSystem = flake-utils.lib.eachDefaultSystem (system:
         let
           pkgs = import nixpkgs {
             inherit system;
+            overlays = [ bun2nix.overlays.default ];
           };
 
           mnemonicPackage = pkgs.writeShellApplication {
@@ -54,34 +59,16 @@
             '';
           };
 
-          mnemonicCliPackage = pkgs.stdenv.mkDerivation {
+          mnemonicCliPackage = pkgs.bun2nix.mkDerivation {
             pname = "mm";
             version = "0.1.0";
             src = self;
-
-            nativeBuildInputs = [
-              pkgs.bun
-              pkgs.coreutils
-            ];
-
-            buildPhase = ''
-              runHook preBuild
-
-              export HOME="$TMPDIR"
-              export BUN_INSTALL_CACHE_DIR="$TMPDIR/.bun-install-cache"
-              bun install --frozen-lockfile --ignore-scripts
-              bun run --cwd packages/mnemonic-cli build:bin
-
-              runHook postBuild
-            '';
-
-            installPhase = ''
-              runHook preInstall
-
-              install -Dm755 packages/mnemonic-cli/dist/mm "$out/bin/mm"
-
-              runHook postInstall
-            '';
+            module = "packages/mnemonic-cli/src/main.ts";
+            packageJson = ./packages/mnemonic-cli/package.json;
+            bunInstallFlags = "--linker=hoisted";
+            bunDeps = pkgs.bun2nix.fetchBunDeps {
+              bunNix = ./bun.nix;
+            };
           };
         in {
           packages.default = mnemonicPackage;
