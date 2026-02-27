@@ -2,8 +2,15 @@
 	"name": "mnemonic-cli",
 	"version": "0.1.0",
 	"description": "CLI for mnemonic - persistent memory for agents",
+	"bin": {
+		"mm": "dist/mm"
+	},
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"start": "bun run src/main.ts",
+		"build:bin": "bun build --compile --outfile dist/mm src/main.ts",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome lint ."
 	},

@@ -54,44 +54,33 @@
             '';
           };
 
-          mnemonicCliPackage = pkgs.writeShellApplication {
-            name = "mm";
-            runtimeInputs = [
+          mnemonicCliPackage = pkgs.stdenv.mkDerivation {
+            pname = "mm";
+            version = "0.1.0";
+            src = self;
+
+            nativeBuildInputs = [
               pkgs.bun
               pkgs.coreutils
             ];
-            text = ''
-              set -euo pipefail
 
-              source_snapshot="${self}"
-              state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/mnemonic-cli"
-              app_dir="$state_dir/app"
-              bin_dir="$state_dir/bin"
-              marker_file="$app_dir/.mnemonic-source-store-path"
-              cli_binary="$bin_dir/mm"
+            buildPhase = ''
+              runHook preBuild
 
-              mkdir -p "$state_dir" "$bin_dir"
+              export HOME="$TMPDIR"
+              export BUN_INSTALL_CACHE_DIR="$TMPDIR/.bun-install-cache"
+              bun install --frozen-lockfile --ignore-scripts
+              bun run --cwd packages/mnemonic-cli build:bin
 
-              if [ ! -f "$marker_file" ] || [ "$(cat "$marker_file")" != "$source_snapshot" ]; then
-                rm -rf "$app_dir"
-                mkdir -p "$app_dir"
-                cp -R "$source_snapshot"/. "$app_dir"/
-                chmod -R u+w "$app_dir"
-                printf "%s" "$source_snapshot" > "$marker_file"
-                rm -f "$cli_binary"
-              fi
+              runHook postBuild
+            '';
 
-              cd "$app_dir"
+            installPhase = ''
+              runHook preInstall
 
-              if [ ! -d node_modules ]; then
-                HOME="$state_dir" bun install --frozen-lockfile --production
-              fi
+              install -Dm755 packages/mnemonic-cli/dist/mm "$out/bin/mm"
 
-              if [ ! -x "$cli_binary" ]; then
-                HOME="$state_dir" bun build --compile --outfile "$cli_binary" packages/mnemonic-cli/src/main.ts
-              fi
-
-              exec "$cli_binary" "$@"
+              runHook postInstall
             '';
           };
         in {
