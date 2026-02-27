@@ -23,4 +23,4 @@ export const health = Command.make('health', {}, () =>
 			Effect.provide(layer),
 		)
 	}),
-)
+).pipe(Command.withDescription('Check if the mnemonic server is reachable'))

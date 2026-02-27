@@ -6,7 +6,7 @@ import { formatNeighbors } from '../format.ts'
 import { mn } from './root.ts'
 
 const id = Args.text({ name: 'id' })
-const threshold = Options.float('threshold').pipe(Options.optional)
+const threshold = Options.float('threshold').pipe(Options.withDescription('Similarity threshold from 0.0 to 1.0 (default: 0.85)'), Options.optional)
 const limit = Options.integer('limit').pipe(Options.optional)
 
 export const neighbors = Command.make(
@@ -46,4 +46,4 @@ export const neighbors = Command.make(
 				),
 			)
 		}),
-)
+).pipe(Command.withDescription('Find learnings similar to a given learning by ID'))

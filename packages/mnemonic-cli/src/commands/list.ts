@@ -5,7 +5,7 @@ import { formatApiError, makeClientLayer } from '../client.ts'
 import { formatLearningList } from '../format.ts'
 import { mn } from './root.ts'
 
-const scope = Options.text('scope').pipe(Options.optional)
+const scope = Options.text('scope').pipe(Options.withDescription('Filter by scope'), Options.optional)
 const limit = Options.integer('limit').pipe(Options.optional)
 
 export const list = Command.make('list', { scope, limit }, ({ scope, limit }) =>
@@ -41,4 +41,4 @@ export const list = Command.make('list', { scope, limit }, ({ scope, limit }) =>
 			),
 		)
 	}),
-)
+).pipe(Command.withDescription('List stored learnings, optionally filtered by scope'))

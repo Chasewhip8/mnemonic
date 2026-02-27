@@ -33,4 +33,4 @@ export const stats = Command.make('stats', {}, () =>
 			),
 		)
 	}),
-)
+).pipe(Command.withDescription('Show learning counts and scope breakdown'))

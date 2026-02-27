@@ -23,4 +23,4 @@ export const cleanup = Command.make('cleanup', {}, () =>
 			Effect.provide(layer),
 		)
 	}),
-)
+).pipe(Command.withDescription('Remove old or low-value learnings automatically'))

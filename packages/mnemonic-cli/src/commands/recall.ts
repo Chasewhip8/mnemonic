@@ -6,10 +6,10 @@ import { formatInjectResult, formatInjectTraceResult } from '../format.ts'
 import { mn } from './root.ts'
 
 const context = Args.text({ name: 'context' })
-const scopes = Options.text('scopes').pipe(Options.optional)
+const scopes = Options.text('scopes').pipe(Options.withDescription('Comma-separated list of scopes to search (e.g. "project,shared")'), Options.optional)
 const limit = Options.integer('limit').pipe(Options.optional)
 const trace = Options.boolean('trace').pipe(Options.withDefault(false))
-const threshold = Options.float('threshold').pipe(Options.optional)
+const threshold = Options.float('threshold').pipe(Options.withDescription('Similarity threshold from 0.0 to 1.0 (default: 0.3)'), Options.optional)
 
 const parseScopes = (value: Option.Option<string>): Array<string> | undefined =>
 	Option.match(value, {
@@ -81,4 +81,4 @@ export const recall = Command.make(
 				),
 			)
 		}),
-)
+).pipe(Command.withDescription('Retrieve relevant memories for a given context'))

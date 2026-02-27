@@ -7,7 +7,7 @@ import { mn } from './root.ts'
 
 const confirm = Options.boolean('confirm').pipe(Options.withDefault(false))
 const notRecalledInDays = Options.integer('not-recalled-in-days').pipe(Options.optional)
-const scope = Options.text('scope').pipe(Options.optional)
+const scope = Options.text('scope').pipe(Options.withDescription('Filter by scope'), Options.optional)
 
 export const prune = Command.make(
 	'prune',
@@ -57,4 +57,4 @@ export const prune = Command.make(
 				),
 			)
 		}),
-)
+).pipe(Command.withDescription('Bulk delete learnings by scope or staleness'))

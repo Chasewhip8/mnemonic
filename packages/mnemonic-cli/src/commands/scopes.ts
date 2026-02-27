@@ -1,13 +1,11 @@
-import { Args, Command } from '@effect/cli'
+import { Command } from '@effect/cli'
 import { Console, Effect, Option } from 'effect'
 import { MnemonicClient } from '../../../mnemonic-client/src/index.ts'
 import { formatApiError, makeClientLayer } from '../client.ts'
-import { formatDeleteSuccess } from '../format.ts'
+import { formatScopes } from '../format.ts'
 import { mn } from './root.ts'
 
-const id = Args.text({ name: 'id' })
-
-export const forget = Command.make('forget', { id }, ({ id }) =>
+export const scopes = Command.make('scopes', {}, () =>
 	Effect.flatMap(mn, (globals) => {
 		const url = Option.getOrUndefined(globals.url)
 		const apiKey = Option.getOrUndefined(globals.apiKey)
@@ -18,14 +16,14 @@ export const forget = Command.make('forget', { id }, ({ id }) =>
 
 		return Effect.gen(function* () {
 			const client = yield* MnemonicClient
-			const result = yield* client.learnings.deleteLearning({ path: { id } })
+			const result = yield* client.learnings.getStats()
 
 			if (globals.json) {
-				yield* Console.log(JSON.stringify(result, null, 2))
+				yield* Console.log(JSON.stringify(result.scopes, null, 2))
 				return
 			}
 
-			yield* Console.log(formatDeleteSuccess(id))
+			yield* Console.log(formatScopes(result.scopes))
 		}).pipe(
 			Effect.provide(clientLayer),
 			Effect.catchAll((error) =>
@@ -35,4 +33,4 @@ export const forget = Command.make('forget', { id }, ({ id }) =>
 			),
 		)
 	}),
-).pipe(Command.withDescription('Delete a single learning by ID'))
+).pipe(Command.withDescription('List all scopes and their learning counts'))
