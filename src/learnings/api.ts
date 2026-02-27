@@ -126,4 +126,12 @@ export class LearningsApi extends HttpApiGroup.make('learnings')
 			.addError(EmbeddingError),
 	)
 	.add(HttpApiEndpoint.get('getStats', '/stats').addSuccess(Stats).addError(DatabaseError))
+	.add(
+		HttpApiEndpoint.patch('updateScope', '/learning/:id/scope')
+			.setPath(Schema.Struct({ id: Schema.String }))
+			.setPayload(Schema.Struct({ scope: Schema.NonEmptyString }))
+			.addSuccess(Learning)
+			.addError(NotFoundError)
+			.addError(DatabaseError),
+	)
 	.middleware(Authorization) {}

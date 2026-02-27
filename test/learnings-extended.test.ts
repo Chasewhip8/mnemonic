@@ -360,3 +360,40 @@ describe('recall tracking', () => {
 		TEST_TIMEOUT_MS,
 	)
 })
+
+describe('rescope endpoint', () => {
+	it(
+		'PATCH /learning/:id/scope changes scope and returns updated learning',
+		async () => {
+			const id = await learnMemory({
+				scope: 'shared',
+				trigger: unique('trigger-rescope'),
+				learning: unique('learning-rescope'),
+			})
+
+			const patched = await httpJson(getServer().baseUrl, `/learning/${id}/scope`, {
+				method: 'PATCH',
+				body: { scope: 'agent:test' },
+			})
+
+			expect(patched.status).toBe(200)
+			const body = asRecord(patched.body)
+			expect(body.id).toBe(id)
+			expect(body.scope).toBe('agent:test')
+		},
+		TEST_TIMEOUT_MS,
+	)
+
+	it(
+		'PATCH /learning/nonexistent/scope returns 404',
+		async () => {
+			const patched = await httpJson(getServer().baseUrl, '/learning/nonexistent-id-xyz/scope', {
+				method: 'PATCH',
+				body: { scope: 'shared' },
+			})
+
+			expect(patched.status).toBe(404)
+		},
+		TEST_TIMEOUT_MS,
+	)
+})

@@ -1,7 +1,7 @@
 import { HttpApiBuilder } from '@effect/platform'
 import { Effect } from 'effect'
 import { Api } from '../api'
-import { DatabaseError, ValidationError } from '../errors'
+import { DatabaseError, NotFoundError, ValidationError } from '../errors'
 import { LearningsRepo } from './repo'
 
 export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers) =>
@@ -10,25 +10,14 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
 				return yield* repo
-					.learn(
-					payload.scope,
-						payload.trigger,
-						payload.learning,
-						payload.reason,
-						payload.source,
-					)
+					.learn(payload.scope, payload.trigger, payload.learning, payload.reason, payload.source)
 					.pipe(Effect.mapError((cause) => new DatabaseError({ cause })))
 			}),
 		)
 		.handle('inject', ({ payload }) =>
 			Effect.gen(function* () {
 				const repo = yield* LearningsRepo
-				return yield* repo.inject(
-					payload.scopes,
-					payload.context,
-					payload.limit,
-					payload.threshold,
-				)
+				return yield* repo.inject(payload.scopes, payload.context, payload.limit, payload.threshold)
 			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
 		)
 		.handle('injectTrace', ({ payload, urlParams }) =>
@@ -102,6 +91,16 @@ export const LearningsApiLive = HttpApiBuilder.group(Api, 'learnings', (handlers
 				yield* repo.deleteLearning(path.id)
 				return { success: true as const }
 			}).pipe(Effect.mapError((cause) => new DatabaseError({ cause }))),
+		)
+		.handle('updateScope', ({ path, payload }) =>
+			Effect.gen(function* () {
+				const repo = yield* LearningsRepo
+				return yield* repo.updateScope(path.id, payload.scope)
+			}).pipe(
+				Effect.mapError((cause) =>
+					cause instanceof NotFoundError ? cause : new DatabaseError({ cause }),
+				),
+			),
 		)
 		.handle('getLearningNeighbors', ({ path, urlParams }) =>
 			Effect.gen(function* () {

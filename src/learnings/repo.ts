@@ -10,6 +10,7 @@ import * as schema from '../database/schema'
 import type { LearningRow } from '../database/types'
 import { Learning } from '../domain'
 import { EmbeddingService } from '../embeddings'
+import { NotFoundError } from '../errors'
 
 type DeleteLearningsFilters = {
 	not_recalled_in_days?: number
@@ -86,12 +87,11 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			threshold: number = 0.3,
 		) =>
 			Effect.gen(function* () {
-
 				const embedding = yield* embeddings.embed(context)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const rows = yield* database.withDb({
 					context: 'learnings.inject.search',
-				run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], limit),
+					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], limit),
 				})
 
 				const learnings = rows
@@ -136,14 +136,12 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			const startTime = Date.now()
 
 			return Effect.gen(function* () {
-
 				const embedding = yield* embeddings.embed(context)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const candidateLimit = Math.max(limit * 3, 20)
 				const rows = yield* database.withDb({
 					context: 'learnings.injectTrace.search',
-					run: (db) =>
-					queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], candidateLimit),
+					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], candidateLimit),
 				})
 
 				const byId = new Map<string, Learning>()
@@ -191,12 +189,11 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 
 		const query = (scopes: ReadonlyArray<string>, text: string, limit: number = 10) =>
 			Effect.gen(function* () {
-
 				const embedding = yield* embeddings.embed(text)
 				const embeddingJson = yield* Schema.encode(EmbeddingJson)(embedding).pipe(Effect.orDie) // encoding Array<number> to JSON never fails
 				const rows = yield* database.withDb({
 					context: 'learnings.query.search',
-				run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], limit),
+					run: (db) => queryLearningsByEmbeddingRaw(db, embeddingJson, [...scopes], limit),
 				})
 
 				const entries = rows
@@ -338,6 +335,52 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				return { deleted: ids.length, ids }
 			})
 
+		const updateScope = (id: string, scope: string) =>
+			Effect.gen(function* () {
+				const existing = yield* database.withDb({
+					context: 'learnings.updateScope.exists',
+					run: (db) =>
+						db
+							.select({ id: schema.learnings.id })
+							.from(schema.learnings)
+							.where(eq(schema.learnings.id, id))
+							.limit(1),
+				})
+
+				if (existing.length === 0) {
+					return yield* new NotFoundError({ message: `Learning ${id} not found` })
+				}
+
+				yield* database.withDb({
+					context: 'learnings.updateScope.update',
+					run: (db) =>
+						db.update(schema.learnings).set({ scope }).where(eq(schema.learnings.id, id)),
+				})
+
+				const rows = yield* database.withDb({
+					context: 'learnings.updateScope.fetch',
+					run: (db) =>
+						db.select().from(schema.learnings).where(eq(schema.learnings.id, id)).limit(1),
+				})
+
+				const row = rows[0]
+				if (row === undefined) {
+					return yield* new NotFoundError({ message: `Learning ${id} not found after update` })
+				}
+
+				return convertSqlLearningRow({
+					id: row.id,
+					trigger: row.trigger,
+					learning: row.learning,
+					reason: row.reason,
+					source: row.source,
+					scope: row.scope,
+					created_at: row.createdAt,
+					last_recalled_at: row.lastRecalledAt,
+					recall_count: row.recallCount,
+				})
+			})
+
 		const getStats = () =>
 			Effect.gen(function* () {
 				const learningCountResult = yield* database.withDb({
@@ -373,6 +416,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			query,
 			getLearningNeighbors,
 			getLearnings,
+			updateScope,
 			deleteLearning,
 			deleteLearnings,
 			getStats,
