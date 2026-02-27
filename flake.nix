@@ -24,18 +24,21 @@
             runtimeInputs = [
               pkgs.bun
               pkgs.coreutils
+              pkgs.stdenv.cc.cc.lib
             ];
             text = ''
               set -euo pipefail
 
               source_snapshot="${self}"
               state_dir="''${STATE_DIRECTORY:-/var/lib/mnemonic}"
-              app_dir="$state_dir/app"
-              marker_file="$app_dir/.mnemonic-source-store-path"
+              runtime_dir="''${RUNTIME_DIRECTORY:-/run/mnemonic}"
+              app_dir="$runtime_dir/app"
+              marker_file="$state_dir/.mnemonic-source-store-path"
 
               mkdir -p "$state_dir"
+              mkdir -p "$runtime_dir"
 
-              if [ ! -f "$marker_file" ] || [ "$(cat "$marker_file")" != "$source_snapshot" ]; then
+              if [ ! -d "$app_dir/src" ] || [ ! -f "$marker_file" ] || [ "$(cat "$marker_file")" != "$source_snapshot" ]; then
                 rm -rf "$app_dir"
                 mkdir -p "$app_dir"
                 cp -R "$source_snapshot"/. "$app_dir"/
@@ -53,6 +56,8 @@
               export DB_PATH="''${DB_PATH:-$state_dir/mnemonic.db}"
               export HF_HOME="''${HF_HOME:-$state_dir/.cache/huggingface}"
               export TRANSFORMERS_CACHE="''${TRANSFORMERS_CACHE:-$HF_HOME}"
+              export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}:''${LD_LIBRARY_PATH:-}"
+              export NIX_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
               mkdir -p "$(dirname "$DB_PATH")" "$HF_HOME"
 
               exec bun run src/index.ts

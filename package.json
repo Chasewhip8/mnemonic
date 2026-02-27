@@ -6,7 +6,7 @@
 	"scripts": {
 		"human:dev": "bun run src/index.ts --watch",
 		"start": "bun run src/index.ts",
-		"prepare": "effect-language-service patch",
+		"prepare": "command -v effect-language-service >/dev/null 2>&1 && effect-language-service patch || true",
 		"db:generate": "drizzle-kit generate --config src/database/drizzle.config.ts",
 		"lint": "biome lint .",
 		"format": "biome format --write .",

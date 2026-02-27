@@ -89,6 +89,8 @@ in {
         RestartSec = 2;
         DynamicUser = true;
         StateDirectory = "mnemonic";
+        RuntimeDirectory = "mnemonic";
+        RuntimeDirectoryPreserve = "restart";
         WorkingDirectory = "/var/lib/mnemonic";
         EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
       };
