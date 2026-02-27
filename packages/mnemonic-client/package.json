@@ -3,20 +3,18 @@
 	"version": "0.2.0",
 	"description": "Thin client for mnemonic - persistent memory for agents",
 	"main": "dist/client.js",
-	"module": "dist/client.mjs",
 	"types": "dist/client.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/client.d.ts",
-			"import": "./dist/client.mjs",
-			"require": "./dist/client.js"
+			"import": "./dist/client.js"
 		}
 	},
 	"files": [
 		"dist"
 	],
 	"scripts": {
-		"build": "tsup ../../src/client.ts --format cjs,esm --dts --clean --outDir dist",
+		"build": "rm -rf dist && bun build ../../src/client.ts --outdir dist --format esm --external effect --external '@effect/platform' --external '@effect/platform/*' && bunx tsc --emitDeclarationOnly --declaration --outDir dist --moduleResolution bundler --module ESNext --target ES2020 --strict --skipLibCheck ../../src/client.ts",
 		"test": "vitest",
 		"lint": "tsc --noEmit",
 		"prepublishOnly": "bun run lint && bun run test && bun run build"
@@ -37,7 +35,6 @@
 	},
 	"homepage": "https://mnemonic.coey.dev",
 	"devDependencies": {
-		"tsup": "^8.0.0",
 		"typescript": "^5.4.0",
 		"@types/bun": "latest"
 	},

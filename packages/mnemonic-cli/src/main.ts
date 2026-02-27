@@ -1,4 +1,4 @@
-import { Command } from '@effect/cli'
+import { Command, ValidationError } from '@effect/cli'
 // Import directly from subpaths to avoid @effect/cluster peer dep mismatch in platform-bun index
 import { layer as BunContextLayer } from '@effect/platform-bun/BunContext'
 import { runMain } from '@effect/platform-bun/BunRuntime'
@@ -32,4 +32,11 @@ const app = mn.pipe(
 
 const cli = Command.run(app, { name: 'mn', version: '0.1.0' })
 
-cli(process.argv).pipe(Effect.provide(BunContextLayer), runMain)
+cli(process.argv).pipe(
+	Effect.catchIf(
+		ValidationError.isValidationError,
+		() => Effect.sync(() => process.exit(1)),
+	),
+	Effect.provide(BunContextLayer),
+	runMain,
+)

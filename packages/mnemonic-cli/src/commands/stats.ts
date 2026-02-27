@@ -16,13 +16,7 @@ export const stats = Command.make('stats', {}, () =>
 
 		return Effect.gen(function* () {
 			const client = yield* MnemonicClient
-			const result = yield* client.learnings
-				.getStats()
-				.pipe(
-					Effect.catchAll((error) =>
-						Console.error(formatApiError(error, url)).pipe(Effect.andThen(Effect.fail(error))),
-					),
-				)
+			const result = yield* client.learnings.getStats()
 
 			if (globals.json) {
 				yield* Console.log(JSON.stringify(result, null, 2))
@@ -30,6 +24,13 @@ export const stats = Command.make('stats', {}, () =>
 			}
 
 			yield* Console.log(formatStats(result))
-		}).pipe(Effect.provide(clientLayer))
+		}).pipe(
+			Effect.provide(clientLayer),
+			Effect.catchAll((error) =>
+				Console.error(formatApiError(error, url)).pipe(
+					Effect.andThen(Effect.sync(() => process.exit(1))),
+				),
+			),
+		)
 	}),
 )

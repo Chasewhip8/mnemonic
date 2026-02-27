@@ -19,18 +19,12 @@ export const list = Command.make('list', { scope, limit }, ({ scope, limit }) =>
 
 		return Effect.gen(function* () {
 			const client = yield* MnemonicClient
-			const result = yield* client.learnings
-				.getLearnings({
-					urlParams: {
-						scope: Option.getOrUndefined(scope),
-						limit: Option.getOrUndefined(limit),
-					},
-				})
-				.pipe(
-					Effect.catchAll((error) =>
-						Console.error(formatApiError(error, url)).pipe(Effect.andThen(Effect.fail(error))),
-					),
-				)
+			const result = yield* client.learnings.getLearnings({
+				urlParams: {
+					scope: Option.getOrUndefined(scope),
+					limit: Option.getOrUndefined(limit),
+				},
+			})
 
 			if (globals.json) {
 				yield* Console.log(JSON.stringify(result, null, 2))
@@ -38,6 +32,13 @@ export const list = Command.make('list', { scope, limit }, ({ scope, limit }) =>
 			}
 
 			yield* Console.log(formatLearningList(result))
-		}).pipe(Effect.provide(clientLayer))
+		}).pipe(
+			Effect.provide(clientLayer),
+			Effect.catchAll((error) =>
+				Console.error(formatApiError(error, url)).pipe(
+					Effect.andThen(Effect.sync(() => process.exit(1))),
+				),
+			),
+		)
 	}),
 )

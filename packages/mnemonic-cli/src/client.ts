@@ -1,12 +1,5 @@
 import { ConfigProvider, Layer } from 'effect'
-import {
-	DatabaseError,
-	EmbeddingError,
-	MnemonicClient,
-	NotFoundError,
-	Unauthorized,
-	ValidationError,
-} from '../../mnemonic-client/src/index.ts'
+import { MnemonicClient } from '../../mnemonic-client/src/index.ts'
 
 export const makeClientLayer = (opts: { url?: string; apiKey?: string | undefined }) => {
 	const map = new Map<string, string>()
@@ -20,32 +13,42 @@ export const makeClientLayer = (opts: { url?: string; apiKey?: string | undefine
 	return MnemonicClient.Default.pipe(Layer.provide(Layer.setConfigProvider(overrideProvider)))
 }
 
+const hasTag = (error: unknown): error is { readonly _tag: string } =>
+	typeof error === 'object' && error !== null && '_tag' in error
+
+const hasMessage = (error: unknown): error is { readonly message: string } =>
+	typeof error === 'object' && error !== null && 'message' in error && typeof (error as Record<string, unknown>).message === 'string'
+
+const isConnectionError = (error: unknown, url?: string): boolean => {
+	if (!(error instanceof Error)) return false
+	const msg = error.message
+	return (
+		msg.includes('ECONNREFUSED') ||
+		msg.includes('fetch') ||
+		(url !== undefined && msg.includes(url))
+	)
+}
+
 export const formatApiError = (error: unknown, url?: string): string => {
-	if (error instanceof Unauthorized) {
-		return 'Error: Authentication failed. Check --api-key or MNEMONIC_API_KEY.'
+	if (isConnectionError(error, url)) {
+		return `Error: Could not connect to ${url ?? 'server'}`
 	}
-	if (error instanceof NotFoundError) {
-		return `Error: ${error.message}`
+
+	if (!hasTag(error)) {
+		return error instanceof Error ? `Error: ${error.message}` : 'Error: An unexpected error occurred'
 	}
-	if (error instanceof ValidationError) {
-		return `Error: ${error.message}`
+
+	switch (error._tag) {
+		case 'Unauthorized':
+			return 'Error: Authentication failed. Check --api-key or MNEMONIC_API_KEY.'
+		case 'NotFoundError':
+		case 'ValidationError':
+			return `Error: ${hasMessage(error) ? error.message : error._tag}`
+		case 'DatabaseError':
+			return 'Error: Database error'
+		case 'EmbeddingError':
+			return 'Error: Embedding generation failed'
+		default:
+			return `Error: ${hasMessage(error) ? error.message : error._tag}`
 	}
-	if (error instanceof DatabaseError) {
-		return 'Error: Database error'
-	}
-	if (error instanceof EmbeddingError) {
-		return 'Error: Embedding generation failed'
-	}
-	// Connection/fetch errors
-	if (error instanceof Error) {
-		const msg = error.message
-		if (
-			msg.includes('ECONNREFUSED') ||
-			msg.includes('fetch') ||
-			(url !== undefined && msg.includes(url))
-		) {
-			return `Error: Could not connect to ${url ?? 'server'}`
-		}
-	}
-	return `Error: ${String(error)}`
 }

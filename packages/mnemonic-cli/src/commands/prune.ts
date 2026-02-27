@@ -24,31 +24,23 @@ export const prune = Command.make(
 			return Effect.gen(function* () {
 				if (!confirm) {
 					yield* Console.error('Error: Bulk delete requires --confirm flag')
-					return yield* Effect.fail(new Error('Bulk delete requires --confirm flag'))
+					return yield* Effect.sync(() => process.exit(1))
 				}
 
 				if (Option.isNone(notRecalledInDays) && Option.isNone(scope)) {
 					yield* Console.error(
-					'Error: At least one filter required (--not-recalled-in-days or --scope)',
+						'Error: At least one filter required (--not-recalled-in-days or --scope)',
 					)
-					return yield* Effect.fail(
-						new Error('At least one filter required (--not-recalled-in-days or --scope)'),
-					)
+					return yield* Effect.sync(() => process.exit(1))
 				}
 
 				const client = yield* MnemonicClient
-				const result = yield* client.learnings
-					.deleteLearnings({
-						urlParams: {
+				const result = yield* client.learnings.deleteLearnings({
+					urlParams: {
 						not_recalled_in_days: Option.getOrUndefined(notRecalledInDays),
-							scope: Option.getOrUndefined(scope),
-						},
-					})
-					.pipe(
-						Effect.catchAll((error) =>
-							Console.error(formatApiError(error, url)).pipe(Effect.andThen(Effect.fail(error))),
-						),
-					)
+						scope: Option.getOrUndefined(scope),
+					},
+				})
 
 				if (globals.json) {
 					yield* Console.log(JSON.stringify(result, null, 2))
@@ -56,6 +48,13 @@ export const prune = Command.make(
 				}
 
 				yield* Console.log(formatDeleteResult(result))
-			}).pipe(Effect.provide(clientLayer))
+			}).pipe(
+				Effect.provide(clientLayer),
+				Effect.catchAll((error) =>
+					Console.error(formatApiError(error, url)).pipe(
+						Effect.andThen(Effect.sync(() => process.exit(1))),
+					),
+				),
+			)
 		}),
 )
