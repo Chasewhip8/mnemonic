@@ -75,9 +75,14 @@
               bunNix = ./bun.nix;
             };
           };
+
+          skillsPackage = pkgs.runCommand "mnemonic-skills" {} ''
+            cp -r ${self}/.opencode/skills $out
+          '';
         in {
           packages.default = mnemonicPackage;
           packages.cli = mnemonicCliPackage;
+          packages.skills = skillsPackage;
 
           apps.default = {
             type = "app";
@@ -109,5 +114,6 @@
     in
     eachSystem // {
       nixosModules.default = import ./nix/modules/mnemonic.nix { inherit self; };
+      homeModules.default = import ./nix/modules/home.nix { inherit self; };
     };
 }

@@ -17,7 +17,7 @@ You have access to `mm`, a CLI for durable memory. Use it to persist and retriev
 
 **Store a memory (one fact/decision per entry; exactly one scope):**
 ```bash
-mm learn "<trigger>" "<knowledge>" --scope <scope>
+mm learn --scope <scope> "<trigger>" "<knowledge>"
 ````
 
 * `trigger`: the situation where this should resurface (semantic search key)
@@ -27,7 +27,7 @@ mm learn "<trigger>" "<knowledge>" --scope <scope>
 **Retrieve relevant memories (inject into context; multiple scopes allowed):**
 
 ```bash
-mm recall "<context>" --scopes <scope1>,<scope2>,...
+mm recall --scopes <scope1>,<scope2>,... "<context>"
 ```
 
 * `context`: what you’re doing right now; include key nouns (repo/service/feature/error)
@@ -89,18 +89,19 @@ Recalled memory is **context**, not authority.
 ```bash
 # Session start (or when switching tasks): recall once with a specific context string
 # Include only scopes you can name (omit session scope if you don't have the ID).
-mm recall "working on <project>/<repo>: <task>; current goal: <goal>" \
-  --scopes session:<session_id>,agent:<agent_name>,shared
+mm recall --scopes session:<session_id>,agent:<agent_name>,shared \
+  "working on <project>/<repo>: <task>; current goal: <goal>"
 
 # Durable decision / rationale (agent-scoped)
-mm learn "why we chose X over Y in <component>" \
-  "Chose X because <reason>; Y failed due to <constraint>. Valid as of <YYYY-MM-DD>." \
-  --scope agent:<agent_name>
+mm learn --scope agent:<agent_name> \
+  "why we chose X over Y in <component>" \
+  "Chose X because <reason>; Y failed due to <constraint>. Valid as of <YYYY-MM-DD>."
 
 # Temporary blocker / status (session-scoped)
-mm learn "current blocker for <task>" \
-  "Blocked by <blocker>. Latest status: <status>; tentative next step: <next_action>." \
-  --scope session:<session_id>
+mm learn --scope session:<session_id> \
+  "current blocker for <task>" \
+  "Blocked by <blocker>. Latest status: <status>; tentative next step: <next_action>."
+  
 ```
 
 ## Trigger writing rules
