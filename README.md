@@ -36,11 +36,17 @@ nix run .#mm -- <command>
 
 ### Install agent skills globally
 
+```
+mm install-skill
+```
+
+or manually:
+
 ```sh
 cp -r .opencode/skills/* ~/.agents/skills/
 ```
 
-Makes all mnemonic skills available to any agent via `~/.agents/skills/`.
+Installs mnemonic agent skills to `~/.agents/skills/`.
 
 ### NixOS module
 

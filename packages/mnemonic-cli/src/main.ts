@@ -6,6 +6,7 @@ import { Effect } from 'effect'
 import { cleanup } from './commands/cleanup.ts'
 import { forget } from './commands/forget.ts'
 import { health } from './commands/health.ts'
+import { installSkill } from './commands/install-skill.ts'
 import { learn } from './commands/learn.ts'
 import { list } from './commands/list.ts'
 import { neighbors } from './commands/neighbors.ts'
@@ -29,6 +30,7 @@ const app = mn.pipe(
 		stats,
 		health,
 		cleanup,
+		installSkill,
 	]),
 )
 
