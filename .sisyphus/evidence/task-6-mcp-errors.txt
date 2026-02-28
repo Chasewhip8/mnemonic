@@ -1,6 +1,0 @@
-bun -e "...parseMcpError checks..."
-
-invalid_jsonrpc {"code":-32600,"message":"Invalid Request - must be JSON-RPC 2.0"}
-unknown_method {"code":-32601,"message":"Method not found: unknown/method"}
-unknown_tool {"code":-32603,"message":"Unknown tool: nonexistent_tool"}
-missing_tool_name {"code":-32603,"message":"Tool name is required"}

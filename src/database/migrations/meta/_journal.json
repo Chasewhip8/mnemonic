@@ -22,6 +22,13 @@
       "when": 1772212074596,
       "tag": "0002_massive_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772237747417,
+      "tag": "0003_shiny_red_wolf",
+      "breakpoints": true
     }
   ]
 }

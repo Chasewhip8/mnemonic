@@ -1,0 +1,1 @@
+ALTER TABLE `learnings` ADD `deleted_at` text;

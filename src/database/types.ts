@@ -10,6 +10,7 @@ export type LearningRow = {
 	created_at: string
 	last_recalled_at: string | null
 	recall_count: number | null
+	deleted_at: string | null
 	distance?: number // only present in vector distance queries
 }
 

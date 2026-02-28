@@ -1,3 +1,0 @@
-$ tsc --noEmit
-src/learnings/live.ts(27,28): error TS2339: Property 'format' does not exist on type '{ readonly scopes?: readonly string[] | undefined; readonly context: string; readonly limit?: number | undefined; }'.
-error: script "typecheck" exited with code 1

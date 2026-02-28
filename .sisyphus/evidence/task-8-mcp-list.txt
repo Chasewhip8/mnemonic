@@ -1,3 +1,0 @@
-AST check of MCP tool objects in src/index.ts:
-pattern: { name: $NAME, description: $DESC, inputSchema: $SCHEMA }
-result: Found 13 match(es)

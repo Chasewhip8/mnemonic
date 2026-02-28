@@ -1,5 +1,0 @@
-=== Exports from dist/index.d.ts ===
-export { type ClientOptions, MnemonicClient, type InjectOptions, type InjectResult, type LearnOptions, type Learning, type ListOptions, type QueryOptions, type QueryResult, type Stats, mnemonic as default, mnemonic };
-
-=== Default export ===
-export { type ClientOptions, MnemonicClient, type InjectOptions, type InjectResult, type LearnOptions, type Learning, type ListOptions, type QueryOptions, type QueryResult, type Stats, mnemonic as default, mnemonic };

@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process'
+import { resolve } from 'node:path'
 import { once } from 'node:events'
 import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
@@ -10,7 +11,7 @@ const API_KEY = 'test-key'
 const STARTUP_TIMEOUT_MS = 120_000
 const TEST_TIMEOUT_MS = 240_000
 const REQUIRED_LD_LIBRARY_PATH = '/nix/store/j9nz3m8hqnyjjj5zxz5qvmd35g37rjyi-gcc-15.2.0-lib/lib'
-const SERVER_ROOT = '/home/chase/mnemonic-scope-improvements'
+const SERVER_ROOT = resolve(import.meta.dirname, '../../..')
 
 const RUN_SUFFIX = `${Date.now()}-${process.pid}`
 const DB_PATH = `./data/test-cli-${RUN_SUFFIX}.db`

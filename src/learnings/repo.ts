@@ -1,4 +1,4 @@
-import { and, desc, sql as drizzleSql, eq, inArray, type SQL } from 'drizzle-orm'
+import { and, desc, isNull, sql as drizzleSql, eq, inArray, type SQL } from 'drizzle-orm'
 import { Effect, Schema } from 'effect'
 import { Database } from '../database'
 import {
@@ -77,6 +77,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					created_at: createdAt,
 					last_recalled_at: null,
 					recall_count: 0,
+					deleted_at: null,
 				})
 			})
 
@@ -227,7 +228,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						db
 							.select({ id: schema.learnings.id })
 							.from(schema.learnings)
-							.where(eq(schema.learnings.id, id))
+						.where(and(eq(schema.learnings.id, id), isNull(schema.learnings.deletedAt)))
 							.limit(1),
 				})
 
@@ -260,9 +261,10 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				const results = yield* database.withDb({
 					context: 'learnings.getLearnings',
 					run: (db) => {
+						const baseCondition = isNull(schema.learnings.deletedAt)
 						const scopedQuery = filter?.scope
-							? db.select().from(schema.learnings).where(eq(schema.learnings.scope, filter.scope))
-							: db.select().from(schema.learnings)
+							? db.select().from(schema.learnings).where(and(baseCondition, eq(schema.learnings.scope, filter.scope)))
+							: db.select().from(schema.learnings).where(baseCondition)
 
 						const queryBuilder = filter?.limit ? scopedQuery.limit(filter.limit) : scopedQuery
 						return queryBuilder.orderBy(desc(schema.learnings.createdAt))
@@ -280,6 +282,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						created_at: row.createdAt,
 						last_recalled_at: row.lastRecalledAt,
 						recall_count: row.recallCount,
+						deleted_at: row.deletedAt,
 					}),
 				)
 			})
@@ -287,7 +290,11 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 		const deleteLearning = (id: string) =>
 			database.withDb({
 				context: 'learnings.deleteLearning',
-				run: (db) => db.delete(schema.learnings).where(eq(schema.learnings.id, id)),
+				run: (db) =>
+					db
+						.update(schema.learnings)
+						.set({ deletedAt: new Date().toISOString() })
+						.where(eq(schema.learnings.id, id)),
 			})
 
 		const deleteLearnings = (filters: DeleteLearningsFilters) =>
@@ -315,6 +322,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					return { deleted: 0, ids: [] }
 				}
 
+				conditions.push(isNull(schema.learnings.deletedAt))
 				const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions)
 				const toDelete = yield* database.withDb({
 					context: 'learnings.deleteLearnings.select',
@@ -328,8 +336,12 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 				}
 
 				yield* database.withDb({
-					context: 'learnings.deleteLearnings.delete',
-					run: (db) => db.delete(schema.learnings).where(whereClause),
+					context: 'learnings.deleteLearnings.softDelete',
+					run: (db) =>
+						db
+							.update(schema.learnings)
+							.set({ deletedAt: new Date().toISOString() })
+							.where(whereClause),
 				})
 
 				return { deleted: ids.length, ids }
@@ -343,7 +355,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 						db
 							.select({ id: schema.learnings.id })
 							.from(schema.learnings)
-							.where(eq(schema.learnings.id, id))
+						.where(and(eq(schema.learnings.id, id), isNull(schema.learnings.deletedAt)))
 							.limit(1),
 				})
 
@@ -378,6 +390,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 					created_at: row.createdAt,
 					last_recalled_at: row.lastRecalledAt,
 					recall_count: row.recallCount,
+					deleted_at: row.deletedAt,
 				})
 			})
 
@@ -385,7 +398,7 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 			Effect.gen(function* () {
 				const learningCountResult = yield* database.withDb({
 					context: 'learnings.getStats.learningCount',
-					run: (db) => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.learnings),
+					run: (db) => db.select({ count: drizzleSql<number>`count(*)` }).from(schema.learnings).where(isNull(schema.learnings.deletedAt)),
 				})
 
 				const learningByScope = yield* database.withDb({
@@ -396,8 +409,9 @@ export class LearningsRepo extends Effect.Service<LearningsRepo>()('LearningsRep
 								scope: schema.learnings.scope,
 								count: drizzleSql<number>`count(*)`,
 							})
-							.from(schema.learnings)
-							.groupBy(schema.learnings.scope),
+						.from(schema.learnings)
+						.where(isNull(schema.learnings.deletedAt))
+						.groupBy(schema.learnings.scope),
 				})
 
 				return {

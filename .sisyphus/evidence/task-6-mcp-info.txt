@@ -1,5 +1,0 @@
-bun -e "...GET /mcp + MCP initialize/tools/list info checks..."
-
-get_mcp_status 500
-initialize_server_name mnemonic
-tools_list_length 13

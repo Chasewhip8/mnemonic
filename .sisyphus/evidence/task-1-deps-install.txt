@@ -1,8 +1,0 @@
-bun install v1.3.9 (cf6cdbbb)
-
-$ effect-language-service patch
-[18:50:38.249] INFO (#22): /home/chase/mnemonic/node_modules/typescript/lib/typescript.js is already patched with version 0.75.1, skipped.
-[18:50:38.265] INFO (#22): /home/chase/mnemonic/node_modules/typescript/lib/_tsc.js is already patched with version 0.75.1, skipped.
-[18:50:38.266] INFO (#22): If your project uses incremental builds, delete the .tsbuildinfo files and perform a full build.
-
-1 package installed [227.00ms]

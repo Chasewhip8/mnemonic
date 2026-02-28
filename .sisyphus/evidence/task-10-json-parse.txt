@@ -1,5 +1,0 @@
-=== Evidence: JSON.parse usage (NOT Schema validation) ===
-66:					state: JSON.parse(current.stateJson || '{}'),
-
-=== No Schema.decode* on stored state ===
-(none found - correct)

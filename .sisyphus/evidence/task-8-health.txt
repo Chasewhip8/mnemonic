@@ -1,5 +1,0 @@
-bun run src/index.ts
-error: Could not load the "sharp" module using the linux-arm64 runtime
-ERR_DLOPEN_FAILED: libstdc++.so.6: cannot open shared object file: No such file or directory
-
-Server could not start in this environment, so GET / could not be executed.

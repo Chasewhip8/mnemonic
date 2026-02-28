@@ -1,7 +1,0 @@
-No auth header → 401:
-{"_tag":"Unauthorized"}
-HTTP Status: 401
----
-Correct bearer → 200:
-{"totalLearnings":0,"totalSecrets":0,"scopes":[]}
-HTTP Status: 200

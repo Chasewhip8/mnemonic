@@ -1,3 +1,0 @@
-Search in src/index.ts for Cloudflare-specific references:
-pattern: DurableObject|stub.fetch|ASSETS|scheduled\(|cloudflare|Vectorize|Ai|Fetcher|MnemonicDO
-result: No matches found

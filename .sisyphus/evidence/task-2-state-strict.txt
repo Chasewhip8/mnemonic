@@ -1,7 +1,0 @@
-Command:
-grep -n 'expect(\[200' test/mnemonic.test.ts
-
-Output:
-(no matches)
-
-Result: 0 permissive assertions remain.

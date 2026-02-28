@@ -14,6 +14,7 @@ export const learnings = sqliteTable(
 		createdAt: text('created_at').notNull(),
 		lastRecalledAt: text('last_recalled_at'),
 		recallCount: integer('recall_count').default(0),
+		deletedAt: text('deleted_at'),
 	},
 	(table) => [
 		index('idx_learnings_trigger').on(table.trigger),

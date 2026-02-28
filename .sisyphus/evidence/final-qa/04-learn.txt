@@ -1,1 +1,0 @@
-{"id":"1771901614358-s7ydhnznd","trigger":"when QA runs","learning":"check all endpoints","confidence":0.9,"scope":"session:qa-test","createdAt":"2026-02-24T02:53:34.377Z","recallCount":0}

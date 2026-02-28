@@ -1,4 +1,0 @@
-1:import { customType, sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core';
-3:const f32Blob = customType<{ data: number[] | null; driverData: null }>({
-4:  dataType() { return 'F32_BLOB(384)'; },
-15:  embedding: f32Blob('embedding'),

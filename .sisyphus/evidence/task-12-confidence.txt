@@ -1,2 +1,0 @@
-schema_default_0_8=true
-dispatch_default_0_8=true

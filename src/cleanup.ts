@@ -1,4 +1,4 @@
-import { and, eq, like, sql } from 'drizzle-orm'
+import { and, eq, isNull, like, sql } from 'drizzle-orm'
 import { Cron, Effect, Schedule } from 'effect'
 import { Database } from './database'
 import * as schema from './database/schema'
@@ -24,6 +24,7 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 							and(
 								like(schema.learnings.scope, 'session:%'),
 								sql`${schema.learnings.createdAt} < ${weekAgo}`,
+								isNull(schema.learnings.deletedAt),
 							),
 						),
 			})
@@ -39,6 +40,7 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 								and(
 									like(schema.learnings.scope, 'session:%'),
 									sql`${schema.learnings.createdAt} < ${weekAgo}`,
+									isNull(schema.learnings.deletedAt),
 								),
 							),
 				})
@@ -56,6 +58,7 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 							and(
 								like(schema.learnings.scope, 'agent:%'),
 								sql`${schema.learnings.createdAt} < ${monthAgo}`,
+								isNull(schema.learnings.deletedAt),
 							),
 						),
 			})
@@ -71,6 +74,7 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 								and(
 									like(schema.learnings.scope, 'agent:%'),
 									sql`${schema.learnings.createdAt} < ${monthAgo}`,
+									isNull(schema.learnings.deletedAt),
 								),
 							),
 				})
@@ -89,6 +93,7 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 								eq(schema.learnings.scope, 'shared'),
 								sql`${schema.learnings.lastRecalledAt} IS NULL`,
 								sql`${schema.learnings.createdAt} < ${twoWeeksAgo}`,
+								isNull(schema.learnings.deletedAt),
 							),
 						),
 			})
@@ -107,6 +112,7 @@ export class CleanupService extends Effect.Service<CleanupService>()('CleanupSer
 									eq(schema.learnings.scope, 'shared'),
 									sql`${schema.learnings.lastRecalledAt} IS NULL`,
 									sql`${schema.learnings.createdAt} < ${twoWeeksAgo}`,
+									isNull(schema.learnings.deletedAt),
 								),
 							),
 				})

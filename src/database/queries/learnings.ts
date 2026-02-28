@@ -50,6 +50,7 @@ export function queryLearningsByEmbeddingRaw(
 		db.all<unknown>(sql`SELECT *, vector_distance_cos(embedding, vector32(${embeddingJson})) as distance
 			FROM learnings
 			WHERE scope IN (${sql.join(scopeValues, sql`, `)})
+			AND deleted_at IS NULL
 			ORDER BY distance ASC
 			LIMIT ${limit}`),
 	).then((rows) => rows.map(toLearningRow))
@@ -63,6 +64,7 @@ export function queryLearningNeighborsRaw(
 	return Promise.resolve(
 		db.all<unknown>(sql`SELECT l2.*, vector_distance_cos(l2.embedding, l1.embedding) as distance
 			FROM learnings l1 JOIN learnings l2 ON l1.id = ${id} AND l2.id != ${id}
+			WHERE l2.deleted_at IS NULL
 			ORDER BY distance ASC
 			LIMIT ${limit}`),
 	).then((rows) => rows.map(toLearningRow))
