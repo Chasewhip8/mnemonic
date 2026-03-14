@@ -2,6 +2,12 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.mnemonic;
+  skillFiles = lib.mapAttrs'
+    (name: _: lib.nameValuePair "${cfg.skills.directory}/${name}" {
+      source = "${cfg.skills.package}/${name}";
+      recursive = true;
+    })
+    (lib.filterAttrs (_: type: type == "directory") (builtins.readDir "${cfg.skills.package}"));
 in {
   options.mnemonic = {
     skills = {
@@ -46,10 +52,7 @@ in {
 
   config = lib.mkMerge [
     (lib.mkIf cfg.skills.enable {
-      home.file."${cfg.skills.directory}" = {
-        source = cfg.skills.package;
-        recursive = true;
-      };
+      home.file = skillFiles;
     })
 
     (lib.mkIf cfg.cli.enable {
